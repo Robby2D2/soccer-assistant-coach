@@ -1,0 +1,111 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' as drift;
+import '../../core/providers.dart';
+import '../../utils/csv.dart';
+
+class RosterImportScreen extends ConsumerStatefulWidget {
+  final int teamId;
+  const RosterImportScreen({super.key, required this.teamId});
+  @override
+  ConsumerState<RosterImportScreen> createState() => _RosterImportScreenState();
+}
+
+class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
+  final _text = TextEditingController(
+    text:
+        'firstName,lastName,isPresent\n'
+        'Sam,Keeper,true\n'
+        'Chris,Defender,true\n'
+        'Alex,Forward,false\n',
+  );
+  List<Map<String, String>> _rows = [];
+
+  void _parse() {
+    _rows = csvToPlayers(_text.text);
+    setState(() {});
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _parse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final db = ref.watch(dbProvider);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Import Roster CSV')),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Text(
+              'Paste CSV with header: firstName,lastName,isPresent',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: TextField(
+                controller: _text,
+                expands: true,
+                maxLines: null,
+                minLines: null,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'firstName,lastName,isPresent\nJane,Doe,true',
+                ),
+                onChanged: (_) => _parse(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Preview: ${_rows.length} rows'),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 160,
+              child: ListView.builder(
+                itemCount: _rows.length,
+                itemBuilder: (_, i) {
+                  final r = _rows[i];
+                  return ListTile(
+                    dense: true,
+                    title: Text('${r['firstName']} ${r['lastName']}'),
+                    subtitle: Text('Present: ${r['isPresent']}'),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            FilledButton(
+              onPressed: _rows.isEmpty
+                  ? null
+                  : () async {
+                      for (final r in _rows) {
+                        await db
+                            .into(db.players)
+                            .insert(
+                              PlayersCompanion.insert(
+                                teamId: widget.teamId,
+                                firstName: r['firstName'] ?? '',
+                                lastName: r['lastName'] ?? '',
+                                isPresent: drift.Value(
+                                  (r['isPresent'] ?? 'true') == 'true',
+                                ),
+                              ),
+                            );
+                      }
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
+                    },
+              child: const Text('Import'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
