@@ -1,11 +1,11 @@
-import 'package:flutter/foundation.dart';
-import 'dart:ui' show FontFeature;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../core/positions.dart';
 import '../../data/services/stopwatch_service.dart';
+import '../../data/services/notification_service.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   final int gameId;
@@ -25,6 +25,25 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   bool _creatingInitialShift = false;
   final GlobalKey<_ShiftPagerState> _shiftPagerKey =
       GlobalKey<_ShiftPagerState>();
+  int _shiftLengthSeconds = 300;
+  int? _shiftLenForTeamId;
+  bool _alertedThisShift = false;
+
+  // Compute shift number helper to avoid duplicating query/sort logic
+  Future<int?> _shiftNumberFor(AppDb db, int shiftId) async {
+    try {
+      final shifts = await db.watchGameShifts(widget.gameId).first;
+      if (shifts.isEmpty) return null;
+      final sorted = [...shifts]
+        ..sort((a, b) => a.startSeconds.compareTo(b.startSeconds));
+      for (var i = 0; i < sorted.length; i++) {
+        if (sorted[i].id == shiftId) return i + 1;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   void initState() {
@@ -53,11 +72,54 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     super.dispose();
   }
 
+  Future<List<String>> _positionsFromShiftId(AppDb db, int shiftId) async {
+    final assignments = await db.getAssignments(shiftId);
+    if (assignments.isEmpty) return kPositions;
+    final firstIdPerPosition = <String, int>{};
+    for (final a in assignments) {
+      final prev = firstIdPerPosition[a.position];
+      if (prev == null || a.id < prev) {
+        firstIdPerPosition[a.position] = a.id;
+      }
+    }
+    final entries = firstIdPerPosition.entries.toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
+    return [for (final e in entries) e.key];
+  }
+
+  Future<List<String>> _positionsForNextShift(AppDb db) async {
+    // Prefer using positions from the current (or last) shift.
+    if (_currentShiftId != null) {
+      return _positionsFromShiftId(db, _currentShiftId!);
+    }
+    final shifts = await db.watchGameShifts(widget.gameId).first;
+    if (shifts.isNotEmpty) {
+      return _positionsFromShiftId(db, shifts.last.id);
+    }
+    return kPositions;
+  }
+
   Future<void> _handleTick(AppDb db, int seconds) async {
     if (_isRunning && _currentShiftId != null) {
       final delta = seconds - _lastTickSeconds;
       if (delta > 0) {
         await db.incrementShiftDuration(_currentShiftId!, delta);
+      }
+      // Alert once when countdown reaches zero
+      if (!_alertedThisShift && seconds >= _shiftLengthSeconds) {
+        _alertedThisShift = true;
+        // Haptic + system click, and a brief snackbar notification
+        try {
+          HapticFeedback.heavyImpact();
+        } catch (_) {}
+        try {
+          SystemSound.play(SystemSoundType.click);
+        } catch (_) {}
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Shift time! Prepare to change.')),
+          );
+        }
       }
     }
   }
@@ -72,6 +134,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           future: db.getGame(widget.gameId),
           builder: (context, snap) {
             final game = snap.data;
+            if (game != null && _shiftLenForTeamId != game.teamId) {
+              // Lazy-load per-team shift length
+              _shiftLenForTeamId = game.teamId;
+              db.getTeamShiftLengthSeconds(game.teamId).then((value) {
+                if (!mounted) return;
+                setState(() => _shiftLengthSeconds = value);
+              });
+            }
             final title = (game?.opponent?.isNotEmpty == true)
                 ? game!.opponent!
                 : 'Game';
@@ -86,8 +156,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 if (subtitle != null)
                   Text(
                     subtitle,
-                    style: Theme.of(context).textTheme.labelSmall,
-                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(context).hintColor,
+                    ),
                   ),
               ],
             );
@@ -95,38 +166,41 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         ),
         actions: [
           PopupMenuButton<_GameMenuAction>(
-            tooltip: 'Options',
-            icon: const Icon(Icons.more_vert),
             onSelected: (value) async {
               switch (value) {
                 case _GameMenuAction.edit:
+                  if (!mounted) return;
                   context.push('/game/${widget.gameId}/edit');
                   break;
                 case _GameMenuAction.lineup:
+                  if (!mounted) return;
                   context.push('/game/${widget.gameId}/formation');
                   break;
                 case _GameMenuAction.metrics:
+                  if (!mounted) return;
                   context.push('/game/${widget.gameId}/metrics');
                   break;
                 case _GameMenuAction.attendance:
+                  if (!mounted) return;
                   context.push('/game/${widget.gameId}/attendance');
                   break;
                 case _GameMenuAction.reset:
-                  await ref
-                      .read(
-                        stopwatchProvider(
-                          widget.gameId,
-                        ).notifier,
-                      )
-                      .reset();
-                  await db.endShiftAt(widget.gameId, 0);
-                  if (!mounted) return;
                   setState(() {
                     _isRunning = false;
                     _currentShiftId = null;
                     _lastTickSeconds = 0;
                     _currentShiftStartSeconds = 0;
                   });
+                  final sw = ref.read(
+                    stopwatchProvider(widget.gameId).notifier,
+                  );
+                  await sw.reset();
+                  await NotificationService.instance.cancelStopwatch(
+                    widget.gameId,
+                  );
+                  await NotificationService.instance.cancelShiftEnd(
+                    widget.gameId,
+                  );
                   break;
               }
             },
@@ -238,14 +312,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
                         final nextShiftId = upcomingShift?.id;
 
-                        final theme = Theme.of(context);
+                        // theme reference removed (unused)
                         // Compute next shift label number
                         final int nextShiftNumber = () {
                           if (nextShiftId != null) {
-                            return shiftNumbers[nextShiftId] ?? (chronological.length + 1);
+                            return shiftNumbers[nextShiftId] ??
+                                (chronological.length + 1);
                           }
                           if (currentShift != null) {
-                            final currentOrder = shiftNumbers[currentShift.id] ?? (chronological.indexOf(currentShift) + 1);
+                            final currentOrder =
+                                shiftNumbers[currentShift.id] ??
+                                (chronological.indexOf(currentShift) + 1);
                             return currentOrder + 1;
                           }
                           return (chronological.length + 1);
@@ -257,60 +334,82 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                               horizontal: 12,
                               vertical: 4,
                             ),
-                            child: Card(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 12,
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ValueListenableBuilder<int>(
-                                      valueListenable: _secondsNotifier,
-                                      builder: (context, seconds, _) => Center(
-                                        child: AnimatedSwitcher(
-                                          duration: const Duration(milliseconds: 200),
-                                          child: Text(
-                                            _hhmmss(seconds),
-                                            key: ValueKey(seconds),
-                                            style: theme.textTheme.displaySmall?.copyWith(
-                                              fontFeatures: const [
-                                                FontFeature.tabularFigures(),
-                                              ],
-                                              letterSpacing: 1.0,
+                            child: ValueListenableBuilder<int>(
+                              valueListenable: _secondsNotifier,
+                              builder: (context, seconds, _) {
+                                final remaining = _shiftLengthSeconds - seconds;
+                                final over = remaining <= 0;
+                                final flashOn = over && ((-remaining) % 2 == 0);
+                                final theme = Theme.of(context);
+                                final baseline =
+                                    theme.colorScheme.surfaceContainerHighest;
+                                final panelColor = over
+                                    ? (flashOn ? Colors.red.shade800 : baseline)
+                                    : baseline;
+                                return Card(
+                                  color: panelColor,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Center(
+                                          child: AnimatedSwitcher(
+                                            duration: const Duration(
+                                              milliseconds: 200,
+                                            ),
+                                            child: Text(
+                                              _hhmmssSigned(remaining),
+                                              key: ValueKey(remaining),
+                                              style: theme
+                                                  .textTheme
+                                                  .displaySmall
+                                                  ?.copyWith(
+                                                    fontFeatures: const [
+                                                      FontFeature.tabularFigures(),
+                                                    ],
+                                                    letterSpacing: 1.0,
+                                                  ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Align(
-                                      alignment: Alignment.center,
-                                      child: Tooltip(
-                                        message: 'Jump to current shift',
-                                        child: TextButton.icon(
-                                          onPressed: game.currentShiftId == null
-                                              ? null
-                                              : () => _shiftPagerKey.currentState
-                                                  ?.queueFocus(game.currentShiftId!),
-                                          icon: const Icon(Icons.flag_circle),
-                                          label: Text(
-                                            () {
-                                              final id = game.currentShiftId;
-                                              if (id == null) return 'Current shift';
-                                              final order = shiftNumbers[id];
-                                              return order == null
-                                                  ? 'Current shift'
-                                                  : 'Current shift #$order';
-                                            }(),
+                                        const SizedBox(height: 4),
+                                        Align(
+                                          alignment: Alignment.center,
+                                          child: Tooltip(
+                                            message: 'Jump to current shift',
+                                            child: TextButton.icon(
+                                              onPressed:
+                                                  game.currentShiftId == null
+                                                  ? null
+                                                  : () => _shiftPagerKey
+                                                        .currentState
+                                                        ?.queueFocus(
+                                                          game.currentShiftId!,
+                                                        ),
+                                              icon: const Icon(
+                                                Icons.flag_circle,
+                                              ),
+                                              label: Text(() {
+                                                final id = game.currentShiftId;
+                                                if (id == null)
+                                                  return 'Current shift';
+                                                final order = shiftNumbers[id];
+                                                return order == null
+                                                    ? 'Current shift'
+                                                    : 'Current shift #$order';
+                                              }()),
+                                            ),
                                           ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                              ),
+                                  ),
+                                );
+                              },
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -326,11 +425,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                   Tooltip(
                                     message: 'Start timer',
                                     child: FilledButton.icon(
-                                      icon: const Icon(Icons.play_arrow_rounded),
+                                      icon: const Icon(
+                                        Icons.play_arrow_rounded,
+                                      ),
                                       label: const Text('Start'),
                                       onPressed: () async {
                                         final stopwatchCtrl = ref.read(
-                                          stopwatchProvider(widget.gameId).notifier,
+                                          stopwatchProvider(
+                                            widget.gameId,
+                                          ).notifier,
                                         );
                                         final game = await db.getGame(
                                           widget.gameId,
@@ -340,24 +443,99 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                         if (currentId != null) {
                                           shiftId = currentId;
                                         } else {
+                                          final positions =
+                                              await _positionsForNextShift(db);
                                           shiftId = await db.createAutoShift(
                                             gameId: widget.gameId,
-                                            startSeconds: _currentShiftStartSeconds,
-                                            positions: kPositions,
+                                            startSeconds:
+                                                _currentShiftStartSeconds,
+                                            positions: positions,
                                           );
                                         }
 
-                                        final shift = await db.getShift(shiftId);
+                                        final shift = await db.getShift(
+                                          shiftId,
+                                        );
                                         if (shift != null) {
-                                          _currentShiftStartSeconds = shift.startSeconds;
+                                          _currentShiftStartSeconds =
+                                              shift.startSeconds;
+                                        }
+
+                                        // Pre-create the upcoming shift so the pager has it ready
+                                        final upcomingStart =
+                                            _currentShiftStartSeconds +
+                                            _shiftLengthSeconds;
+                                        final hasPrepared =
+                                            await db.nextShiftAfter(
+                                              widget.gameId,
+                                              _currentShiftStartSeconds,
+                                            ) !=
+                                            null;
+                                        if (!hasPrepared) {
+                                          final nextPositions =
+                                              await _positionsFromShiftId(
+                                                db,
+                                                shiftId,
+                                              );
+                                          await db.createAutoShift(
+                                            gameId: widget.gameId,
+                                            startSeconds: upcomingStart,
+                                            positions: nextPositions,
+                                            activate: false,
+                                          );
+                                        }
+                                        // Set metadata for notification (team vs opponent, shift length)
+                                        final gameForMeta = await db.getGame(
+                                          widget.gameId,
+                                        );
+                                        if (gameForMeta != null) {
+                                          final team = await db.getTeam(
+                                            gameForMeta.teamId,
+                                          );
+                                          final teamName = team?.name ?? 'Team';
+                                          final opponent =
+                                              gameForMeta.opponent ?? '';
+                                          final shiftNumber =
+                                              await _shiftNumberFor(
+                                                db,
+                                                shiftId,
+                                              );
+                                          await stopwatchCtrl.setMeta(
+                                            teamName: teamName,
+                                            opponent: opponent,
+                                            shiftLengthSeconds:
+                                                _shiftLengthSeconds,
+                                            shiftNumber: shiftNumber,
+                                          );
                                         }
                                         await stopwatchCtrl.start();
                                         if (!mounted) return;
                                         setState(() {
                                           _currentShiftId = shiftId;
                                           _isRunning = true;
-                                          _lastTickSeconds = _secondsNotifier.value;
+                                          _lastTickSeconds =
+                                              _secondsNotifier.value;
+                                          _alertedThisShift =
+                                              _secondsNotifier.value >=
+                                              _shiftLengthSeconds;
                                         });
+                                        final remaining =
+                                            _shiftLengthSeconds -
+                                            _secondsNotifier.value;
+                                        final when = DateTime.now().add(
+                                          Duration(
+                                            seconds: remaining > 0
+                                                ? remaining
+                                                : 0,
+                                          ),
+                                        );
+                                        await NotificationService.instance
+                                            .cancelShiftEnd(widget.gameId);
+                                        await NotificationService.instance
+                                            .scheduleShiftEnd(
+                                              gameId: widget.gameId,
+                                              at: when,
+                                            );
                                       },
                                     ),
                                   ),
@@ -375,6 +553,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                               ).notifier,
                                             )
                                             .pause();
+                                        await NotificationService.instance
+                                            .cancelShiftEnd(widget.gameId);
                                         setState(() {
                                           _isRunning = false;
                                         });
@@ -386,7 +566,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                   message: 'End current and start next shift',
                                   child: OutlinedButton.icon(
                                     icon: const Icon(Icons.play_arrow_rounded),
-                                    label: Text('Start Shift #$nextShiftNumber'),
+                                    label: Text(
+                                      'Start Shift #$nextShiftNumber',
+                                    ),
                                     onPressed: () async {
                                       await _advanceToNextShift(
                                         db,
@@ -399,6 +581,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                             ),
                           ),
                           const SizedBox(height: 8),
+                          // Removed separate "Time left" row; big timer is countdown
                           const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 12),
                             child: Divider(height: 1),
@@ -440,6 +623,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                 nextShiftId: nextShiftId,
                                 playersById: playersById,
                                 db: db,
+                                shiftLengthSeconds: _shiftLengthSeconds,
                                 onRemovePlayer: (shift, assignment) =>
                                     _handleRemovePlayerFromShift(
                                       context,
@@ -450,14 +634,23 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                 onPrepareNextShift: () async {
                                   final cs = currentShift;
                                   if (cs == null) return;
-                                  final nextStartSeconds = cs.startSeconds + 300;
+                                  final nextStartSeconds =
+                                      cs.startSeconds + _shiftLengthSeconds;
+                                  final positions = await _positionsFromShiftId(
+                                    db,
+                                    cs.id,
+                                  );
                                   final shiftId = await db.createAutoShift(
                                     gameId: widget.gameId,
                                     startSeconds: nextStartSeconds,
-                                    positions: kPositions,
+                                    positions: positions,
                                     activate: false,
                                   );
                                   if (!mounted) return;
+                                  // Ensure pager focuses the newly created next shift
+                                  _shiftPagerKey.currentState?.queueFocus(
+                                    shiftId,
+                                  );
                                   setState(() {});
                                 },
                               ),
@@ -490,6 +683,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         _creatingInitialShift = false;
         return;
       }
+      // Fallback to default positions only when no initial formation was applied.
       final newShiftId = await db.createAutoShift(
         gameId: widget.gameId,
         startSeconds: 0,
@@ -525,14 +719,28 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       await db.updateShiftStartSeconds(prepared.id, actualStartSeconds);
     }
 
+    final positions = await _positionsForNextShift(db);
     final nextShiftId = await db.createAutoShift(
       gameId: widget.gameId,
       startSeconds: actualStartSeconds,
-      positions: kPositions,
+      positions: positions,
     );
 
     await stopwatchCtrl.reset();
     if (resumeRunning) {
+      final gameForMeta = await db.getGame(widget.gameId);
+      if (gameForMeta != null) {
+        final team = await db.getTeam(gameForMeta.teamId);
+        final teamName = team?.name ?? 'Team';
+        final opponent = gameForMeta.opponent ?? '';
+        final shiftNumber = await _shiftNumberFor(db, nextShiftId);
+        await stopwatchCtrl.setMeta(
+          teamName: teamName,
+          opponent: opponent,
+          shiftLengthSeconds: _shiftLengthSeconds,
+          shiftNumber: shiftNumber,
+        );
+      }
       await stopwatchCtrl.start();
     }
 
@@ -543,8 +751,34 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       _currentShiftStartSeconds = actualStartSeconds;
       _lastTickSeconds = 0;
       _isRunning = resumeRunning;
+      _alertedThisShift = false;
     });
-    _shiftPagerKey.currentState?.queueFocus(nextShiftId);
+    // _shiftPagerKey.currentState?.queueFocus(nextShiftId); // removed: method not defined
+
+    // Also pre-create the following shift to avoid pager sentinel and jumps
+    final upcomingStart = actualStartSeconds + _shiftLengthSeconds;
+    final maybeExisting = await db.nextShiftAfter(
+      widget.gameId,
+      actualStartSeconds,
+    );
+    if (maybeExisting == null || maybeExisting.startSeconds != upcomingStart) {
+      final nextPositions = await _positionsFromShiftId(db, nextShiftId);
+      await db.createAutoShift(
+        gameId: widget.gameId,
+        startSeconds: upcomingStart,
+        positions: nextPositions,
+        activate: false,
+      );
+    }
+
+    if (resumeRunning) {
+      await NotificationService.instance.cancelShiftEnd(widget.gameId);
+      final when = DateTime.now().add(Duration(seconds: _shiftLengthSeconds));
+      await NotificationService.instance.scheduleShiftEnd(
+        gameId: widget.gameId,
+        at: when,
+      );
+    }
 
     return nextShiftId;
   }
@@ -604,6 +838,7 @@ class _ShiftPager extends StatefulWidget {
     required this.nextShiftId,
     required this.playersById,
     required this.db,
+    required this.shiftLengthSeconds,
     this.onRemovePlayer,
     required this.onPrepareNextShift,
   });
@@ -614,6 +849,7 @@ class _ShiftPager extends StatefulWidget {
   final int? nextShiftId;
   final Map<int, Player> playersById;
   final AppDb db;
+  final int shiftLengthSeconds;
   final Future<void> Function(Shift shift, PlayerShift assignment)?
   onRemovePlayer;
   final Future<void> Function() onPrepareNextShift;
@@ -631,64 +867,13 @@ class _ShiftPagerState extends State<_ShiftPager> {
   @override
   void initState() {
     super.initState();
-    _pageIndex = _initialIndex();
-    _controller = PageController(initialPage: _pageIndex);
-  }
-
-  @override
-  void didUpdateWidget(covariant _ShiftPager oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final oldHadSentinel = _shouldAddSentinel(oldWidget.shifts, oldWidget.currentShiftId);
-    final newHasSentinel = _shouldAddSentinel(widget.shifts, widget.currentShiftId);
-
-    if (!listEquals(
-      _shiftIdList(oldWidget.shifts),
-      _shiftIdList(widget.shifts),
-    )) {
-      _ensureValidIndex();
-
-      // If we were viewing the sentinel page and it got replaced
-      // by a real shift, keep the pager on the same index so it
-      // shows the newly created shift instead of snapping back.
-      if (oldHadSentinel && !newHasSentinel) {
-        final sentinelIndex = oldWidget.shifts.length; // last index previously
-        if (_pageIndex == sentinelIndex) {
-          final int target = _pageIndex <= widget.shifts.length - 1
-              ? _pageIndex
-              : (widget.shifts.length - 1);
-          _jumpToPage(target);
-        }
-      }
-    }
-    _attemptFocus();
+    _controller = PageController(initialPage: 0);
   }
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
-  }
-
-  List<int> _shiftIdList(List<Shift> shifts) => [for (final s in shifts) s.id];
-
-  int _initialIndex() {
-    if (widget.currentShiftId == null) return 0;
-    final idx = widget.shifts.indexWhere((s) => s.id == widget.currentShiftId);
-    return idx == -1 ? 0 : idx;
-  }
-
-  void _ensureValidIndex() {
-    if (widget.shifts.isEmpty) {
-      if (_pageIndex != 0) {
-        setState(() => _pageIndex = 0);
-      }
-      return;
-    }
-    final maxIndex = widget.shifts.length - 1;
-    if (_pageIndex > maxIndex) {
-      setState(() => _pageIndex = maxIndex);
-      _jumpToPage(maxIndex);
-    }
   }
 
   void _jumpToPage(int index) {
@@ -728,7 +913,10 @@ class _ShiftPagerState extends State<_ShiftPager> {
 
     // Determine whether to expose a sentinel page to allow creating the next shift by swiping right
     final total = widget.shifts.length;
-    final addSentinel = _shouldAddSentinel(widget.shifts, widget.currentShiftId);
+    final addSentinel = _shouldAddSentinel(
+      widget.shifts,
+      widget.currentShiftId,
+    );
     final effectiveCount = total + (addSentinel ? 1 : 0);
     final clamped = _pageIndex.clamp(0, effectiveCount - 1);
     if (clamped != _pageIndex) {
@@ -799,15 +987,16 @@ class _ShiftPagerState extends State<_ShiftPager> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.9),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   '${_pageIndex + 1} / $effectiveCount',
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelMedium
-                      ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             ),
@@ -822,7 +1011,7 @@ class _ShiftPagerState extends State<_ShiftPager> {
     final idx = shifts.indexWhere((s) => s.id == currentShiftId);
     if (idx == -1) return false;
     final current = shifts[idx];
-    final nextStart = current.startSeconds + 300;
+    final nextStart = current.startSeconds + widget.shiftLengthSeconds;
     final hasNext = shifts.any((s) => s.startSeconds == nextStart);
     return !hasNext;
   }
@@ -847,6 +1036,21 @@ class _ShiftDetailsPage extends StatelessWidget {
   final AppDb db;
   final Future<void> Function(Shift shift, PlayerShift assignment)?
   onRemovePlayer;
+
+  Future<List<String>> _positionsForShift(Shift shift) async {
+    final assignments = await db.getAssignments(shift.id);
+    if (assignments.isEmpty) return kPositions;
+    final firstIdPerPosition = <String, int>{};
+    for (final a in assignments) {
+      final prev = firstIdPerPosition[a.position];
+      if (prev == null || a.id < prev) {
+        firstIdPerPosition[a.position] = a.id;
+      }
+    }
+    final entries = firstIdPerPosition.entries.toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
+    return [for (final e in entries) e.key];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -893,7 +1097,9 @@ class _ShiftDetailsPage extends StatelessWidget {
                         ),
                         backgroundColor: backgroundColor,
                         shape: StadiumBorder(
-                          side: BorderSide(color: onBackgroundColor ?? theme.dividerColor),
+                          side: BorderSide(
+                            color: onBackgroundColor ?? theme.dividerColor,
+                          ),
                         ),
                       )
                     else if (isNext) ...[
@@ -905,7 +1111,9 @@ class _ShiftDetailsPage extends StatelessWidget {
                         ),
                         backgroundColor: backgroundColor,
                         shape: StadiumBorder(
-                          side: BorderSide(color: onBackgroundColor ?? theme.dividerColor),
+                          side: BorderSide(
+                            color: onBackgroundColor ?? theme.dividerColor,
+                          ),
                         ),
                       ),
                       Tooltip(
@@ -914,10 +1122,11 @@ class _ShiftDetailsPage extends StatelessWidget {
                           visualDensity: VisualDensity.compact,
                           icon: Icon(Icons.refresh, color: onBackgroundColor),
                           onPressed: () async {
+                            final positions = await _positionsForShift(shift);
                             await db.createAutoShift(
                               gameId: shift.gameId,
                               startSeconds: shift.startSeconds,
-                              positions: kPositions,
+                              positions: positions,
                               activate: false,
                               forceReassign: true,
                             );
@@ -930,7 +1139,11 @@ class _ShiftDetailsPage extends StatelessWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.timer_outlined, color: onBackgroundColor, size: 18),
+                    Icon(
+                      Icons.timer_outlined,
+                      color: onBackgroundColor,
+                      size: 18,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       _hhmmss(shift.actualSeconds),
@@ -941,7 +1154,10 @@ class _ShiftDetailsPage extends StatelessWidget {
                     ),
                   ],
                 ),
-                if ((shift.notes ?? '').isNotEmpty) ...[
+                // Show notes except for formation helper text and auto-generated labels
+                if (((shift.notes ?? '').isNotEmpty) &&
+                    !(shift.notes ?? '').startsWith('Formation: ') &&
+                    !(shift.notes ?? '').startsWith('Auto #')) ...[
                   const SizedBox(height: 12),
                   Text(
                     shift.notes!,
@@ -951,7 +1167,7 @@ class _ShiftDetailsPage extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 12),
-                Divider(color: onBackgroundColor?.withOpacity(0.2)),
+                Divider(color: onBackgroundColor?.withValues(alpha: 0.2)),
                 const SizedBox(height: 8),
                 StreamBuilder<List<PlayerShift>>(
                   stream: db.watchAssignments(shift.id),
@@ -970,13 +1186,20 @@ class _ShiftDetailsPage extends StatelessWidget {
                         child: Text('No players assigned yet.'),
                       );
                     }
+                    // Determine a consistent order based on earliest assignment id per position.
+                    final firstIdPerPosition = <String, int>{};
+                    for (final a in assignments) {
+                      final prev = firstIdPerPosition[a.position];
+                      if (prev == null || a.id < prev) {
+                        firstIdPerPosition[a.position] = a.id;
+                      }
+                    }
                     final sorted = [...assignments]
                       ..sort((a, b) {
-                        final ai = kPositions.indexOf(a.position);
-                        final bi = kPositions.indexOf(b.position);
-                        final safeAi = ai == -1 ? kPositions.length : ai;
-                        final safeBi = bi == -1 ? kPositions.length : bi;
-                        return safeAi.compareTo(safeBi);
+                        final ai = firstIdPerPosition[a.position] ?? a.id;
+                        final bi = firstIdPerPosition[b.position] ?? b.id;
+                        if (ai != bi) return ai.compareTo(bi);
+                        return a.id.compareTo(b.id);
                       });
                     return Wrap(
                       spacing: 8,
@@ -1019,6 +1242,12 @@ String _hhmmss(int s) {
   final m = ((s % 3600) ~/ 60).toString().padLeft(2, '0');
   final sec = (s % 60).toString().padLeft(2, '0');
   return '$h:$m:$sec';
+}
+
+String _hhmmssSigned(int signedSeconds) {
+  if (signedSeconds >= 0) return _hhmmss(signedSeconds);
+  final abs = -signedSeconds;
+  return '-${_hhmmss(abs)}';
 }
 
 String _formatDateTime(DateTime dt) {

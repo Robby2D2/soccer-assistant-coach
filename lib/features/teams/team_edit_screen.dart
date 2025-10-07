@@ -11,6 +11,7 @@ class TeamEditScreen extends ConsumerStatefulWidget {
 
 class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
   final _name = TextEditingController();
+  final _shiftMinutes = TextEditingController(text: '5');
 
   @override
   void initState() {
@@ -21,6 +22,11 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
       setState(() {
         _name.text = team.name;
       });
+    });
+    db.getTeamShiftLengthSeconds(widget.teamId).then((secs) {
+      if (!mounted) return;
+      final mins = (secs ~/ 60);
+      setState(() => _shiftMinutes.text = mins.toString());
     });
   }
 
@@ -34,6 +40,13 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
         child: Column(
           children: [
             TextField(controller: _name, decoration: const InputDecoration(labelText: 'Team name')),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _shiftMinutes,
+              decoration: const InputDecoration(labelText: 'Default shift length (minutes)')
+                  .copyWith(helperText: 'Used when auto-creating next shifts'),
+              keyboardType: TextInputType.number,
+            ),
             const SizedBox(height: 16),
             FilledButton.icon(
               icon: const Icon(Icons.save),
@@ -42,6 +55,10 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
                 final name = _name.text.trim();
                 if (name.isEmpty) return;
                 await db.updateTeamName(widget.teamId, name);
+                final mins = int.tryParse(_shiftMinutes.text.trim());
+                if (mins != null && mins > 0) {
+                  await db.setTeamShiftLengthSeconds(widget.teamId, mins * 60);
+                }
                 if (!context.mounted) return;
                 Navigator.pop(context);
               },
