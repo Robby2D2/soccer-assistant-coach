@@ -5,7 +5,12 @@ import '../../core/providers.dart';
 
 class GameEditScreen extends ConsumerStatefulWidget {
   final int gameId;
-  const GameEditScreen({super.key, required this.gameId});
+  final bool basicOnly; // if true: only edit opponent + date/time
+  const GameEditScreen({
+    super.key,
+    required this.gameId,
+    this.basicOnly = false,
+  });
   @override
   ConsumerState<GameEditScreen> createState() => _GameEditScreenState();
 }
@@ -18,6 +23,8 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
   final Set<int> _presentPlayerIds = <int>{};
   bool _loading = true;
   bool _saving = false;
+  int? _selectedFormationId;
+  bool _formationAutoSet = false;
 
   @override
   void initState() {
@@ -129,44 +136,130 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Expanded(
-                    child: _players.isEmpty
-                        ? const Center(
-                            child: Text('No players found for this team.'),
-                          )
-                        : ListView.separated(
-                            itemCount: _players.length,
-                            separatorBuilder: (_, __) => const Divider(height: 0),
-                            itemBuilder: (_, index) {
-                              final player = _players[index];
-                              final present = _presentPlayerIds.contains(player.id);
-                              return SwitchListTile(
-                                title: Text('${player.firstName} ${player.lastName}'),
-                                subtitle: Text('Player ID: ${player.id}'),
-                                value: present,
-                                onChanged: _saving
-                                    ? null
-                                    : (value) {
-                                        setState(() {
-                                          if (value) {
-                                            _presentPlayerIds.add(player.id);
-                                          } else {
-                                            _presentPlayerIds.remove(player.id);
-                                          }
-                                        });
-                                      },
+                  const SizedBox(height: 12),
+                  if (_teamId != null && !widget.basicOnly)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: StreamBuilder<List<Formation>>(
+                            stream: ref
+                                .read(dbProvider)
+                                .watchTeamFormations(_teamId!),
+                            builder: (context, snap) {
+                              final formations =
+                                  snap.data ?? const <Formation>[];
+                              // Auto-select a sensible default when creating a game
+                              if (!_formationAutoSet &&
+                                  _selectedFormationId == null &&
+                                  formations.isNotEmpty) {
+                                () async {
+                                  final db = ref.read(dbProvider);
+                                  final best = await db
+                                      .mostUsedFormationIdForTeam(_teamId!);
+                                  if (!mounted) return;
+                                  setState(() {
+                                    _selectedFormationId =
+                                        best ?? formations.first.id;
+                                    _formationAutoSet = true;
+                                  });
+                                }();
+                              }
+                              final items = <DropdownMenuItem<int?>>[
+                                const DropdownMenuItem<int?>(
+                                  value: null,
+                                  child: Text('No formation'),
+                                ),
+                                ...formations.map(
+                                  (f) => DropdownMenuItem<int?>(
+                                    value: f.id,
+                                    child: Text(f.name),
+                                  ),
+                                ),
+                              ];
+                              return InputDecorator(
+                                decoration: const InputDecoration(
+                                  labelText: 'Formation',
+                                  border: OutlineInputBorder(),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<int?>(
+                                    isExpanded: true,
+                                    value: _selectedFormationId,
+                                    items: items,
+                                    onChanged: _saving
+                                        ? null
+                                        : (v) => setState(
+                                            () => _selectedFormationId = v,
+                                          ),
+                                  ),
+                                ),
                               );
                             },
                           ),
-                  ),
+                        ),
+                        const SizedBox(width: 8),
+                        Tooltip(
+                          message: 'Manage formations',
+                          child: OutlinedButton.icon(
+                            onPressed: _saving || _teamId == null
+                                ? null
+                                : () => context.push(
+                                    '/team/${_teamId!}/formations',
+                                  ),
+                            icon: const Icon(Icons.grid_view_rounded),
+                            label: const Text('Manage'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  if (!widget.basicOnly)
+                    Expanded(
+                      child: _players.isEmpty
+                          ? const Center(
+                              child: Text('No players found for this team.'),
+                            )
+                          : ListView.separated(
+                              itemCount: _players.length,
+                              separatorBuilder: (_, __) =>
+                                  const Divider(height: 0),
+                              itemBuilder: (_, index) {
+                                final player = _players[index];
+                                final present = _presentPlayerIds.contains(
+                                  player.id,
+                                );
+                                return SwitchListTile(
+                                  title: Text(
+                                    '${player.firstName} ${player.lastName}',
+                                  ),
+                                  subtitle: Text('Player ID: ${player.id}'),
+                                  value: present,
+                                  onChanged: _saving
+                                      ? null
+                                      : (value) {
+                                          setState(() {
+                                            if (value) {
+                                              _presentPlayerIds.add(player.id);
+                                            } else {
+                                              _presentPlayerIds.remove(
+                                                player.id,
+                                              );
+                                            }
+                                          });
+                                        },
+                                );
+                              },
+                            ),
+                    ),
                   const SizedBox(height: 16),
                   FilledButton.icon(
                     icon: _saving
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Icon(Icons.save),
                     label: const Text('Save'),
@@ -180,13 +273,54 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                               opponent: _opp.text.trim(),
                               startTime: _start,
                             );
-                            for (final player in _players) {
-                              final present = _presentPlayerIds.contains(player.id);
-                              await db.setAttendance(
-                                gameId: widget.gameId,
-                                playerId: player.id,
-                                isPresent: present,
-                              );
+                            if (!widget.basicOnly) {
+                              for (final player in _players) {
+                                final present = _presentPlayerIds.contains(
+                                  player.id,
+                                );
+                                await db.setAttendance(
+                                  gameId: widget.gameId,
+                                  playerId: player.id,
+                                  isPresent: present,
+                                );
+                              }
+
+                              // If a formation is selected and no shifts exist yet, create initial lineup
+                              if (_selectedFormationId != null) {
+                                final existingShifts = await db
+                                    .watchGameShifts(widget.gameId)
+                                    .first;
+                                if (existingShifts.isEmpty) {
+                                  final f = await db.getFormation(
+                                    _selectedFormationId!,
+                                  );
+                                  if (f != null) {
+                                    final positions = await db
+                                        .getFormationPositions(f.id);
+                                    final present = await db
+                                        .presentPlayersForGame(
+                                          widget.gameId,
+                                          _teamId!,
+                                        );
+                                    final applyCount =
+                                        present.length < positions.length
+                                        ? present.length
+                                        : positions.length;
+                                    final shiftId = await db.startShift(
+                                      widget.gameId,
+                                      0,
+                                      notes: 'Formation: ${f.name}',
+                                    );
+                                    for (var i = 0; i < applyCount; i++) {
+                                      await db.setPlayerPosition(
+                                        shiftId: shiftId,
+                                        playerId: present[i].id,
+                                        position: positions[i].positionName,
+                                      );
+                                    }
+                                  }
+                                }
+                              }
                             }
                             if (!context.mounted) return;
                             context.go('/game/${widget.gameId}');

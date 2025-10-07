@@ -11,13 +11,18 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        // Needed for some libraries (e.g., flutter_local_notifications) that rely on newer
+        // Java time APIs on older Android API levels.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        // Align Kotlin JVM target with Java 17
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
+
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
@@ -41,4 +46,12 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// Configure toolchains (must be outside android block)
+// Toolchain blocks removed to rely on the JAVA_HOME JDK directly.
+
+dependencies {
+    // Desugar JDK libs for java.time & other newer APIs on older Android versions
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }

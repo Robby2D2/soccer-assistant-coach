@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' show FontFeature;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../utils/files.dart';
@@ -29,7 +28,9 @@ class MetricsScreen extends ConsumerWidget {
               }
               final playedSeconds = await db.playedSecondsByPlayer(gameId);
               final buffer = StringBuffer();
-              buffer.writeln('playerId,firstName,lastName,minutesPlayed,GOAL,ASSIST,SAVE');
+              buffer.writeln(
+                'playerId,firstName,lastName,minutesPlayed,GOAL,ASSIST,SAVE',
+              );
               for (final p in players) {
                 final mp = per[p.id] ?? const {};
                 final minutes = (playedSeconds[p.id] ?? 0) / 60.0;
@@ -77,7 +78,8 @@ class MetricsScreen extends ConsumerWidget {
                   return StreamBuilder<Map<int, int>>(
                     stream: db.watchPlayedSecondsByPlayer(gameId),
                     builder: (context, playedSnap) {
-                      final playedSeconds = playedSnap.data ?? const <int, int>{};
+                      final playedSeconds =
+                          playedSnap.data ?? const <int, int>{};
                       return ListView.separated(
                         itemCount: players.length + 1,
                         separatorBuilder: (_, __) => const Divider(height: 0),
@@ -98,13 +100,16 @@ class MetricsScreen extends ConsumerWidget {
                                 child: Padding(
                                   padding: const EdgeInsets.all(12),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
                                     children: [
                                       const ListTile(
                                         contentPadding: EdgeInsets.zero,
                                         leading: Icon(Icons.bar_chart),
                                         title: Text('Play Time'),
-                                        subtitle: Text('Total time per player in this game'),
+                                        subtitle: Text(
+                                          'Total time per player in this game',
+                                        ),
                                       ),
                                       _PlaytimeBarChart(
                                         entries: entries,
@@ -120,7 +125,9 @@ class MetricsScreen extends ConsumerWidget {
                           final p = players[i - 1];
                           final mv = agg[p.id] ?? const {};
                           final seconds = playedSeconds[p.id] ?? 0;
-                          final minutesText = (seconds / 60.0).toStringAsFixed(1);
+                          final minutesText = (seconds / 60.0).toStringAsFixed(
+                            1,
+                          );
                           return ListTile(
                             title: Text('${p.firstName} ${p.lastName}'),
                             subtitle: Text(
@@ -171,21 +178,20 @@ class MetricsScreen extends ConsumerWidget {
 }
 
 class _PlaytimeBarChart extends StatelessWidget {
-  const _PlaytimeBarChart({
-    required this.entries,
-    required this.playersById,
-  });
+  const _PlaytimeBarChart({required this.entries, required this.playersById});
 
   final List<MapEntry<int, int>> entries; // playerId -> seconds
   final Map<int, Player> playersById;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    // theme variable removed (unused)
     if (entries.isEmpty) {
       return const SizedBox.shrink();
     }
-    final maxSeconds = entries.map((e) => e.value).fold<int>(0, (p, c) => c > p ? c : p);
+    final maxSeconds = entries
+        .map((e) => e.value)
+        .fold<int>(0, (p, c) => c > p ? c : p);
     if (maxSeconds <= 0) {
       return const SizedBox.shrink();
     }
@@ -226,7 +232,7 @@ class _PlaytimeBarRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = theme.colorScheme.primary;
-    final surfaceVariant = theme.colorScheme.surfaceVariant;
+    final surfaceVariant = theme.colorScheme.surfaceContainerHighest;
     final onSurfaceVariant = theme.colorScheme.onSurfaceVariant;
     final name = player == null
         ? 'Player #?'
@@ -265,7 +271,7 @@ class _PlaytimeBarRow extends StatelessWidget {
                 Container(
                   width: barMaxWidth,
                   decoration: BoxDecoration(
-                    color: surfaceVariant.withOpacity(0.6),
+                    color: surfaceVariant.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(6),
                   ),
                 ),

@@ -22,11 +22,17 @@ class AppDb extends _$AppDb {
   AppDb()
     : super(SqfliteQueryExecutor.inDatabaseFolder(path: 'soccer_manager.db'));
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (m) async => m.createAll(),
+    onCreate: (m) async {
+      await m.createAll();
+      // Add team-level shift length setting (seconds), default 300
+      await customStatement(
+        'ALTER TABLE teams ADD COLUMN shift_length_seconds INTEGER NOT NULL DEFAULT 300',
+      );
+    },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
         await m.createTable(gamePlayers);
@@ -44,6 +50,11 @@ class AppDb extends _$AppDb {
       if (from < 6) {
         await m.createTable(formations);
         await m.createTable(formationPositions);
+      }
+      if (from < 7) {
+        await customStatement(
+          'ALTER TABLE teams ADD COLUMN shift_length_seconds INTEGER NOT NULL DEFAULT 300',
+        );
       }
     },
   );
@@ -70,9 +81,30 @@ extension TeamQueries on AppDb {
       (update(teams)..where((t) => t.id.equals(id))).write(
         TeamsCompanion(isArchived: Value(archived)),
       );
+
+  Future<int> getTeamShiftLengthSeconds(int teamId) async {
+    final row = await customSelect(
+      'SELECT COALESCE(shift_length_seconds, 300) AS sl FROM teams WHERE id = ?',
+      variables: [Variable<int>(teamId)],
+      readsFrom: {teams},
+    ).getSingleOrNull();
+    return row?.read<int>('sl') ?? 300;
+  }
+
+  Future<void> setTeamShiftLengthSeconds(int teamId, int seconds) async {
+    if (seconds <= 0) seconds = 300;
+    await customUpdate(
+      'UPDATE teams SET shift_length_seconds = ? WHERE id = ?',
+      variables: [Variable<int>(seconds), Variable<int>(teamId)],
+      updates: {teams},
+    );
+  }
 }
 
 extension FormationQueries on AppDb {
+  Future<Formation?> getFormation(int id) =>
+      (select(formations)..where((f) => f.id.equals(id))).getSingleOrNull();
+
   Future<int> createFormation({
     required int teamId,
     required String name,
@@ -98,6 +130,34 @@ extension FormationQueries on AppDb {
     return formationId;
   }
 
+  Future<void> updateFormation({
+    required int id,
+    required String name,
+    required int playerCount,
+    required List<String> positions,
+  }) async {
+    await transaction(() async {
+      await (update(formations)..where((f) => f.id.equals(id))).write(
+        FormationsCompanion(
+          name: Value(name),
+          playerCount: Value(playerCount),
+        ),
+      );
+      await (delete(formationPositions)
+            ..where((fp) => fp.formationId.equals(id)))
+          .go();
+      for (var i = 0; i < positions.length; i++) {
+        await into(formationPositions).insert(
+          FormationPositionsCompanion.insert(
+            formationId: id,
+            index: i,
+            positionName: positions[i],
+          ),
+        );
+      }
+    });
+  }
+
   Future<void> deleteFormation(int formationId) async {
     await (delete(formationPositions)
           ..where((fp) => fp.formationId.equals(formationId)))
@@ -116,6 +176,33 @@ extension FormationQueries on AppDb {
             ..where((fp) => fp.formationId.equals(formationId))
             ..orderBy([(fp) => OrderingTerm.asc(fp.index)]))
           .get();
+
+  /// Heuristic: most-used formation for a team based on shift notes saved as
+  /// `Formation: <name>`. Returns null if no formations exist.
+  Future<int?> mostUsedFormationIdForTeam(int teamId) async {
+    final list = await getTeamFormations(teamId);
+    if (list.isEmpty) return null;
+    int? bestId;
+    int bestCount = -1;
+    for (final f in list) {
+      final rows = await customSelect(
+        'SELECT COUNT(*) AS c FROM shifts s '
+        'INNER JOIN games g ON g.id = s.game_id '
+        'WHERE g.team_id = ? AND s.notes = ?',
+        variables: [
+          Variable<int>(teamId),
+          Variable<String>('Formation: ${f.name}'),
+        ],
+        readsFrom: {shifts, games},
+      ).get();
+      final c = rows.isEmpty ? 0 : (rows.first.read<int?>('c') ?? 0);
+      if (c > bestCount) {
+        bestCount = c;
+        bestId = f.id;
+      }
+    }
+    return bestId;
+  }
 }
 
 extension PlayerQueries on AppDb {
@@ -481,7 +568,7 @@ extension AutoRotation on AppDb {
 
     final totalShifts = await _shiftCount(gameId);
     final present = await presentPlayersForGame(gameId, game.teamId);
-    final players = List.of(present);
+    var players = List.of(present);
 
     int shiftId;
     final sequenceIndex = existing != null ? (totalShifts - 1) : totalShifts;
@@ -574,6 +661,16 @@ extension AutoRotation on AppDb {
       }
     }
 
+    // Assume players in the previous shift will have played one full shift
+    // by the time the next shift starts. This helps avoid back-to-back
+    // assignments when creating the upcoming shift before real time elapses.
+    if (previousShift != null) {
+      final assumedShiftSeconds = await getTeamShiftLengthSeconds(game.teamId);
+      for (final id in previousShiftPlayers) {
+        playedSeconds[id] = (playedSeconds[id] ?? 0) + assumedShiftSeconds;
+      }
+    }
+
     final benchSeconds = playedSeconds.values
         .where((value) => value > 0)
         .toList();
@@ -586,6 +683,14 @@ extension AutoRotation on AppDb {
           playedSeconds[player.id] = averageSeconds;
         }
       }
+    }
+
+    // Hard avoid back-to-back if we have enough players to fill all positions.
+    final slots = positions.length;
+    final nonBackToBack =
+        players.where((p) => !previousShiftPlayers.contains(p.id)).toList();
+    if (nonBackToBack.length >= slots) {
+      players = nonBackToBack;
     }
 
     players.sort((a, b) {
