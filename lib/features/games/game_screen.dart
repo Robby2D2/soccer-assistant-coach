@@ -522,20 +522,22 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                         final remaining =
                                             _shiftLengthSeconds -
                                             _secondsNotifier.value;
-                                        final when = DateTime.now().add(
-                                          Duration(
-                                            seconds: remaining > 0
-                                                ? remaining
-                                                : 0,
-                                          ),
-                                        );
-                                        await NotificationService.instance
-                                            .cancelShiftEnd(widget.gameId);
-                                        await NotificationService.instance
-                                            .scheduleShiftEnd(
-                                              gameId: widget.gameId,
-                                              at: when,
-                                            );
+                                        if (remaining > 0) {
+                                          final when = DateTime.now().add(
+                                            Duration(seconds: remaining),
+                                          );
+                                          await NotificationService.instance
+                                              .cancelShiftEnd(widget.gameId);
+                                          await NotificationService.instance
+                                              .scheduleShiftEnd(
+                                                gameId: widget.gameId,
+                                                at: when,
+                                              );
+                                        } else {
+                                          // No future shift-end notification if already at/over time
+                                          await NotificationService.instance
+                                              .cancelShiftEnd(widget.gameId);
+                                        }
                                       },
                                     ),
                                   ),
@@ -773,11 +775,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     if (resumeRunning) {
       await NotificationService.instance.cancelShiftEnd(widget.gameId);
-      final when = DateTime.now().add(Duration(seconds: _shiftLengthSeconds));
-      await NotificationService.instance.scheduleShiftEnd(
-        gameId: widget.gameId,
-        at: when,
-      );
+      if (_shiftLengthSeconds > 0) {
+        final when = DateTime.now().add(Duration(seconds: _shiftLengthSeconds));
+        await NotificationService.instance.scheduleShiftEnd(
+          gameId: widget.gameId,
+          at: when,
+        );
+      }
     }
 
     return nextShiftId;

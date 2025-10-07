@@ -77,6 +77,12 @@ class NotificationService {
     String body = 'Time to change lines',
   }) async {
     if (!_initialized) await init();
+    // Ensure target time is in the future (plugin throws if not)
+    final now = DateTime.now();
+    if (!at.isAfter(now)) {
+      // Nudge at least 1 second into future to avoid ArgumentError
+      at = now.add(const Duration(seconds: 1));
+    }
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
         'shift_alerts',
@@ -143,6 +149,8 @@ class NotificationService {
       presentAlert: false,
       presentBadge: false,
       presentSound: false,
+      interruptionLevel: InterruptionLevel.passive,
+      threadIdentifier: 'stopwatch_thread',
     );
     await _plugin.show(
       _stopwatchNotifId + gameId,

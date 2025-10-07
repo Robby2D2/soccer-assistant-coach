@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'notification_service.dart';
 
@@ -19,6 +21,7 @@ class StopwatchCtrl extends StateNotifier<int> {
   int? _shiftNumber;
   int _lastNotifiedSecond = -1;
   bool _sentZeroBoundary = false;
+  int _lastIosBucket = -1; // 30-second bucket marker for iOS throttling
 
   String get _prefKey => 'timer_started_at_$gameId';
   String get _elapsedKey => 'timer_elapsed_$gameId';
@@ -96,17 +99,30 @@ class StopwatchCtrl extends StateNotifier<int> {
           : _opponent.isEmpty
           ? _teamName
           : '$_teamName vs $_opponent';
+      final bool isIOS =
+          defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS;
       final shouldNotify = () {
-        // Always notify first tick after start
+        // First tick always
         if (_lastNotifiedSecond == -1) return true;
-        // Notify when crossing zero boundary (entering overtime) exactly once at boundary
+        // Zero boundary (start of overtime)
         if (!_sentZeroBoundary && remaining <= 0) {
           _sentZeroBoundary = true;
           return true;
         }
-        // Every 5-second interval (e.g., 295, 290, ... or overtime 5,10,15 over)
-        if (state % 5 == 0) return true;
-        return false;
+        if (isIOS) {
+          // Throttle to every 30s bucket (e.g., remaining 300,270,240,... or overtime 0,+30,+60 ...)
+          final bucket = state ~/ 30; // elapsed buckets
+          if (bucket != _lastIosBucket) {
+            _lastIosBucket = bucket;
+            return true;
+          }
+          return false;
+        } else {
+          // Android: every 5 seconds
+          if (state % 5 == 0) return true;
+          return false;
+        }
       }();
       if (shouldNotify) {
         _lastNotifiedSecond = state;
@@ -138,6 +154,7 @@ class StopwatchCtrl extends StateNotifier<int> {
     _startedAt = null;
     _lastNotifiedSecond = -1;
     _sentZeroBoundary = false;
+    _lastIosBucket = -1;
     final p = await SharedPreferences.getInstance();
     await p.remove(_prefKey);
     await p.remove(_elapsedKey);
