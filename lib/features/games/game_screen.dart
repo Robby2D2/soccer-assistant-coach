@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/providers.dart';
 import '../../core/positions.dart';
 import '../../data/services/stopwatch_service.dart';
@@ -17,17 +18,19 @@ class GameScreen extends ConsumerStatefulWidget {
 class _GameScreenState extends ConsumerState<GameScreen> {
   late final ValueNotifier<int> _secondsNotifier;
   late final ProviderSubscription<int> _stopwatchSubscription;
-  bool _isRunning = false;
+  late final ValueNotifier<bool> _isRunningNotifier;
+  bool get _isRunning => _isRunningNotifier.value;
+  set _isRunning(bool value) => _isRunningNotifier.value = value;
   int _lastTickSeconds = 0;
   int? _currentShiftId;
   int _currentShiftStartSeconds = 0;
   bool _initialShiftCreated = false;
   bool _creatingInitialShift = false;
-  final GlobalKey<_ShiftPagerState> _shiftPagerKey =
-      GlobalKey<_ShiftPagerState>();
   int _shiftLengthSeconds = 300;
   int? _shiftLenForTeamId;
   bool _alertedThisShift = false;
+  final GlobalKey<_ShiftsListState> _shiftsListKey =
+      GlobalKey<_ShiftsListState>();
 
   // Compute shift number helper to avoid duplicating query/sort logic
   Future<int?> _shiftNumberFor(AppDb db, int shiftId) async {
@@ -51,7 +54,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     _secondsNotifier = ValueNotifier<int>(
       ref.read(stopwatchProvider(widget.gameId)),
     );
+    _isRunningNotifier = ValueNotifier<bool>(false);
     _lastTickSeconds = _secondsNotifier.value;
+    _checkInitialRunningState();
     _stopwatchSubscription = ref.listenManual<int>(
       stopwatchProvider(widget.gameId),
       (previous, next) {
@@ -65,10 +70,18 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
+  Future<void> _checkInitialRunningState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final startedAtKey = 'timer_started_at_${widget.gameId}';
+    final isRunning = prefs.getInt(startedAtKey) != null;
+    _isRunning = isRunning;
+  }
+
   @override
   void dispose() {
     _stopwatchSubscription.close();
     _secondsNotifier.dispose();
+    _isRunningNotifier.dispose();
     super.dispose();
   }
 
@@ -185,6 +198,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   context.push('/game/${widget.gameId}/attendance');
                   break;
                 case _GameMenuAction.reset:
+                  // Update local state with setState to ensure UI updates for reset
                   setState(() {
                     _isRunning = false;
                     _currentShiftId = null;
@@ -379,30 +393,40 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                         const SizedBox(height: 4),
                                         Align(
                                           alignment: Alignment.center,
-                                          child: Tooltip(
-                                            message: 'Jump to current shift',
-                                            child: TextButton.icon(
-                                              onPressed:
-                                                  game.currentShiftId == null
-                                                  ? null
-                                                  : () => _shiftPagerKey
-                                                        .currentState
-                                                        ?.queueFocus(
-                                                          game.currentShiftId!,
-                                                        ),
-                                              icon: const Icon(
-                                                Icons.flag_circle,
-                                              ),
-                                              label: Text(() {
-                                                final id = game.currentShiftId;
+                                          child: GestureDetector(
+                                            onTap: () {
+                                              final currentShiftId =
+                                                  _currentShiftId ??
+                                                  game.currentShiftId;
+                                              if (currentShiftId != null) {
+                                                _shiftsListKey.currentState
+                                                    ?.scrollToShift(
+                                                      currentShiftId,
+                                                    );
+                                              }
+                                            },
+                                            child: Text(
+                                              () {
+                                                final id =
+                                                    _currentShiftId ??
+                                                    game.currentShiftId;
                                                 if (id == null) {
-                                                  return 'Current shift';
+                                                  return 'No current shift';
                                                 }
                                                 final order = shiftNumbers[id];
                                                 return order == null
                                                     ? 'Current shift'
                                                     : 'Current shift #$order';
-                                              }()),
+                                              }(),
+                                              style: theme.textTheme.bodyMedium
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w500,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .primary,
+                                                    decoration: TextDecoration
+                                                        .underline,
+                                                  ),
                                             ),
                                           ),
                                         ),
@@ -416,102 +440,108 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                           const SizedBox(height: 8),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: OverflowBar(
-                              alignment: MainAxisAlignment.center,
-                              overflowAlignment: OverflowBarAlignment.center,
-                              spacing: 12,
-                              overflowSpacing: 8,
-                              children: [
-                                if (!_isRunning)
-                                  Tooltip(
-                                    message: 'Start timer',
-                                    child: FilledButton.icon(
-                                      icon: const Icon(
-                                        Icons.play_arrow_rounded,
-                                      ),
-                                      label: const Text('Start'),
-                                      onPressed: () async {
-                                        final stopwatchCtrl = ref.read(
-                                          stopwatchProvider(
-                                            widget.gameId,
-                                          ).notifier,
-                                        );
-                                        final game = await db.getGame(
-                                          widget.gameId,
-                                        );
-                                        final int shiftId;
-                                        final currentId = game?.currentShiftId;
-                                        if (currentId != null) {
-                                          shiftId = currentId;
-                                        } else {
-                                          final positions =
-                                              await _positionsForNextShift(db);
-                                          shiftId = await db.createAutoShift(
-                                            gameId: widget.gameId,
-                                            startSeconds:
-                                                _currentShiftStartSeconds,
-                                            positions: positions,
-                                          );
-                                        }
-
-                                        final shift = await db.getShift(
-                                          shiftId,
-                                        );
-                                        if (shift != null) {
-                                          _currentShiftStartSeconds =
-                                              shift.startSeconds;
-                                        }
-
-                                        // Pre-create the upcoming shift so the pager has it ready
-                                        final upcomingStart =
-                                            _currentShiftStartSeconds +
-                                            _shiftLengthSeconds;
-                                        final hasPrepared =
-                                            await db.nextShiftAfter(
+                            child: ValueListenableBuilder<bool>(
+                              valueListenable: _isRunningNotifier,
+                              builder: (context, isRunning, _) => OverflowBar(
+                                alignment: MainAxisAlignment.center,
+                                overflowAlignment: OverflowBarAlignment.center,
+                                spacing: 12,
+                                overflowSpacing: 8,
+                                children: [
+                                  if (!isRunning)
+                                    Tooltip(
+                                      message: 'Start timer',
+                                      child: FilledButton.icon(
+                                        icon: const Icon(
+                                          Icons.play_arrow_rounded,
+                                        ),
+                                        label: const Text('Start'),
+                                        onPressed: () async {
+                                          final stopwatchCtrl = ref.read(
+                                            stopwatchProvider(
                                               widget.gameId,
-                                              _currentShiftStartSeconds,
-                                            ) !=
-                                            null;
-                                        if (!hasPrepared) {
-                                          final nextPositions =
-                                              await _positionsFromShiftId(
-                                                db,
-                                                shiftId,
-                                              );
-                                          await db.createAutoShift(
-                                            gameId: widget.gameId,
-                                            startSeconds: upcomingStart,
-                                            positions: nextPositions,
-                                            activate: false,
+                                            ).notifier,
                                           );
-                                        }
-                                        // Set metadata for notification (team vs opponent, shift length)
-                                        final gameForMeta = await db.getGame(
-                                          widget.gameId,
-                                        );
-                                        if (gameForMeta != null) {
-                                          final team = await db.getTeam(
-                                            gameForMeta.teamId,
+                                          final game = await db.getGame(
+                                            widget.gameId,
                                           );
-                                          final teamName = team?.name ?? 'Team';
-                                          final opponent =
-                                              gameForMeta.opponent ?? '';
-                                          final shiftNumber =
-                                              await _shiftNumberFor(
-                                                db,
-                                                shiftId,
-                                              );
-                                          await stopwatchCtrl.setMeta(
-                                            teamName: teamName,
-                                            opponent: opponent,
-                                            shiftLengthSeconds:
-                                                _shiftLengthSeconds,
-                                            shiftNumber: shiftNumber,
+                                          final int shiftId;
+                                          final currentId =
+                                              game?.currentShiftId;
+                                          if (currentId != null) {
+                                            shiftId = currentId;
+                                          } else {
+                                            final positions =
+                                                await _positionsForNextShift(
+                                                  db,
+                                                );
+                                            shiftId = await db.createAutoShift(
+                                              gameId: widget.gameId,
+                                              startSeconds:
+                                                  _currentShiftStartSeconds,
+                                              positions: positions,
+                                            );
+                                          }
+
+                                          final shift = await db.getShift(
+                                            shiftId,
                                           );
-                                        }
-                                        await stopwatchCtrl.start();
-                                        if (!context.mounted) return;
-                                        setState(() {
+                                          if (shift != null) {
+                                            _currentShiftStartSeconds =
+                                                shift.startSeconds;
+                                          }
+
+                                          // Pre-create the upcoming shift
+                                          final upcomingStart =
+                                              _currentShiftStartSeconds +
+                                              _shiftLengthSeconds;
+                                          final hasPrepared =
+                                              await db.nextShiftAfter(
+                                                widget.gameId,
+                                                _currentShiftStartSeconds,
+                                              ) !=
+                                              null;
+                                          if (!hasPrepared) {
+                                            final nextPositions =
+                                                await _positionsFromShiftId(
+                                                  db,
+                                                  shiftId,
+                                                );
+                                            await db.createAutoShift(
+                                              gameId: widget.gameId,
+                                              startSeconds: upcomingStart,
+                                              positions: nextPositions,
+                                              activate: false,
+                                            );
+                                          }
+                                          // Set metadata for notification (team vs opponent, shift length)
+                                          final gameForMeta = await db.getGame(
+                                            widget.gameId,
+                                          );
+                                          if (gameForMeta != null) {
+                                            final team = await db.getTeam(
+                                              gameForMeta.teamId,
+                                            );
+                                            final teamName =
+                                                team?.name ?? 'Team';
+                                            final opponent =
+                                                gameForMeta.opponent ?? '';
+                                            final shiftNumber =
+                                                await _shiftNumberFor(
+                                                  db,
+                                                  shiftId,
+                                                );
+                                            await stopwatchCtrl.setMeta(
+                                              teamName: teamName,
+                                              opponent: opponent,
+                                              shiftLengthSeconds:
+                                                  _shiftLengthSeconds,
+                                              shiftNumber: shiftNumber,
+                                            );
+                                          }
+                                          await stopwatchCtrl.start();
+                                          if (!context.mounted) return;
+                                          // Update local state - StreamBuilder will handle most updates
                                           _currentShiftId = shiftId;
                                           _isRunning = true;
                                           _lastTickSeconds =
@@ -519,68 +549,69 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                           _alertedThisShift =
                                               _secondsNotifier.value >=
                                               _shiftLengthSeconds;
-                                        });
-                                        final remaining =
-                                            _shiftLengthSeconds -
-                                            _secondsNotifier.value;
-                                        if (remaining > 0) {
-                                          final when = DateTime.now().add(
-                                            Duration(seconds: remaining),
-                                          );
-                                          await NotificationService.instance
-                                              .cancelShiftEnd(widget.gameId);
-                                          await NotificationService.instance
-                                              .scheduleShiftEnd(
-                                                gameId: widget.gameId,
-                                                at: when,
-                                              );
-                                        } else {
-                                          // No future shift-end notification if already at/over time
-                                          await NotificationService.instance
-                                              .cancelShiftEnd(widget.gameId);
-                                        }
-                                      },
+                                          final remaining =
+                                              _shiftLengthSeconds -
+                                              _secondsNotifier.value;
+                                          if (remaining > 0) {
+                                            final when = DateTime.now().add(
+                                              Duration(seconds: remaining),
+                                            );
+                                            await NotificationService.instance
+                                                .cancelShiftEnd(widget.gameId);
+                                            await NotificationService.instance
+                                                .scheduleShiftEnd(
+                                                  gameId: widget.gameId,
+                                                  at: when,
+                                                );
+                                          } else {
+                                            // No future shift-end notification if already at/over time
+                                            await NotificationService.instance
+                                                .cancelShiftEnd(widget.gameId);
+                                          }
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                if (_isRunning)
-                                  Tooltip(
-                                    message: 'Pause timer',
-                                    child: FilledButton.icon(
-                                      icon: const Icon(Icons.pause_rounded),
-                                      label: const Text('Pause'),
-                                      onPressed: () async {
-                                        await ref
-                                            .read(
-                                              stopwatchProvider(
-                                                widget.gameId,
-                                              ).notifier,
-                                            )
-                                            .pause();
-                                        await NotificationService.instance
-                                            .cancelShiftEnd(widget.gameId);
-                                        setState(() {
+                                  if (isRunning)
+                                    Tooltip(
+                                      message: 'Pause timer',
+                                      child: FilledButton.icon(
+                                        icon: const Icon(Icons.pause_rounded),
+                                        label: const Text('Pause'),
+                                        onPressed: () async {
+                                          await ref
+                                              .read(
+                                                stopwatchProvider(
+                                                  widget.gameId,
+                                                ).notifier,
+                                              )
+                                              .pause();
+                                          await NotificationService.instance
+                                              .cancelShiftEnd(widget.gameId);
+                                          // Update running state without setState to avoid scroll jump
                                           _isRunning = false;
-                                        });
+                                        },
+                                      ),
+                                    ),
+                                  // Reset moved to kebab menu
+                                  Tooltip(
+                                    message: 'End current and start next shift',
+                                    child: OutlinedButton.icon(
+                                      icon: const Icon(
+                                        Icons.play_arrow_rounded,
+                                      ),
+                                      label: Text(
+                                        'Start Shift #$nextShiftNumber',
+                                      ),
+                                      onPressed: () async {
+                                        await _advanceToNextShift(
+                                          db,
+                                          resumeRunning: true,
+                                        );
                                       },
                                     ),
                                   ),
-                                // Reset moved to kebab menu
-                                Tooltip(
-                                  message: 'End current and start next shift',
-                                  child: OutlinedButton.icon(
-                                    icon: const Icon(Icons.play_arrow_rounded),
-                                    label: Text(
-                                      'Start Shift #$nextShiftNumber',
-                                    ),
-                                    onPressed: () async {
-                                      await _advanceToNextShift(
-                                        db,
-                                        resumeRunning: true,
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -612,21 +643,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                             ),
                           );
                         } else {
-                          // Buttons to prepare/regenerate next shift removed; handled in pager
+                          // Buttons to prepare/regenerate next shift removed
 
                           // (Play Time chart moved to Metrics screen)
 
                           columnChildren.add(
                             Expanded(
-                              child: _ShiftPager(
-                                key: _shiftPagerKey,
+                              child: _ShiftsList(
+                                key: _shiftsListKey,
                                 shifts: chronological,
                                 shiftNumbers: shiftNumbers,
-                                currentShiftId: game.currentShiftId,
+                                currentShiftId:
+                                    _currentShiftId ?? game.currentShiftId,
                                 nextShiftId: nextShiftId,
                                 playersById: playersById,
                                 db: db,
-                                shiftLengthSeconds: _shiftLengthSeconds,
                                 onRemovePlayer: (shift, assignment) =>
                                     _handleRemovePlayerFromShift(
                                       context,
@@ -634,30 +665,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                       shift,
                                       assignment,
                                     ),
-                                onPrepareNextShift: () async {
-                                  final cs = currentShift;
-                                  if (cs == null) {
-                                    return; // braces to satisfy lint curly_braces_in_flow_control_structures
-                                  }
-                                  final nextStartSeconds =
-                                      cs.startSeconds + _shiftLengthSeconds;
-                                  final positions = await _positionsFromShiftId(
-                                    db,
-                                    cs.id,
-                                  );
-                                  final shiftId = await db.createAutoShift(
-                                    gameId: widget.gameId,
-                                    startSeconds: nextStartSeconds,
-                                    positions: positions,
-                                    activate: false,
-                                  );
-                                  if (!context.mounted) return;
-                                  // Ensure pager focuses the newly created next shift
-                                  _shiftPagerKey.currentState?.queueFocus(
-                                    shiftId,
-                                  );
-                                  setState(() {});
-                                },
                               ),
                             ),
                           );
@@ -698,11 +705,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         _creatingInitialShift = false;
         return;
       }
-      setState(() {
-        _initialShiftCreated = true;
-        _currentShiftId = newShiftId;
-        _currentShiftStartSeconds = 0;
-      });
+      // Update local state without setState to avoid scroll jump
+      _initialShiftCreated = true;
+      _currentShiftId = newShiftId;
+      _currentShiftStartSeconds = 0;
     } finally {
       _creatingInitialShift = false;
     }
@@ -751,6 +757,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     if (!context.mounted) return nextShiftId;
 
+    // Update local state with setState to ensure UI updates for shift change
     setState(() {
       _currentShiftId = nextShiftId;
       _currentShiftStartSeconds = actualStartSeconds;
@@ -758,9 +765,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       _isRunning = resumeRunning;
       _alertedThisShift = false;
     });
-    // _shiftPagerKey.currentState?.queueFocus(nextShiftId); // removed: method not defined
 
-    // Also pre-create the following shift to avoid pager sentinel and jumps
+    // Scroll to the new current shift after the StreamBuilder updates
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        _shiftsListKey.currentState?.scrollToShift(nextShiftId);
+      }
+    });
+
+    // Also pre-create the following shift
     final upcomingStart = actualStartSeconds + _shiftLengthSeconds;
     final maybeExisting = await db.nextShiftAfter(
       widget.gameId,
@@ -832,12 +845,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       startSeconds: shift.startSeconds,
     );
     if (!context.mounted) return;
-    setState(() {});
+    // No setState needed - StreamBuilder will update automatically
   }
 }
 
-class _ShiftPager extends StatefulWidget {
-  const _ShiftPager({
+class _ShiftsList extends StatefulWidget {
+  const _ShiftsList({
     super.key,
     required this.shifts,
     required this.shiftNumbers,
@@ -845,9 +858,7 @@ class _ShiftPager extends StatefulWidget {
     required this.nextShiftId,
     required this.playersById,
     required this.db,
-    required this.shiftLengthSeconds,
     this.onRemovePlayer,
-    required this.onPrepareNextShift,
   });
 
   final List<Shift> shifts;
@@ -856,60 +867,43 @@ class _ShiftPager extends StatefulWidget {
   final int? nextShiftId;
   final Map<int, Player> playersById;
   final AppDb db;
-  final int shiftLengthSeconds;
   final Future<void> Function(Shift shift, PlayerShift assignment)?
   onRemovePlayer;
-  final Future<void> Function() onPrepareNextShift;
 
   @override
-  State<_ShiftPager> createState() => _ShiftPagerState();
+  State<_ShiftsList> createState() => _ShiftsListState();
 }
 
-class _ShiftPagerState extends State<_ShiftPager> {
-  late final PageController _controller;
-  int _pageIndex = 0;
-  int? _pendingFocus;
-  bool _creatingNext = false;
+class _ShiftsListState extends State<_ShiftsList> {
+  late PageController _pageController;
 
   @override
   void initState() {
     super.initState();
-    _controller = PageController(initialPage: 0);
+    // Start at the current shift if available
+    final initialIndex =
+        widget.currentShiftId != null && widget.shifts.isNotEmpty
+        ? widget.shifts.indexWhere((shift) => shift.id == widget.currentShiftId)
+        : 0;
+    _pageController = PageController(
+      viewportFraction: 0.85,
+      initialPage: initialIndex >= 0 ? initialIndex : 0,
+    );
+  }
+
+  void scrollToShift(int shiftId) {
+    if (!_pageController.hasClients || widget.shifts.isEmpty) return;
+
+    final index = widget.shifts.indexWhere((shift) => shift.id == shiftId);
+    if (index != -1) {
+      _pageController.jumpToPage(index);
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _pageController.dispose();
     super.dispose();
-  }
-
-  void _jumpToPage(int index) {
-    if (!_controller.hasClients) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _controller.jumpToPage(index);
-      });
-    } else {
-      _controller.jumpToPage(index);
-    }
-  }
-
-  void queueFocus(int? shiftId) {
-    if (shiftId == null) return;
-    _pendingFocus = shiftId;
-    _attemptFocus();
-  }
-
-  void _attemptFocus() {
-    final target = _pendingFocus;
-    if (target == null) return;
-    final idx = widget.shifts.indexWhere((s) => s.id == target);
-    if (idx == -1) return;
-    _pendingFocus = null;
-    if (_pageIndex != idx) {
-      setState(() => _pageIndex = idx);
-    }
-    _jumpToPage(idx);
   }
 
   @override
@@ -918,62 +912,23 @@ class _ShiftPagerState extends State<_ShiftPager> {
       return const SizedBox.shrink();
     }
 
-    // Determine whether to expose a sentinel page to allow creating the next shift by swiping right
-    final total = widget.shifts.length;
-    final addSentinel = _shouldAddSentinel(
-      widget.shifts,
-      widget.currentShiftId,
-    );
-    final effectiveCount = total + (addSentinel ? 1 : 0);
-    final clamped = _pageIndex.clamp(0, effectiveCount - 1);
-    if (clamped != _pageIndex) {
-      _pageIndex = clamped;
-    }
+    return SizedBox(
+      height: 280, // Fixed height for horizontal scrolling
+      child: PageView.builder(
+        padEnds: false, // Allow pages to start from the edge
+        controller: _pageController,
+        itemCount: widget.shifts.length,
+        itemBuilder: (context, index) {
+          final shift = widget.shifts[index];
+          final isCurrent = shift.id == widget.currentShiftId;
+          final isNext =
+              widget.nextShiftId != null && shift.id == widget.nextShiftId;
+          final order = widget.shiftNumbers[shift.id];
 
-    final bottomPad = MediaQuery.of(context).padding.bottom;
-    return Stack(
-      children: [
-        PageView.builder(
-          controller: _controller,
-          itemCount: effectiveCount,
-          onPageChanged: (index) {
-            setState(() => _pageIndex = index);
-          },
-          itemBuilder: (context, index) {
-            if (addSentinel && index == total) {
-              if (!_creatingNext) {
-                _creatingNext = true;
-                WidgetsBinding.instance.addPostFrameCallback((_) async {
-                  await widget.onPrepareNextShift();
-                  if (mounted) {
-                    setState(() {
-                      _creatingNext = false;
-                    });
-                  } else {
-                    _creatingNext = false;
-                  }
-                });
-              }
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 12),
-                      Text('Preparing next shift…'),
-                    ],
-                  ),
-                ),
-              );
-            }
-            final shift = widget.shifts[index];
-            final isCurrent = shift.id == widget.currentShiftId;
-            final isNext =
-                widget.nextShiftId != null && shift.id == widget.nextShiftId;
-            final order = widget.shiftNumbers[shift.id];
-            return _ShiftDetailsPage(
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+            child: _ShiftDetailsPage(
+              key: ValueKey(shift.id),
               shift: shift,
               order: order,
               isCurrent: isCurrent,
@@ -981,51 +936,17 @@ class _ShiftPagerState extends State<_ShiftPager> {
               playersById: widget.playersById,
               db: widget.db,
               onRemovePlayer: isCurrent ? widget.onRemovePlayer : null,
-            );
-          },
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 8 + (bottomPad > 0 ? bottomPad / 2 : 0),
-          child: IgnorePointer(
-            ignoring: true,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '${_pageIndex + 1} / $effectiveCount',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
             ),
-          ),
-        ),
-      ],
+          );
+        },
+      ),
     );
-  }
-
-  bool _shouldAddSentinel(List<Shift> shifts, int? currentShiftId) {
-    if (currentShiftId == null) return false;
-    final idx = shifts.indexWhere((s) => s.id == currentShiftId);
-    if (idx == -1) return false;
-    final current = shifts[idx];
-    final nextStart = current.startSeconds + widget.shiftLengthSeconds;
-    final hasNext = shifts.any((s) => s.startSeconds == nextStart);
-    return !hasNext;
   }
 }
 
 class _ShiftDetailsPage extends StatelessWidget {
   const _ShiftDetailsPage({
+    super.key,
     required this.shift,
     required this.order,
     required this.isCurrent,
@@ -1074,169 +995,163 @@ class _ShiftDetailsPage extends StatelessWidget {
         ? colorScheme.onSecondaryContainer
         : theme.textTheme.bodyMedium?.color;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Card(
-        color: backgroundColor,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Shift ${order ?? '-'}',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: onBackgroundColor,
-                          fontWeight: isCurrent ? FontWeight.w600 : null,
-                        ),
-                      ),
-                    ),
-                    if (isCurrent)
-                      Chip(
-                        label: const Text('Current'),
-                        visualDensity: VisualDensity.compact,
-                        labelStyle: theme.textTheme.labelSmall?.copyWith(
-                          color: onBackgroundColor,
-                        ),
-                        backgroundColor: backgroundColor,
-                        shape: StadiumBorder(
-                          side: BorderSide(
-                            color: onBackgroundColor ?? theme.dividerColor,
-                          ),
-                        ),
-                      )
-                    else if (isNext) ...[
-                      Chip(
-                        label: const Text('Next'),
-                        visualDensity: VisualDensity.compact,
-                        labelStyle: theme.textTheme.labelSmall?.copyWith(
-                          color: onBackgroundColor,
-                        ),
-                        backgroundColor: backgroundColor,
-                        shape: StadiumBorder(
-                          side: BorderSide(
-                            color: onBackgroundColor ?? theme.dividerColor,
-                          ),
-                        ),
-                      ),
-                      Tooltip(
-                        message: 'Regenerate next shift',
-                        child: IconButton(
-                          visualDensity: VisualDensity.compact,
-                          icon: Icon(Icons.refresh, color: onBackgroundColor),
-                          onPressed: () async {
-                            final positions = await _positionsForShift(shift);
-                            await db.createAutoShift(
-                              gameId: shift.gameId,
-                              startSeconds: shift.startSeconds,
-                              positions: positions,
-                              activate: false,
-                              forceReassign: true,
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.timer_outlined,
-                      color: onBackgroundColor,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _hhmmss(shift.actualSeconds),
-                      style: theme.textTheme.bodyMedium?.copyWith(
+    return Card(
+      color: backgroundColor,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Shift ${order ?? '-'}',
+                      style: theme.textTheme.titleMedium?.copyWith(
                         color: onBackgroundColor,
-                        fontFeatures: const [FontFeature.tabularFigures()],
+                        fontWeight: isCurrent ? FontWeight.w600 : null,
+                      ),
+                    ),
+                  ),
+                  if (isCurrent)
+                    Chip(
+                      label: const Text('Current'),
+                      visualDensity: VisualDensity.compact,
+                      labelStyle: theme.textTheme.labelSmall?.copyWith(
+                        color: onBackgroundColor,
+                      ),
+                      backgroundColor: backgroundColor,
+                      shape: StadiumBorder(
+                        side: BorderSide(
+                          color: onBackgroundColor ?? theme.dividerColor,
+                        ),
+                      ),
+                    )
+                  else if (isNext) ...[
+                    Chip(
+                      label: const Text('Next'),
+                      visualDensity: VisualDensity.compact,
+                      labelStyle: theme.textTheme.labelSmall?.copyWith(
+                        color: onBackgroundColor,
+                      ),
+                      backgroundColor: backgroundColor,
+                      shape: StadiumBorder(
+                        side: BorderSide(
+                          color: onBackgroundColor ?? theme.dividerColor,
+                        ),
+                      ),
+                    ),
+                    Tooltip(
+                      message: 'Regenerate next shift',
+                      child: IconButton(
+                        visualDensity: VisualDensity.compact,
+                        icon: Icon(Icons.refresh, color: onBackgroundColor),
+                        onPressed: () async {
+                          final positions = await _positionsForShift(shift);
+                          await db.createAutoShift(
+                            gameId: shift.gameId,
+                            startSeconds: shift.startSeconds,
+                            positions: positions,
+                            activate: false,
+                            forceReassign: true,
+                          );
+                        },
                       ),
                     ),
                   ],
-                ),
-                // Show notes except for formation helper text and auto-generated labels
-                if (((shift.notes ?? '').isNotEmpty) &&
-                    !(shift.notes ?? '').startsWith('Formation: ') &&
-                    !(shift.notes ?? '').startsWith('Auto #')) ...[
-                  const SizedBox(height: 12),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(
+                    Icons.timer_outlined,
+                    color: onBackgroundColor,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 6),
                   Text(
-                    shift.notes!,
+                    _hhmmss(shift.actualSeconds),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: onBackgroundColor,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ],
+              ),
+              // Show notes except for formation helper text and auto-generated labels
+              if (((shift.notes ?? '').isNotEmpty) &&
+                  !(shift.notes ?? '').startsWith('Formation: ') &&
+                  !(shift.notes ?? '').startsWith('Auto #')) ...[
                 const SizedBox(height: 12),
-                Divider(color: onBackgroundColor?.withValues(alpha: 0.2)),
-                const SizedBox(height: 8),
-                StreamBuilder<List<PlayerShift>>(
-                  stream: db.watchAssignments(shift.id),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting &&
-                        !snapshot.hasData) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    final assignments = snapshot.data ?? const <PlayerShift>[];
-                    if (assignments.isEmpty) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                        child: Text('No players assigned yet.'),
-                      );
-                    }
-                    // Determine a consistent order based on earliest assignment id per position.
-                    final firstIdPerPosition = <String, int>{};
-                    for (final a in assignments) {
-                      final prev = firstIdPerPosition[a.position];
-                      if (prev == null || a.id < prev) {
-                        firstIdPerPosition[a.position] = a.id;
-                      }
-                    }
-                    final sorted = [...assignments]
-                      ..sort((a, b) {
-                        final ai = firstIdPerPosition[a.position] ?? a.id;
-                        final bi = firstIdPerPosition[b.position] ?? b.id;
-                        if (ai != bi) return ai.compareTo(bi);
-                        return a.id.compareTo(b.id);
-                      });
-                    return Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: sorted.map((assignment) {
-                        final player = playersById[assignment.playerId];
-                        final name = player == null
-                            ? 'Player #${assignment.playerId}'
-                            : '${player.firstName} ${player.lastName}';
-                        final chip = InputChip(
-                          label: Text('${assignment.position}: $name'),
-                          onDeleted: onRemovePlayer == null
-                              ? null
-                              : () async {
-                                  await onRemovePlayer!(shift, assignment);
-                                },
-                        );
-                        if (onRemovePlayer == null) {
-                          return chip;
-                        }
-                        return Tooltip(
-                          message: 'Remove from shift',
-                          child: chip,
-                        );
-                      }).toList(),
-                    );
-                  },
+                Text(
+                  shift.notes!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: onBackgroundColor,
+                  ),
                 ),
               ],
-            ),
+              const SizedBox(height: 12),
+              Divider(color: onBackgroundColor?.withValues(alpha: 0.2)),
+              const SizedBox(height: 8),
+              StreamBuilder<List<PlayerShift>>(
+                stream: db.watchAssignments(shift.id),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting &&
+                      !snapshot.hasData) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  final assignments = snapshot.data ?? const <PlayerShift>[];
+                  if (assignments.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text('No players assigned yet.'),
+                    );
+                  }
+                  // Determine a consistent order based on earliest assignment id per position.
+                  final firstIdPerPosition = <String, int>{};
+                  for (final a in assignments) {
+                    final prev = firstIdPerPosition[a.position];
+                    if (prev == null || a.id < prev) {
+                      firstIdPerPosition[a.position] = a.id;
+                    }
+                  }
+                  final sorted = [...assignments]
+                    ..sort((a, b) {
+                      final ai = firstIdPerPosition[a.position] ?? a.id;
+                      final bi = firstIdPerPosition[b.position] ?? b.id;
+                      if (ai != bi) return ai.compareTo(bi);
+                      return a.id.compareTo(b.id);
+                    });
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: sorted.map((assignment) {
+                      final player = playersById[assignment.playerId];
+                      final name = player == null
+                          ? 'Player #${assignment.playerId}'
+                          : '${player.firstName} ${player.lastName}';
+                      final chip = InputChip(
+                        label: Text('${assignment.position}: $name'),
+                        onDeleted: onRemovePlayer == null
+                            ? null
+                            : () async {
+                                await onRemovePlayer!(shift, assignment);
+                              },
+                      );
+                      if (onRemovePlayer == null) {
+                        return chip;
+                      }
+                      return Tooltip(message: 'Remove from shift', child: chip);
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
           ),
         ),
       ),
