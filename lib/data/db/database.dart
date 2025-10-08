@@ -138,14 +138,11 @@ extension FormationQueries on AppDb {
   }) async {
     await transaction(() async {
       await (update(formations)..where((f) => f.id.equals(id))).write(
-        FormationsCompanion(
-          name: Value(name),
-          playerCount: Value(playerCount),
-        ),
+        FormationsCompanion(name: Value(name), playerCount: Value(playerCount)),
       );
-      await (delete(formationPositions)
-            ..where((fp) => fp.formationId.equals(id)))
-          .go();
+      await (delete(
+        formationPositions,
+      )..where((fp) => fp.formationId.equals(id))).go();
       for (var i = 0; i < positions.length; i++) {
         await into(formationPositions).insert(
           FormationPositionsCompanion.insert(
@@ -159,9 +156,9 @@ extension FormationQueries on AppDb {
   }
 
   Future<void> deleteFormation(int formationId) async {
-    await (delete(formationPositions)
-          ..where((fp) => fp.formationId.equals(formationId)))
-        .go();
+    await (delete(
+      formationPositions,
+    )..where((fp) => fp.formationId.equals(formationId))).go();
     await (delete(formations)..where((f) => f.id.equals(formationId))).go();
   }
 
@@ -541,6 +538,37 @@ extension AutoRotation on AppDb {
     return res.length;
   }
 
+  Future<int> _teamShiftCount(int teamId) async {
+    final res = await customSelect(
+      'SELECT COUNT(*) as count FROM shifts s '
+      'INNER JOIN games g ON g.id = s.game_id '
+      'WHERE g.team_id = ?',
+      variables: [Variable<int>(teamId)],
+      readsFrom: {shifts, games},
+    ).getSingle();
+    return res.read<int>('count');
+  }
+
+  Future<Map<int, int>> _totalPlayedSecondsByPlayer(int teamId) async {
+    final result = await customSelect(
+      'SELECT ps.player_id AS playerId, SUM(s.actual_seconds) AS totalSeconds '
+      'FROM player_shifts ps '
+      'INNER JOIN shifts s ON s.id = ps.shift_id '
+      'INNER JOIN games g ON g.id = s.game_id '
+      'WHERE g.team_id = ? '
+      'GROUP BY ps.player_id',
+      variables: [Variable<int>(teamId)],
+      readsFrom: {playerShifts, shifts, games},
+    ).get();
+    final map = <int, int>{};
+    for (final row in result) {
+      final playerId = row.read<int>('playerId');
+      final total = row.read<int?>('totalSeconds') ?? 0;
+      map[playerId] = total;
+    }
+    return map;
+  }
+
   Future<int> createAutoShift({
     required int gameId,
     required int startSeconds,
@@ -571,7 +599,9 @@ extension AutoRotation on AppDb {
     var players = List.of(present);
 
     int shiftId;
-    final sequenceIndex = existing != null ? (totalShifts - 1) : totalShifts;
+    // Use team-wide shift count for better rotation across games
+    final teamShiftCount = await _teamShiftCount(game.teamId);
+    final sequenceIndex = existing != null ? (totalShifts - 1) : teamShiftCount;
 
     if (existing != null) {
       shiftId = existing.id;
@@ -614,7 +644,26 @@ extension AutoRotation on AppDb {
       )..where((ps) => ps.shiftId.equals(shiftId))).go();
     }
 
-    final playedSeconds = await playedSecondsByPlayer(gameId);
+    // Get playing time from current game
+    final currentGamePlayedSeconds = await playedSecondsByPlayer(gameId);
+
+    // Get total playing time across all games for better fairness
+    final totalPlayedSeconds = await _totalPlayedSecondsByPlayer(game.teamId);
+
+    // Combine current game + historical data for better fairness decisions
+    final playedSeconds = <int, int>{};
+    for (final player in players) {
+      final currentGame = currentGamePlayedSeconds[player.id] ?? 0;
+      final historical = totalPlayedSeconds[player.id] ?? 0;
+      final total = currentGame + historical;
+      playedSeconds[player.id] = total;
+
+      // Debug: Show historical vs current game time
+      print(
+        'DEBUG: ${player.firstName} (${player.id}) - Current game: ${currentGame}s, Historical: ${historical}s, Total: ${total}s',
+      );
+    }
+
     final positionTotalsRows =
         await (select(playerPositionTotals)..where(
               (ppt) => ppt.playerId.isIn(players.map((p) => p.id).toList()),
@@ -666,8 +715,22 @@ extension AutoRotation on AppDb {
     // assignments when creating the upcoming shift before real time elapses.
     if (previousShift != null) {
       final assumedShiftSeconds = await getTeamShiftLengthSeconds(game.teamId);
+      // Create player name lookup for debug
+      final playerNameMap = {for (final p in players) p.id: p.firstName};
+
       for (final id in previousShiftPlayers) {
-        playedSeconds[id] = (playedSeconds[id] ?? 0) + assumedShiftSeconds;
+        final currentTime = playedSeconds[id] ?? 0;
+        final assumedTime = currentTime + assumedShiftSeconds;
+        // Only apply the assumption if the previous shift hasn't been fully recorded yet
+        // This prevents double-counting when shifts are created after timers update
+        if (previousShift.actualSeconds < assumedShiftSeconds) {
+          playedSeconds[id] = assumedTime;
+        }
+        // Debug: Show the timing calculation
+        final playerName = playerNameMap[id] ?? 'Player';
+        print(
+          'DEBUG: $playerName ($id) timing - current: ${currentTime}s, previous shift actual: ${previousShift.actualSeconds}s, assumed total: ${playedSeconds[id]}s',
+        );
       }
     }
 
@@ -687,10 +750,34 @@ extension AutoRotation on AppDb {
 
     // Hard avoid back-to-back if we have enough players to fill all positions.
     final slots = positions.length;
-    final nonBackToBack =
-        players.where((p) => !previousShiftPlayers.contains(p.id)).toList();
+    final nonBackToBack = players
+        .where((p) => !previousShiftPlayers.contains(p.id))
+        .toList();
     if (nonBackToBack.length >= slots) {
       players = nonBackToBack;
+    }
+
+    // Debug: Show all players before sorting with their playing time details
+    print('\n=== PLAYER SELECTION DEBUG ===');
+    print('Game: $gameId, Positions needed: ${positions.length}');
+    print('Available players before sorting:');
+    for (final player in players) {
+      final playerSeconds = playedSeconds[player.id] ?? 0;
+      final totals = totalsByPlayer[player.id] ?? const {};
+      final minPositionTotal = _minPositionTotals(totals, positions);
+      final wasInPrevious = previousShiftPlayers.contains(player.id);
+      final lastStart = lastStarts[player.id] ?? -1;
+
+      print(
+        '  ${player.firstName} (${player.id}): ${playerSeconds}s total, min pos experience: ${minPositionTotal}, was in prev: $wasInPrevious, last start: $lastStart',
+      );
+      // Show position breakdown
+      if (totals.isNotEmpty) {
+        final positionBreakdown = positions
+            .map((pos) => '$pos: ${totals[pos] ?? 0}s')
+            .join(', ');
+        print('    Position experience: $positionBreakdown');
+      }
     }
 
     players.sort((a, b) {
@@ -722,10 +809,40 @@ extension AutoRotation on AppDb {
     final n = positions.length;
     final selected = players.take(n).toList();
     if (selected.isEmpty) return shiftId;
+
+    // Debug: Show selected players after sorting
+    print('\nSelected players after sorting (priority order):');
+    for (int i = 0; i < selected.length; i++) {
+      final player = selected[i];
+      final playerSeconds = playedSeconds[player.id] ?? 0;
+      print(
+        '  ${i + 1}. ${player.firstName} (${player.id}): ${playerSeconds}s total',
+      );
+    }
+
     final rotation = selected.length <= 1 ? 0 : sequenceIndex % selected.length;
+
+    // Debug: Print rotation info
+    print('\nRotation calculation:');
+    print(
+      '  sequenceIndex: $sequenceIndex, selected players: ${selected.length}',
+    );
+    print('  rotation offset: $rotation');
+
     final ordered = rotation == 0
         ? selected
         : [...selected.sublist(rotation), ...selected.sublist(0, rotation)];
+
+    // Debug: Show player order after rotation
+    print('\nPlayer order after rotation:');
+    for (int i = 0; i < ordered.length; i++) {
+      final player = ordered[i];
+      final playerSeconds = playedSeconds[player.id] ?? 0;
+      final lastPos = lastPositionByPlayer[player.id] ?? 'none';
+      print(
+        '  ${i + 1}. ${player.firstName} (${player.id}): ${playerSeconds}s total, last position: $lastPos',
+      );
+    }
 
     final totalsSnapshot = Map<int, Map<String, int>>.fromEntries(
       totalsByPlayer.entries.map(
@@ -733,18 +850,36 @@ extension AutoRotation on AppDb {
       ),
     );
 
+    print('\nFinal position assignments:');
     for (var i = 0; i < n && i < ordered.length; i++) {
       final desiredPosition = positions[i];
+
       if (lastPositionByPlayer[ordered[i].id] == desiredPosition) {
+        print(
+          '  Position conflict detected: ${ordered[i].firstName} (${ordered[i].id}) had $desiredPosition last time',
+        );
         for (var j = i + 1; j < ordered.length; j++) {
           if (lastPositionByPlayer[ordered[j].id] != desiredPosition) {
             final swap = ordered[j];
             ordered[j] = ordered[i];
             ordered[i] = swap;
+            print(
+              '  Swapped with ${swap.firstName} (${swap.id}) to avoid repeat position',
+            );
             break;
           }
         }
       }
+
+      final finalPlayer = ordered[i];
+      final playerSeconds = playedSeconds[finalPlayer.id] ?? 0;
+      final playerTotals = totalsByPlayer[finalPlayer.id] ?? const {};
+      final positionExperience = playerTotals[desiredPosition] ?? 0;
+
+      print(
+        '  ${desiredPosition}: ${finalPlayer.firstName} (${finalPlayer.id}) - ${playerSeconds}s total, ${positionExperience}s in $desiredPosition',
+      );
+
       final totals = totalsSnapshot.putIfAbsent(
         ordered[i].id,
         () => <String, int>{},
@@ -756,6 +891,8 @@ extension AutoRotation on AppDb {
         position: positions[i],
       );
     }
+
+    print('=== ASSIGNMENT COMPLETE ===\n');
     return shiftId;
   }
 

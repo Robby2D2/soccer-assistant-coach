@@ -58,14 +58,6 @@ class FormationSelectionScreen extends ConsumerWidget {
                     trailing: FilledButton(
                       onPressed: () async {
                         final positions = await db.getFormationPositions(f.id);
-                        final present = await db.presentPlayersForGame(
-                          gameId,
-                          game.teamId,
-                        );
-                        final count = positions.length;
-                        final applyCount = present.length < count
-                            ? present.length
-                            : count;
 
                         // Check if game is already in progress (has existing shifts)
                         final existingShifts = await db
@@ -75,7 +67,6 @@ class FormationSelectionScreen extends ConsumerWidget {
                             existingShifts.isNotEmpty &&
                             game.currentShiftId != null;
 
-                        int shiftId;
                         if (gameInProgress) {
                           // Game in progress: Find and update the existing next shift
                           final currentShift = existingShifts
@@ -96,7 +87,7 @@ class FormationSelectionScreen extends ConsumerWidget {
                             if (futureShifts.isNotEmpty) {
                               // Replace the existing next shift with new formation
                               final existingShift = futureShifts.first;
-                              shiftId = await db.createAutoShift(
+                              await db.createAutoShift(
                                 gameId: gameId,
                                 startSeconds: existingShift.startSeconds,
                                 positions: positions
@@ -110,7 +101,7 @@ class FormationSelectionScreen extends ConsumerWidget {
                               // No future shift exists, create one
                               final nextStartTime =
                                   currentShift.startSeconds + 300;
-                              shiftId = await db.createAutoShift(
+                              await db.createAutoShift(
                                 gameId: gameId,
                                 startSeconds: nextStartTime,
                                 positions: positions
@@ -121,7 +112,7 @@ class FormationSelectionScreen extends ConsumerWidget {
                             }
                           } else {
                             // Fallback: create new shift
-                            shiftId = await db.createAutoShift(
+                            await db.createAutoShift(
                               gameId: gameId,
                               startSeconds: 300,
                               positions: positions
@@ -131,19 +122,14 @@ class FormationSelectionScreen extends ConsumerWidget {
                             );
                           }
                         } else {
-                          // Initial setup: create as current shift
-                          shiftId = await db.startShift(
-                            gameId,
-                            0,
-                            notes: 'Formation: ${f.name}',
-                          );
-                        }
-
-                        for (var i = 0; i < applyCount; i++) {
-                          await db.setPlayerPosition(
-                            shiftId: shiftId,
-                            playerId: present[i].id,
-                            position: positions[i].positionName,
+                          // Initial setup: create as current shift using fair assignment
+                          await db.createAutoShift(
+                            gameId: gameId,
+                            startSeconds: 0,
+                            positions: positions
+                                .map((p) => p.positionName)
+                                .toList(),
+                            activate: true,
                           );
                         }
                         if (context.mounted) Navigator.pop(context);

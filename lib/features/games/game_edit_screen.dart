@@ -297,27 +297,15 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                                   if (f != null) {
                                     final positions = await db
                                         .getFormationPositions(f.id);
-                                    final present = await db
-                                        .presentPlayersForGame(
-                                          widget.gameId,
-                                          _teamId!,
-                                        );
-                                    final applyCount =
-                                        present.length < positions.length
-                                        ? present.length
-                                        : positions.length;
-                                    final shiftId = await db.startShift(
-                                      widget.gameId,
-                                      0,
-                                      notes: 'Formation: ${f.name}',
+                                    // Use fair assignment algorithm for initial shift
+                                    await db.createAutoShift(
+                                      gameId: widget.gameId,
+                                      startSeconds: 0,
+                                      positions: positions
+                                          .map((p) => p.positionName)
+                                          .toList(),
+                                      activate: true,
                                     );
-                                    for (var i = 0; i < applyCount; i++) {
-                                      await db.setPlayerPosition(
-                                        shiftId: shiftId,
-                                        playerId: present[i].id,
-                                        position: positions[i].positionName,
-                                      );
-                                    }
                                   }
                                 }
                               }

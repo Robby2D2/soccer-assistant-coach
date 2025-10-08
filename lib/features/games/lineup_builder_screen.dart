@@ -28,22 +28,21 @@ class LineupBuilderScreen extends ConsumerWidget {
               return _Formations(
                 present: present,
                 onApply: (positions) async {
-                  final shiftId = await db.startShift(
-                    gameId,
-                    0,
-                    notes: 'Lineup',
+                  print('\n=== LINEUP BUILDER USING FAIR ASSIGNMENT ===');
+                  print(
+                    'Creating initial shift using createAutoShift algorithm',
                   );
-                  for (
-                    var i = 0;
-                    i < positions.length && i < present.length;
-                    i++
-                  ) {
-                    await db.setPlayerPosition(
-                      shiftId: shiftId,
-                      playerId: present[i].id,
-                      position: positions[i],
-                    );
-                  }
+
+                  // Use the same fair assignment algorithm as other shifts
+                  await db.createAutoShift(
+                    gameId: gameId,
+                    startSeconds: 0,
+                    positions: positions,
+                    activate: true,
+                  );
+
+                  print('Initial shift created with fair assignment algorithm');
+                  print('=== LINEUP BUILDER COMPLETE ===\n');
                   if (context.mounted) Navigator.pop(context);
                 },
               );
