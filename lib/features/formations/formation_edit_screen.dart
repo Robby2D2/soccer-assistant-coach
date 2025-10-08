@@ -7,10 +7,15 @@ import '../../core/providers.dart';
 class FormationEditScreen extends ConsumerStatefulWidget {
   final int teamId;
   final int? formationId;
-  const FormationEditScreen({super.key, required this.teamId, this.formationId});
+  const FormationEditScreen({
+    super.key,
+    required this.teamId,
+    this.formationId,
+  });
 
   @override
-  ConsumerState<FormationEditScreen> createState() => _FormationEditScreenState();
+  ConsumerState<FormationEditScreen> createState() =>
+      _FormationEditScreenState();
 }
 
 class _FormationEditScreenState extends ConsumerState<FormationEditScreen> {
@@ -70,7 +75,9 @@ class _FormationEditScreenState extends ConsumerState<FormationEditScreen> {
       _count = newCount;
       if (_positionCtrls.length < _count) {
         final toAdd = _count - _positionCtrls.length;
-        _positionCtrls.addAll(List.generate(toAdd, (i) => TextEditingController()));
+        _positionCtrls.addAll(
+          List.generate(toAdd, (i) => TextEditingController()),
+        );
       } else if (_positionCtrls.length > _count) {
         final extras = _positionCtrls.sublist(_count);
         for (final c in extras) {
@@ -90,98 +97,119 @@ class _FormationEditScreenState extends ConsumerState<FormationEditScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _notFound
-              ? const Center(child: Text('Formation not found'))
-              : Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SingleChildScrollView(
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+          ? const Center(child: Text('Formation not found'))
+          : Padding(
+              padding: const EdgeInsets.all(16),
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextFormField(
+                        controller: _nameCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Formation name (e.g. 2-3-1)',
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty)
+                            ? 'Enter a name'
+                            : null,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
                         children: [
-                          TextFormField(
-                            controller: _nameCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Formation name (e.g. 2-3-1)',
-                            ),
-                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _playerCountCtrl,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Number of players',
-                                  ),
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                  onChanged: (v) {
-                                    final parsed = int.tryParse(v);
-                                    if (parsed != null) _updateCount(parsed);
-                                  },
-                                  validator: (v) {
-                                    final parsed = int.tryParse(v ?? '');
-                                    if (parsed == null || parsed <= 0) return 'Enter a positive number';
-                                    return null;
-                                  },
-                                ),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _playerCountCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Number of players',
                               ),
-                              const SizedBox(width: 12),
-                              Text('Positions: $_count'),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          for (var i = 0; i < _count; i++) ...[
-                            TextFormField(
-                              controller: _positionCtrls[i],
-                              decoration: InputDecoration(
-                                labelText: 'Position ${i + 1} name',
-                              ),
-                              validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
-                            ),
-                            const SizedBox(height: 8),
-                          ],
-                          const SizedBox(height: 16),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: FilledButton.icon(
-                              icon: const Icon(Icons.save),
-                              label: Text(isEdit ? 'Save changes' : 'Create formation'),
-                              onPressed: () async {
-                                if (!_formKey.currentState!.validate()) return;
-                                final count = int.parse(_playerCountCtrl.text);
-                                final positions = _positionCtrls.take(count).map((c) => c.text.trim()).toList();
-                                if (isEdit) {
-                                  await db.updateFormation(
-                                    id: widget.formationId!,
-                                    name: _nameCtrl.text.trim(),
-                                    playerCount: count,
-                                    positions: positions,
-                                  );
-                                } else {
-                                  await db.createFormation(
-                                    teamId: widget.teamId,
-                                    name: _nameCtrl.text.trim(),
-                                    playerCount: count,
-                                    positions: positions,
-                                  );
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              onChanged: (v) {
+                                final parsed = int.tryParse(v);
+                                if (parsed != null) {
+                                  _updateCount(parsed);
                                 }
-                                if (!mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text(isEdit ? 'Formation updated' : 'Formation created')),
-                                );
-                                context.pop();
+                              },
+                              validator: (v) {
+                                final parsed = int.tryParse(v ?? '');
+                                if (parsed == null || parsed <= 0) {
+                                  return 'Enter a positive number';
+                                }
+                                return null;
                               },
                             ),
                           ),
+                          const SizedBox(width: 12),
+                          Text('Positions: $_count'),
                         ],
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      for (var i = 0; i < _count; i++) ...[
+                        TextFormField(
+                          controller: _positionCtrls[i],
+                          decoration: InputDecoration(
+                            labelText: 'Position ${i + 1} name',
+                          ),
+                          validator: (v) => (v == null || v.trim().isEmpty)
+                              ? 'Enter a name'
+                              : null,
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      const SizedBox(height: 16),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.save),
+                          label: Text(
+                            isEdit ? 'Save changes' : 'Create formation',
+                          ),
+                          onPressed: () async {
+                            if (!_formKey.currentState!.validate()) return;
+                            final count = int.parse(_playerCountCtrl.text);
+                            final positions = _positionCtrls
+                                .take(count)
+                                .map((c) => c.text.trim())
+                                .toList();
+                            if (isEdit) {
+                              await db.updateFormation(
+                                id: widget.formationId!,
+                                name: _nameCtrl.text.trim(),
+                                playerCount: count,
+                                positions: positions,
+                              );
+                            } else {
+                              await db.createFormation(
+                                teamId: widget.teamId,
+                                name: _nameCtrl.text.trim(),
+                                playerCount: count,
+                                positions: positions,
+                              );
+                            }
+                            // After async calls, ensure the specific BuildContext is still mounted
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  isEdit
+                                      ? 'Formation updated'
+                                      : 'Formation created',
+                                ),
+                              ),
+                            );
+                            context.pop();
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+              ),
+            ),
     );
   }
 }
-

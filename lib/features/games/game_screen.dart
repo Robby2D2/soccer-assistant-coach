@@ -169,19 +169,19 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             onSelected: (value) async {
               switch (value) {
                 case _GameMenuAction.edit:
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   context.push('/game/${widget.gameId}/edit');
                   break;
                 case _GameMenuAction.lineup:
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   context.push('/game/${widget.gameId}/formation');
                   break;
                 case _GameMenuAction.metrics:
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   context.push('/game/${widget.gameId}/metrics');
                   break;
                 case _GameMenuAction.attendance:
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   context.push('/game/${widget.gameId}/attendance');
                   break;
                 case _GameMenuAction.reset:
@@ -395,8 +395,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                               ),
                                               label: Text(() {
                                                 final id = game.currentShiftId;
-                                                if (id == null)
+                                                if (id == null) {
                                                   return 'Current shift';
+                                                }
                                                 final order = shiftNumbers[id];
                                                 return order == null
                                                     ? 'Current shift'
@@ -509,7 +510,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                           );
                                         }
                                         await stopwatchCtrl.start();
-                                        if (!mounted) return;
+                                        if (!context.mounted) return;
                                         setState(() {
                                           _currentShiftId = shiftId;
                                           _isRunning = true;
@@ -635,7 +636,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     ),
                                 onPrepareNextShift: () async {
                                   final cs = currentShift;
-                                  if (cs == null) return;
+                                  if (cs == null) {
+                                    return; // braces to satisfy lint curly_braces_in_flow_control_structures
+                                  }
                                   final nextStartSeconds =
                                       cs.startSeconds + _shiftLengthSeconds;
                                   final positions = await _positionsFromShiftId(
@@ -648,7 +651,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     positions: positions,
                                     activate: false,
                                   );
-                                  if (!mounted) return;
+                                  if (!context.mounted) return;
                                   // Ensure pager focuses the newly created next shift
                                   _shiftPagerKey.currentState?.queueFocus(
                                     shiftId,
@@ -746,7 +749,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       await stopwatchCtrl.start();
     }
 
-    if (!mounted) return nextShiftId;
+    if (!context.mounted) return nextShiftId;
 
     setState(() {
       _currentShiftId = nextShiftId;
@@ -797,7 +800,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final name = player == null
         ? 'Player #${assignment.playerId}'
         : '${player.firstName} ${player.lastName}';
-    if (!mounted) return;
+    if (!context.mounted) return;
     final confirmed =
         await showDialog<bool>(
           context: context,
@@ -819,7 +822,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           ),
         ) ??
         false;
-    if (!mounted) return;
+    if (!context.mounted) return;
     if (!confirmed) return;
     await db.removePlayerFromShift(
       shiftId: shift.id,
@@ -828,7 +831,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       gameId: shift.gameId,
       startSeconds: shift.startSeconds,
     );
-    if (!mounted) return;
+    if (!context.mounted) return;
     setState(() {});
   }
 }

@@ -156,7 +156,7 @@ class NotificationService {
       _stopwatchNotifId + gameId,
       matchupTitle,
       text,
-      NotificationDetails(android: android, iOS: ios),
+      const NotificationDetails(android: android, iOS: ios),
       payload: 'stopwatch:$gameId',
     );
   }

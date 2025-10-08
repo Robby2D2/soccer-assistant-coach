@@ -1,4 +1,4 @@
-name: soccer_manager_flutter
+name: soccer_assistant_coach
 description: Flutter app with theme, edit screens, lineup, stats, CSV import/export
 publish_to: "none"
 version: 0.9.1+1

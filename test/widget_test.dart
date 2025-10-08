@@ -9,11 +9,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:soccer_manager_flutter/app.dart';
+import 'package:soccer_assistant_coach/app.dart';
 
 void main() {
   testWidgets('SoccerApp renders a MaterialApp', (tester) async {
     await tester.pumpWidget(const ProviderScope(child: SoccerApp()));
     expect(find.byType(MaterialApp), findsOneWidget);
+    // Unmount to allow any streams/timers to cancel cleanly before test ends.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
   });
 }
