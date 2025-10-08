@@ -101,13 +101,29 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   }
 
   Future<List<String>> _positionsForNextShift(AppDb db) async {
+    final shifts = await db.watchGameShifts(widget.gameId).first;
+    if (shifts.isEmpty) return kPositions;
+
+    // Look for formation template shifts (far future shifts used as templates)
+    final formationTemplates = shifts.where((s) => s.startSeconds > 9000);
+    if (formationTemplates.isNotEmpty) {
+      // Use the most recent formation template
+      final latest = formationTemplates.reduce(
+        (a, b) => a.startSeconds > b.startSeconds ? a : b,
+      );
+      return _positionsFromShiftId(db, latest.id);
+    }
+
+    // Sort shifts chronologically
+    final chronological = [...shifts]
+      ..sort((a, b) => a.startSeconds.compareTo(b.startSeconds));
+
     // Prefer using positions from the current (or last) shift.
     if (_currentShiftId != null) {
       return _positionsFromShiftId(db, _currentShiftId!);
     }
-    final shifts = await db.watchGameShifts(widget.gameId).first;
-    if (shifts.isNotEmpty) {
-      return _positionsFromShiftId(db, shifts.last.id);
+    if (chronological.isNotEmpty) {
+      return _positionsFromShiftId(db, chronological.last.id);
     }
     return kPositions;
   }
@@ -269,7 +285,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     }
                     final players = playersSnap.data ?? const <Player>[];
                     final playersById = {for (final p in players) p.id: p};
-                    _currentShiftId = game.currentShiftId;
+                    _currentShiftId ??= game.currentShiftId;
 
                     return StreamBuilder<List<Shift>>(
                       stream: db.watchGameShifts(widget.gameId),
@@ -503,9 +519,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                               null;
                                           if (!hasPrepared) {
                                             final nextPositions =
-                                                await _positionsFromShiftId(
+                                                await _positionsForNextShift(
                                                   db,
-                                                  shiftId,
                                                 );
                                             await db.createAutoShift(
                                               gameId: widget.gameId,
@@ -593,23 +608,25 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                       ),
                                     ),
                                   // Reset moved to kebab menu
-                                  Tooltip(
-                                    message: 'End current and start next shift',
-                                    child: OutlinedButton.icon(
-                                      icon: const Icon(
-                                        Icons.play_arrow_rounded,
+                                  if (!isRunning)
+                                    Tooltip(
+                                      message:
+                                          'Advance to next shift and resume timer',
+                                      child: OutlinedButton.icon(
+                                        icon: const Icon(
+                                          Icons.play_arrow_rounded,
+                                        ),
+                                        label: Text(
+                                          'Start Shift #$nextShiftNumber',
+                                        ),
+                                        onPressed: () async {
+                                          await _advanceToNextShift(
+                                            db,
+                                            resumeRunning: true,
+                                          );
+                                        },
                                       ),
-                                      label: Text(
-                                        'Start Shift #$nextShiftNumber',
-                                      ),
-                                      onPressed: () async {
-                                        await _advanceToNextShift(
-                                          db,
-                                          resumeRunning: true,
-                                        );
-                                      },
                                     ),
-                                  ),
                                 ],
                               ),
                             ),
@@ -773,13 +790,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       }
     });
 
-    // Also pre-create the following shift
+    // Also pre-create the following shift (but don't overwrite formation shifts)
     final upcomingStart = actualStartSeconds + _shiftLengthSeconds;
     final maybeExisting = await db.nextShiftAfter(
       widget.gameId,
       actualStartSeconds,
     );
-    if (maybeExisting == null || maybeExisting.startSeconds != upcomingStart) {
+    if (maybeExisting == null) {
+      // No existing shift at all - create one
       final nextPositions = await _positionsFromShiftId(db, nextShiftId);
       await db.createAutoShift(
         gameId: widget.gameId,
@@ -788,6 +806,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         activate: false,
       );
     }
+    // If a shift already exists (like a formation shift), don't overwrite it
 
     if (resumeRunning) {
       await NotificationService.instance.cancelShiftEnd(widget.gameId);

@@ -21,7 +21,8 @@ class FormationSelectionScreen extends ConsumerWidget {
           return StreamBuilder<List<Formation>>(
             stream: db.watchTeamFormations(game.teamId),
             builder: (context, fSnap) {
-              if (fSnap.connectionState == ConnectionState.waiting && !fSnap.hasData) {
+              if (fSnap.connectionState == ConnectionState.waiting &&
+                  !fSnap.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
               final formations = fSnap.data ?? const <Formation>[];
@@ -57,14 +58,87 @@ class FormationSelectionScreen extends ConsumerWidget {
                     trailing: FilledButton(
                       onPressed: () async {
                         final positions = await db.getFormationPositions(f.id);
-                        final present = await db.presentPlayersForGame(gameId, game.teamId);
-                        final count = positions.length;
-                        final applyCount = present.length < count ? present.length : count;
-                        final shiftId = await db.startShift(
+                        final present = await db.presentPlayersForGame(
                           gameId,
-                          0,
-                          notes: 'Formation: ${f.name}',
+                          game.teamId,
                         );
+                        final count = positions.length;
+                        final applyCount = present.length < count
+                            ? present.length
+                            : count;
+
+                        // Check if game is already in progress (has existing shifts)
+                        final existingShifts = await db
+                            .watchGameShifts(gameId)
+                            .first;
+                        final gameInProgress =
+                            existingShifts.isNotEmpty &&
+                            game.currentShiftId != null;
+
+                        int shiftId;
+                        if (gameInProgress) {
+                          // Game in progress: Find and update the existing next shift
+                          final currentShift = existingShifts
+                              .where((s) => s.id == game.currentShiftId)
+                              .firstOrNull;
+
+                          if (currentShift != null) {
+                            // Look for existing shifts that come after the current shift
+                            final chronological = [...existingShifts]
+                              ..sort(
+                                (a, b) =>
+                                    a.startSeconds.compareTo(b.startSeconds),
+                              );
+                            final futureShifts = chronological.where(
+                              (s) => s.startSeconds > currentShift.startSeconds,
+                            );
+
+                            if (futureShifts.isNotEmpty) {
+                              // Replace the existing next shift with new formation
+                              final existingShift = futureShifts.first;
+                              shiftId = await db.createAutoShift(
+                                gameId: gameId,
+                                startSeconds: existingShift.startSeconds,
+                                positions: positions
+                                    .map((p) => p.positionName)
+                                    .toList(),
+                                activate: false,
+                                forceReassign:
+                                    true, // This will replace the existing shift
+                              );
+                            } else {
+                              // No future shift exists, create one
+                              final nextStartTime =
+                                  currentShift.startSeconds + 300;
+                              shiftId = await db.createAutoShift(
+                                gameId: gameId,
+                                startSeconds: nextStartTime,
+                                positions: positions
+                                    .map((p) => p.positionName)
+                                    .toList(),
+                                activate: false,
+                              );
+                            }
+                          } else {
+                            // Fallback: create new shift
+                            shiftId = await db.createAutoShift(
+                              gameId: gameId,
+                              startSeconds: 300,
+                              positions: positions
+                                  .map((p) => p.positionName)
+                                  .toList(),
+                              activate: false,
+                            );
+                          }
+                        } else {
+                          // Initial setup: create as current shift
+                          shiftId = await db.startShift(
+                            gameId,
+                            0,
+                            notes: 'Formation: ${f.name}',
+                          );
+                        }
+
                         for (var i = 0; i < applyCount; i++) {
                           await db.setPlayerPosition(
                             shiftId: shiftId,
@@ -112,4 +186,3 @@ class FormationSelectionScreen extends ConsumerWidget {
     );
   }
 }
-
