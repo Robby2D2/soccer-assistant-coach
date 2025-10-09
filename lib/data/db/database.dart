@@ -61,7 +61,13 @@ class AppDb extends _$AppDb {
 }
 
 extension TeamQueries on AppDb {
-  Future<int> addTeam(TeamsCompanion t) => into(teams).insert(t);
+  Future<int> addTeam(TeamsCompanion t) async {
+    final teamId = await into(teams).insert(t);
+    // Create a default formation to help users get started
+    await createDefaultFormation(teamId);
+    return teamId;
+  }
+
   Stream<List<Team>> watchTeams({bool includeArchived = false}) {
     final query = select(teams);
     if (!includeArchived) {
@@ -199,6 +205,23 @@ extension FormationQueries on AppDb {
       }
     }
     return bestId;
+  }
+
+  /// Creates a default "2-2-1" formation for new teams to help users get started
+  Future<int> createDefaultFormation(int teamId) async {
+    return createFormation(
+      teamId: teamId,
+      name: '2-2-1',
+      playerCount: 6,
+      positions: [
+        'Goalie',
+        'Left Defense',
+        'Right Defense',
+        'Left Midfield',
+        'Right Midfield',
+        'Striker',
+      ],
+    );
   }
 }
 
