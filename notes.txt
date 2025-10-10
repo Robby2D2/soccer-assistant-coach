@@ -13,4 +13,5 @@ In traditional mode, there should be no time to change shifts alerting notificat
 
 Is updating those player metrics every second going to lead to possible issues with performance and battery life?  If so, we could probably update them every 10 seconds or so.  Oh, also, Can you fix all the dart analyze warnings?  
 
+Can you analyze both game modes to make sure they both are working as expected?  Now that we added a Traditional Mode, I especially want to make sure the Shift Based mode is still working as expected.
 
