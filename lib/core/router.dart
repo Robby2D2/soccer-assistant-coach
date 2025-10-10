@@ -16,6 +16,7 @@ import '../features/formations/team_formations_screen.dart';
 import '../features/formations/formation_edit_screen.dart';
 import '../features/games/formation_selection_screen.dart';
 import '../features/games/attendance_screen.dart';
+import '../features/games/end_game_screen.dart';
 
 final router = GoRouter(
   routes: [
@@ -106,6 +107,11 @@ final router = GoRouter(
       path: '/game/:id/attendance',
       builder: (_, s) =>
           AttendanceScreen(gameId: int.parse(s.pathParameters['id']!)),
+    ),
+    GoRoute(
+      path: '/game/:id/end',
+      builder: (_, s) =>
+          EndGameScreen(gameId: int.parse(s.pathParameters['id']!)),
     ),
   ],
 );

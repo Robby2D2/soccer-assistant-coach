@@ -1155,6 +1155,53 @@ class $GamesTable extends Games with TableInfo<$GamesTable, Game> {
       'REFERENCES formations (id)',
     ),
   );
+  static const VerificationMeta _gameStatusMeta = const VerificationMeta(
+    'gameStatus',
+  );
+  @override
+  late final GeneratedColumn<String> gameStatus = GeneratedColumn<String>(
+    'game_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('in-progress'),
+  );
+  static const VerificationMeta _endTimeMeta = const VerificationMeta(
+    'endTime',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endTime = GeneratedColumn<DateTime>(
+    'end_time',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _teamScoreMeta = const VerificationMeta(
+    'teamScore',
+  );
+  @override
+  late final GeneratedColumn<int> teamScore = GeneratedColumn<int>(
+    'team_score',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _opponentScoreMeta = const VerificationMeta(
+    'opponentScore',
+  );
+  @override
+  late final GeneratedColumn<int> opponentScore = GeneratedColumn<int>(
+    'opponent_score',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1168,6 +1215,10 @@ class $GamesTable extends Games with TableInfo<$GamesTable, Game> {
     isGameActive,
     timerStartTime,
     formationId,
+    gameStatus,
+    endTime,
+    teamScore,
+    opponentScore,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1264,6 +1315,33 @@ class $GamesTable extends Games with TableInfo<$GamesTable, Game> {
         ),
       );
     }
+    if (data.containsKey('game_status')) {
+      context.handle(
+        _gameStatusMeta,
+        gameStatus.isAcceptableOrUnknown(data['game_status']!, _gameStatusMeta),
+      );
+    }
+    if (data.containsKey('end_time')) {
+      context.handle(
+        _endTimeMeta,
+        endTime.isAcceptableOrUnknown(data['end_time']!, _endTimeMeta),
+      );
+    }
+    if (data.containsKey('team_score')) {
+      context.handle(
+        _teamScoreMeta,
+        teamScore.isAcceptableOrUnknown(data['team_score']!, _teamScoreMeta),
+      );
+    }
+    if (data.containsKey('opponent_score')) {
+      context.handle(
+        _opponentScoreMeta,
+        opponentScore.isAcceptableOrUnknown(
+          data['opponent_score']!,
+          _opponentScoreMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1317,6 +1395,22 @@ class $GamesTable extends Games with TableInfo<$GamesTable, Game> {
         DriftSqlType.int,
         data['${effectivePrefix}formation_id'],
       ),
+      gameStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}game_status'],
+      )!,
+      endTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_time'],
+      ),
+      teamScore: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}team_score'],
+      )!,
+      opponentScore: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}opponent_score'],
+      )!,
     );
   }
 
@@ -1338,6 +1432,10 @@ class Game extends DataClass implements Insertable<Game> {
   final bool isGameActive;
   final DateTime? timerStartTime;
   final int? formationId;
+  final String gameStatus;
+  final DateTime? endTime;
+  final int teamScore;
+  final int opponentScore;
   const Game({
     required this.id,
     this.startTime,
@@ -1350,6 +1448,10 @@ class Game extends DataClass implements Insertable<Game> {
     required this.isGameActive,
     this.timerStartTime,
     this.formationId,
+    required this.gameStatus,
+    this.endTime,
+    required this.teamScore,
+    required this.opponentScore,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1375,6 +1477,12 @@ class Game extends DataClass implements Insertable<Game> {
     if (!nullToAbsent || formationId != null) {
       map['formation_id'] = Variable<int>(formationId);
     }
+    map['game_status'] = Variable<String>(gameStatus);
+    if (!nullToAbsent || endTime != null) {
+      map['end_time'] = Variable<DateTime>(endTime);
+    }
+    map['team_score'] = Variable<int>(teamScore);
+    map['opponent_score'] = Variable<int>(opponentScore);
     return map;
   }
 
@@ -1401,6 +1509,12 @@ class Game extends DataClass implements Insertable<Game> {
       formationId: formationId == null && nullToAbsent
           ? const Value.absent()
           : Value(formationId),
+      gameStatus: Value(gameStatus),
+      endTime: endTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endTime),
+      teamScore: Value(teamScore),
+      opponentScore: Value(opponentScore),
     );
   }
 
@@ -1421,6 +1535,10 @@ class Game extends DataClass implements Insertable<Game> {
       isGameActive: serializer.fromJson<bool>(json['isGameActive']),
       timerStartTime: serializer.fromJson<DateTime?>(json['timerStartTime']),
       formationId: serializer.fromJson<int?>(json['formationId']),
+      gameStatus: serializer.fromJson<String>(json['gameStatus']),
+      endTime: serializer.fromJson<DateTime?>(json['endTime']),
+      teamScore: serializer.fromJson<int>(json['teamScore']),
+      opponentScore: serializer.fromJson<int>(json['opponentScore']),
     );
   }
   @override
@@ -1438,6 +1556,10 @@ class Game extends DataClass implements Insertable<Game> {
       'isGameActive': serializer.toJson<bool>(isGameActive),
       'timerStartTime': serializer.toJson<DateTime?>(timerStartTime),
       'formationId': serializer.toJson<int?>(formationId),
+      'gameStatus': serializer.toJson<String>(gameStatus),
+      'endTime': serializer.toJson<DateTime?>(endTime),
+      'teamScore': serializer.toJson<int>(teamScore),
+      'opponentScore': serializer.toJson<int>(opponentScore),
     };
   }
 
@@ -1453,6 +1575,10 @@ class Game extends DataClass implements Insertable<Game> {
     bool? isGameActive,
     Value<DateTime?> timerStartTime = const Value.absent(),
     Value<int?> formationId = const Value.absent(),
+    String? gameStatus,
+    Value<DateTime?> endTime = const Value.absent(),
+    int? teamScore,
+    int? opponentScore,
   }) => Game(
     id: id ?? this.id,
     startTime: startTime.present ? startTime.value : this.startTime,
@@ -1469,6 +1595,10 @@ class Game extends DataClass implements Insertable<Game> {
         ? timerStartTime.value
         : this.timerStartTime,
     formationId: formationId.present ? formationId.value : this.formationId,
+    gameStatus: gameStatus ?? this.gameStatus,
+    endTime: endTime.present ? endTime.value : this.endTime,
+    teamScore: teamScore ?? this.teamScore,
+    opponentScore: opponentScore ?? this.opponentScore,
   );
   Game copyWithCompanion(GamesCompanion data) {
     return Game(
@@ -1497,6 +1627,14 @@ class Game extends DataClass implements Insertable<Game> {
       formationId: data.formationId.present
           ? data.formationId.value
           : this.formationId,
+      gameStatus: data.gameStatus.present
+          ? data.gameStatus.value
+          : this.gameStatus,
+      endTime: data.endTime.present ? data.endTime.value : this.endTime,
+      teamScore: data.teamScore.present ? data.teamScore.value : this.teamScore,
+      opponentScore: data.opponentScore.present
+          ? data.opponentScore.value
+          : this.opponentScore,
     );
   }
 
@@ -1513,7 +1651,11 @@ class Game extends DataClass implements Insertable<Game> {
           ..write('gameTimeSeconds: $gameTimeSeconds, ')
           ..write('isGameActive: $isGameActive, ')
           ..write('timerStartTime: $timerStartTime, ')
-          ..write('formationId: $formationId')
+          ..write('formationId: $formationId, ')
+          ..write('gameStatus: $gameStatus, ')
+          ..write('endTime: $endTime, ')
+          ..write('teamScore: $teamScore, ')
+          ..write('opponentScore: $opponentScore')
           ..write(')'))
         .toString();
   }
@@ -1531,6 +1673,10 @@ class Game extends DataClass implements Insertable<Game> {
     isGameActive,
     timerStartTime,
     formationId,
+    gameStatus,
+    endTime,
+    teamScore,
+    opponentScore,
   );
   @override
   bool operator ==(Object other) =>
@@ -1546,7 +1692,11 @@ class Game extends DataClass implements Insertable<Game> {
           other.gameTimeSeconds == this.gameTimeSeconds &&
           other.isGameActive == this.isGameActive &&
           other.timerStartTime == this.timerStartTime &&
-          other.formationId == this.formationId);
+          other.formationId == this.formationId &&
+          other.gameStatus == this.gameStatus &&
+          other.endTime == this.endTime &&
+          other.teamScore == this.teamScore &&
+          other.opponentScore == this.opponentScore);
 }
 
 class GamesCompanion extends UpdateCompanion<Game> {
@@ -1561,6 +1711,10 @@ class GamesCompanion extends UpdateCompanion<Game> {
   final Value<bool> isGameActive;
   final Value<DateTime?> timerStartTime;
   final Value<int?> formationId;
+  final Value<String> gameStatus;
+  final Value<DateTime?> endTime;
+  final Value<int> teamScore;
+  final Value<int> opponentScore;
   const GamesCompanion({
     this.id = const Value.absent(),
     this.startTime = const Value.absent(),
@@ -1573,6 +1727,10 @@ class GamesCompanion extends UpdateCompanion<Game> {
     this.isGameActive = const Value.absent(),
     this.timerStartTime = const Value.absent(),
     this.formationId = const Value.absent(),
+    this.gameStatus = const Value.absent(),
+    this.endTime = const Value.absent(),
+    this.teamScore = const Value.absent(),
+    this.opponentScore = const Value.absent(),
   });
   GamesCompanion.insert({
     this.id = const Value.absent(),
@@ -1586,6 +1744,10 @@ class GamesCompanion extends UpdateCompanion<Game> {
     this.isGameActive = const Value.absent(),
     this.timerStartTime = const Value.absent(),
     this.formationId = const Value.absent(),
+    this.gameStatus = const Value.absent(),
+    this.endTime = const Value.absent(),
+    this.teamScore = const Value.absent(),
+    this.opponentScore = const Value.absent(),
   }) : teamId = Value(teamId);
   static Insertable<Game> custom({
     Expression<int>? id,
@@ -1599,6 +1761,10 @@ class GamesCompanion extends UpdateCompanion<Game> {
     Expression<bool>? isGameActive,
     Expression<DateTime>? timerStartTime,
     Expression<int>? formationId,
+    Expression<String>? gameStatus,
+    Expression<DateTime>? endTime,
+    Expression<int>? teamScore,
+    Expression<int>? opponentScore,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1612,6 +1778,10 @@ class GamesCompanion extends UpdateCompanion<Game> {
       if (isGameActive != null) 'is_game_active': isGameActive,
       if (timerStartTime != null) 'timer_start_time': timerStartTime,
       if (formationId != null) 'formation_id': formationId,
+      if (gameStatus != null) 'game_status': gameStatus,
+      if (endTime != null) 'end_time': endTime,
+      if (teamScore != null) 'team_score': teamScore,
+      if (opponentScore != null) 'opponent_score': opponentScore,
     });
   }
 
@@ -1627,6 +1797,10 @@ class GamesCompanion extends UpdateCompanion<Game> {
     Value<bool>? isGameActive,
     Value<DateTime?>? timerStartTime,
     Value<int?>? formationId,
+    Value<String>? gameStatus,
+    Value<DateTime?>? endTime,
+    Value<int>? teamScore,
+    Value<int>? opponentScore,
   }) {
     return GamesCompanion(
       id: id ?? this.id,
@@ -1640,6 +1814,10 @@ class GamesCompanion extends UpdateCompanion<Game> {
       isGameActive: isGameActive ?? this.isGameActive,
       timerStartTime: timerStartTime ?? this.timerStartTime,
       formationId: formationId ?? this.formationId,
+      gameStatus: gameStatus ?? this.gameStatus,
+      endTime: endTime ?? this.endTime,
+      teamScore: teamScore ?? this.teamScore,
+      opponentScore: opponentScore ?? this.opponentScore,
     );
   }
 
@@ -1679,6 +1857,18 @@ class GamesCompanion extends UpdateCompanion<Game> {
     if (formationId.present) {
       map['formation_id'] = Variable<int>(formationId.value);
     }
+    if (gameStatus.present) {
+      map['game_status'] = Variable<String>(gameStatus.value);
+    }
+    if (endTime.present) {
+      map['end_time'] = Variable<DateTime>(endTime.value);
+    }
+    if (teamScore.present) {
+      map['team_score'] = Variable<int>(teamScore.value);
+    }
+    if (opponentScore.present) {
+      map['opponent_score'] = Variable<int>(opponentScore.value);
+    }
     return map;
   }
 
@@ -1695,7 +1885,11 @@ class GamesCompanion extends UpdateCompanion<Game> {
           ..write('gameTimeSeconds: $gameTimeSeconds, ')
           ..write('isGameActive: $isGameActive, ')
           ..write('timerStartTime: $timerStartTime, ')
-          ..write('formationId: $formationId')
+          ..write('formationId: $formationId, ')
+          ..write('gameStatus: $gameStatus, ')
+          ..write('endTime: $endTime, ')
+          ..write('teamScore: $teamScore, ')
+          ..write('opponentScore: $opponentScore')
           ..write(')'))
         .toString();
   }
@@ -5400,6 +5594,10 @@ typedef $$GamesTableCreateCompanionBuilder =
       Value<bool> isGameActive,
       Value<DateTime?> timerStartTime,
       Value<int?> formationId,
+      Value<String> gameStatus,
+      Value<DateTime?> endTime,
+      Value<int> teamScore,
+      Value<int> opponentScore,
     });
 typedef $$GamesTableUpdateCompanionBuilder =
     GamesCompanion Function({
@@ -5414,6 +5612,10 @@ typedef $$GamesTableUpdateCompanionBuilder =
       Value<bool> isGameActive,
       Value<DateTime?> timerStartTime,
       Value<int?> formationId,
+      Value<String> gameStatus,
+      Value<DateTime?> endTime,
+      Value<int> teamScore,
+      Value<int> opponentScore,
     });
 
 final class $$GamesTableReferences
@@ -5562,6 +5764,26 @@ class $$GamesTableFilterComposer extends Composer<_$AppDb, $GamesTable> {
 
   ColumnFilters<DateTime> get timerStartTime => $composableBuilder(
     column: $table.timerStartTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get gameStatus => $composableBuilder(
+    column: $table.gameStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endTime => $composableBuilder(
+    column: $table.endTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get teamScore => $composableBuilder(
+    column: $table.teamScore,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get opponentScore => $composableBuilder(
+    column: $table.opponentScore,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5740,6 +5962,26 @@ class $$GamesTableOrderingComposer extends Composer<_$AppDb, $GamesTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get gameStatus => $composableBuilder(
+    column: $table.gameStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endTime => $composableBuilder(
+    column: $table.endTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get teamScore => $composableBuilder(
+    column: $table.teamScore,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get opponentScore => $composableBuilder(
+    column: $table.opponentScore,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$TeamsTableOrderingComposer get teamId {
     final $$TeamsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -5831,6 +6073,22 @@ class $$GamesTableAnnotationComposer extends Composer<_$AppDb, $GamesTable> {
 
   GeneratedColumn<DateTime> get timerStartTime => $composableBuilder(
     column: $table.timerStartTime,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get gameStatus => $composableBuilder(
+    column: $table.gameStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get endTime =>
+      $composableBuilder(column: $table.endTime, builder: (column) => column);
+
+  GeneratedColumn<int> get teamScore =>
+      $composableBuilder(column: $table.teamScore, builder: (column) => column);
+
+  GeneratedColumn<int> get opponentScore => $composableBuilder(
+    column: $table.opponentScore,
     builder: (column) => column,
   );
 
@@ -6001,6 +6259,10 @@ class $$GamesTableTableManager
                 Value<bool> isGameActive = const Value.absent(),
                 Value<DateTime?> timerStartTime = const Value.absent(),
                 Value<int?> formationId = const Value.absent(),
+                Value<String> gameStatus = const Value.absent(),
+                Value<DateTime?> endTime = const Value.absent(),
+                Value<int> teamScore = const Value.absent(),
+                Value<int> opponentScore = const Value.absent(),
               }) => GamesCompanion(
                 id: id,
                 startTime: startTime,
@@ -6013,6 +6275,10 @@ class $$GamesTableTableManager
                 isGameActive: isGameActive,
                 timerStartTime: timerStartTime,
                 formationId: formationId,
+                gameStatus: gameStatus,
+                endTime: endTime,
+                teamScore: teamScore,
+                opponentScore: opponentScore,
               ),
           createCompanionCallback:
               ({
@@ -6027,6 +6293,10 @@ class $$GamesTableTableManager
                 Value<bool> isGameActive = const Value.absent(),
                 Value<DateTime?> timerStartTime = const Value.absent(),
                 Value<int?> formationId = const Value.absent(),
+                Value<String> gameStatus = const Value.absent(),
+                Value<DateTime?> endTime = const Value.absent(),
+                Value<int> teamScore = const Value.absent(),
+                Value<int> opponentScore = const Value.absent(),
               }) => GamesCompanion.insert(
                 id: id,
                 startTime: startTime,
@@ -6039,6 +6309,10 @@ class $$GamesTableTableManager
                 isGameActive: isGameActive,
                 timerStartTime: timerStartTime,
                 formationId: formationId,
+                gameStatus: gameStatus,
+                endTime: endTime,
+                teamScore: teamScore,
+                opponentScore: opponentScore,
               ),
           withReferenceMapper: (p0) => p0
               .map(

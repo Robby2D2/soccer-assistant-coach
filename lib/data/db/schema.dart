@@ -38,6 +38,15 @@ class Games extends Table {
     Formations,
     #id,
   )(); // Selected formation for the game
+
+  // Game completion and scoring
+  TextColumn get gameStatus => text().withDefault(
+    const Constant('in-progress'),
+  )(); // 'in-progress', 'completed', 'cancelled'
+  DateTimeColumn get endTime =>
+      dateTime().nullable()(); // When game was completed
+  IntColumn get teamScore => integer().withDefault(const Constant(0))();
+  IntColumn get opponentScore => integer().withDefault(const Constant(0))();
 }
 
 class Shifts extends Table {

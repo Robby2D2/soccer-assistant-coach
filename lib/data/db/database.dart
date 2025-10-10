@@ -30,7 +30,7 @@ class AppDb extends _$AppDb {
   AppDb()
     : super(SqfliteQueryExecutor.inDatabaseFolder(path: 'soccer_manager.db'));
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -82,6 +82,13 @@ class AppDb extends _$AppDb {
       }
       if (from < 12) {
         await m.addColumn(games, games.timerStartTime as GeneratedColumn);
+      }
+      if (from < 13) {
+        // Add game completion and scoring fields
+        await m.addColumn(games, games.gameStatus);
+        await m.addColumn(games, games.endTime);
+        await m.addColumn(games, games.teamScore);
+        await m.addColumn(games, games.opponentScore);
       }
     },
   );
@@ -349,6 +356,11 @@ extension GameQueries on AppDb {
     String? opponent,
     DateTime? startTime,
     int? formationId,
+    int? teamScore,
+    int? opponentScore,
+    String? gameStatus,
+    DateTime? endTime,
+    bool? isGameActive,
   }) => (update(games)..where((g) => g.id.equals(id))).write(
     GamesCompanion(
       opponent: opponent == null ? const Value.absent() : Value(opponent),
@@ -356,6 +368,15 @@ extension GameQueries on AppDb {
       formationId: formationId == null
           ? const Value.absent()
           : Value(formationId),
+      teamScore: teamScore == null ? const Value.absent() : Value(teamScore),
+      opponentScore: opponentScore == null
+          ? const Value.absent()
+          : Value(opponentScore),
+      gameStatus: gameStatus == null ? const Value.absent() : Value(gameStatus),
+      endTime: endTime == null ? const Value.absent() : Value(endTime),
+      isGameActive: isGameActive == null
+          ? const Value.absent()
+          : Value(isGameActive),
     ),
   );
   Future<void> deleteGame(int id) =>
@@ -430,13 +451,15 @@ extension GameQueries on AppDb {
     );
   }
 
-  /// Watch active games across all teams (games with isGameActive = true or recent active shifts)
+  /// Watch active games across all teams (games that have started but not yet completed)
   Stream<List<GameWithTeam>> watchActiveGames() {
     return (select(
             games,
           ).join([leftOuterJoin(teams, teams.id.equalsExp(games.teamId))])
           ..where(
-            games.isGameActive.equals(true) & games.isArchived.equals(false),
+            games.startTime.isNotNull() &
+                games.gameStatus.equals('in-progress') &
+                games.isArchived.equals(false),
           )
           ..orderBy([OrderingTerm.desc(games.startTime)]))
         .watch()

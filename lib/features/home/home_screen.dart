@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,19 +6,6 @@ import '../../core/providers.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
-
-  String _formatTimeRemaining(int gameTimeSeconds, int halfDurationSeconds) {
-    final remaining = halfDurationSeconds - gameTimeSeconds;
-    final isOvertime = remaining <= 0;
-
-    final displaySeconds = isOvertime ? -remaining : remaining;
-    final minutes = displaySeconds ~/ 60;
-    final seconds = displaySeconds % 60;
-    final timeString =
-        '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-
-    return isOvertime ? '+$timeString' : timeString;
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -122,7 +110,7 @@ class HomeScreen extends ConsumerWidget {
                                         ),
                                   ),
                                   Text(
-                                    'Start a game timer to see it here for quick access',
+                                    'Start a game to see it here for quick access',
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: Theme.of(
@@ -157,16 +145,26 @@ class HomeScreen extends ConsumerWidget {
                                     Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.errorContainer,
+                                        color: game.isGameActive
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.errorContainer
+                                            : Theme.of(
+                                                context,
+                                              ).colorScheme.primaryContainer,
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Icon(
-                                        Icons.timer,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.error,
+                                        game.isGameActive
+                                            ? Icons.timer
+                                            : Icons.pause_circle_filled,
+                                        color: game.isGameActive
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.error
+                                            : Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
                                         size: 24,
                                       ),
                                     ),
@@ -202,22 +200,33 @@ class HomeScreen extends ConsumerWidget {
                                                       vertical: 2,
                                                     ),
                                                 decoration: BoxDecoration(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .errorContainer
-                                                      .withOpacity(0.5),
+                                                  color: game.isGameActive
+                                                      ? Theme.of(context)
+                                                            .colorScheme
+                                                            .errorContainer
+                                                            .withOpacity(0.5)
+                                                      : Theme.of(context)
+                                                            .colorScheme
+                                                            .primaryContainer
+                                                            .withOpacity(0.5),
                                                   borderRadius:
                                                       BorderRadius.circular(12),
                                                 ),
                                                 child: Text(
-                                                  'LIVE',
+                                                  game.isGameActive
+                                                      ? 'LIVE'
+                                                      : 'PAUSED',
                                                   style: Theme.of(context)
                                                       .textTheme
                                                       .labelSmall
                                                       ?.copyWith(
-                                                        color: Theme.of(
-                                                          context,
-                                                        ).colorScheme.error,
+                                                        color: game.isGameActive
+                                                            ? Theme.of(context)
+                                                                  .colorScheme
+                                                                  .error
+                                                            : Theme.of(context)
+                                                                  .colorScheme
+                                                                  .primary,
                                                         fontWeight:
                                                             FontWeight.bold,
                                                       ),
@@ -241,39 +250,8 @@ class HomeScreen extends ConsumerWidget {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    FutureBuilder<int>(
-                                      future: db.getTeamHalfDurationSeconds(
-                                        team.id,
-                                      ),
-                                      builder: (context, halfDurationSnapshot) {
-                                        final halfDuration =
-                                            halfDurationSnapshot.data ??
-                                            1200; // 20 min default
-                                        return Column(
-                                          children: [
-                                            Text(
-                                              _formatTimeRemaining(
-                                                game.gameTimeSeconds,
-                                                halfDuration,
-                                              ),
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .titleLarge
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontFamily: 'monospace',
-                                                  ),
-                                            ),
-                                            Icon(
-                                              Icons.chevron_right,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.onSurfaceVariant,
-                                            ),
-                                          ],
-                                        );
-                                      },
-                                    ),
+                                    // Live updating time display for active games
+                                    _LiveGameTimer(game: game, teamId: team.id),
                                   ],
                                 ),
                               ),
@@ -408,6 +386,89 @@ class _QuickActionCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LiveGameTimer extends ConsumerStatefulWidget {
+  final Game game;
+  final int teamId;
+
+  const _LiveGameTimer({required this.game, required this.teamId});
+
+  @override
+  ConsumerState<_LiveGameTimer> createState() => _LiveGameTimerState();
+}
+
+class _LiveGameTimerState extends ConsumerState<_LiveGameTimer> {
+  late Stream<int> _timerStream;
+
+  String _formatTimeRemaining(int gameTimeSeconds, int halfDurationSeconds) {
+    final remaining = halfDurationSeconds - gameTimeSeconds;
+    final isOvertime = remaining <= 0;
+
+    final displaySeconds = isOvertime ? -remaining : remaining;
+    final minutes = displaySeconds ~/ 60;
+    final seconds = displaySeconds % 60;
+    final timeString =
+        '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+
+    return isOvertime ? '+$timeString' : timeString;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Create a stream that emits current game time every second for active games
+    _timerStream = Stream.periodic(const Duration(seconds: 1), (_) {
+      if (widget.game.isGameActive && widget.game.timerStartTime != null) {
+        // Calculate current elapsed time for active games
+        return widget.game.gameTimeSeconds +
+            DateTime.now().difference(widget.game.timerStartTime!).inSeconds;
+      } else {
+        // For paused games, just return the stored game time
+        return widget.game.gameTimeSeconds;
+      }
+    }).distinct(); // Only emit when the time actually changes
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final db = ref.watch(dbProvider);
+
+    return FutureBuilder<int>(
+      future: db.getTeamHalfDurationSeconds(widget.teamId),
+      builder: (context, snapshot) {
+        final halfDuration = snapshot.data ?? 1200; // 20 min default
+
+        return StreamBuilder<int>(
+          stream: _timerStream,
+          initialData: widget.game.gameTimeSeconds,
+          builder: (context, timeSnapshot) {
+            final currentGameTime =
+                timeSnapshot.data ?? widget.game.gameTimeSeconds;
+
+            return Column(
+              children: [
+                Text(
+                  _formatTimeRemaining(currentGameTime, halfDuration),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                    color: widget.game.isGameActive
+                        ? Theme.of(context).colorScheme.error
+                        : null,
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

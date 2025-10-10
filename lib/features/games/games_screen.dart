@@ -25,6 +25,30 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
     return '$year-$month-$day • $hour:$minute';
   }
 
+  Color _getResultColor(
+    BuildContext context,
+    int teamScore,
+    int opponentScore,
+  ) {
+    if (teamScore > opponentScore) {
+      return Colors.green; // Win
+    } else if (teamScore < opponentScore) {
+      return Colors.red; // Loss
+    } else {
+      return Colors.orange; // Draw
+    }
+  }
+
+  String _getResultText(int teamScore, int opponentScore) {
+    if (teamScore > opponentScore) {
+      return 'Win';
+    } else if (teamScore < opponentScore) {
+      return 'Loss';
+    } else {
+      return 'Draw';
+    }
+  }
+
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Padding(
@@ -192,19 +216,56 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  game.opponent?.isNotEmpty == true
-                                      ? 'vs ${game.opponent!}'
-                                      : 'vs Opponent',
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: archived
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.onSurfaceVariant
-                                            : null,
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        game.opponent?.isNotEmpty == true
+                                            ? 'vs ${game.opponent!}'
+                                            : 'vs Opponent',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: archived
+                                                  ? Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurfaceVariant
+                                                  : null,
+                                            ),
                                       ),
+                                    ),
+                                    // Score display for completed games
+                                    if (game.gameStatus == 'completed') ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          color: _getResultColor(
+                                            context,
+                                            game.teamScore,
+                                            game.opponentScore,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '${game.teamScore}-${game.opponentScore}',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 Row(
@@ -236,6 +297,94 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
                                               ),
                                         ),
                                       ),
+                                    // Game status indicator
+                                    if (game.gameStatus == 'completed') ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primaryContainer,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.check_circle_outline,
+                                              size: 12,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onPrimaryContainer,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              _getResultText(
+                                                game.teamScore,
+                                                game.opponentScore,
+                                              ),
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .labelSmall
+                                                  ?.copyWith(
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onPrimaryContainer,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ] else if (game.isGameActive) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .errorContainer
+                                              .withOpacity(0.5),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.circle,
+                                              size: 8,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.error,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'LIVE',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .labelSmall
+                                                  ?.copyWith(
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).colorScheme.error,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                     if (archived) ...[
                                       const SizedBox(width: 8),
                                       Container(

@@ -6,9 +6,15 @@ ThemeData appTheme = _makeTheme(Brightness.light);
 ThemeData appDarkTheme = _makeTheme(Brightness.dark);
 
 ThemeData _makeTheme(Brightness brightness) {
-  final scheme = ColorScheme.fromSeed(seedColor: _brandSeed, brightness: brightness);
-  final textTheme = (brightness == Brightness.dark ? Typography.material2021().white : Typography.material2021().black)
-      .apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface);
+  final scheme = ColorScheme.fromSeed(
+    seedColor: _brandSeed,
+    brightness: brightness,
+  );
+  final textTheme =
+      (brightness == Brightness.dark
+              ? Typography.material2021().white
+              : Typography.material2021().black)
+          .apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface);
 
   return ThemeData(
     useMaterial3: true,

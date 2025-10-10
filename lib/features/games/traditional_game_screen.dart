@@ -304,8 +304,10 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
         return;
       }
 
-      // Update time based on actual elapsed time (fire and forget)
-      _updateGameTimeFromBackground();
+      // Simple increment for normal operation
+      setState(() {
+        _gameTime = _gameTime + 1;
+      });
 
       // Update playing time for current lineup
       for (final playerId in _currentLineup.values) {
@@ -323,16 +325,6 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
         final db = ref.read(dbProvider);
         db.updateGameTime(widget.gameId, _gameTime);
       }
-    });
-  }
-
-  void _updateGameTimeFromBackground() async {
-    final db = ref.read(dbProvider);
-    // Calculate current time based on actual elapsed time
-    final currentGameTime = await db.calculateCurrentGameTime(widget.gameId);
-
-    setState(() {
-      _gameTime = currentGameTime;
     });
   }
 
@@ -527,6 +519,10 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
                 case _TraditionalGameMenuAction.reset:
                   await _resetTimer();
                   break;
+                case _TraditionalGameMenuAction.endGame:
+                  if (!context.mounted) return;
+                  context.push('/game/${widget.gameId}/end');
+                  break;
               }
             },
             itemBuilder: (context) => const [
@@ -549,6 +545,10 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
               PopupMenuItem(
                 value: _TraditionalGameMenuAction.reset,
                 child: Text('Reset timer'),
+              ),
+              PopupMenuItem(
+                value: _TraditionalGameMenuAction.endGame,
+                child: Text('End Game'),
               ),
             ],
           ),
@@ -606,35 +606,86 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
 
                   return Column(
                     children: [
-                      // Compact Game Control Section
-                      Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: ValueListenableBuilder<int>(
-                          valueListenable: _gameTimeNotifier,
-                          builder: (context, gameTime, _) =>
-                              ValueListenableBuilder<int>(
-                                valueListenable: _currentHalfNotifier,
-                                builder: (context, currentHalf, _) =>
-                                    ValueListenableBuilder<bool>(
-                                      valueListenable: _isRunningNotifier,
-                                      builder: (context, isRunning, _) =>
-                                          _CompactGameControl(
-                                            currentHalf: currentHalf,
-                                            gameTime: gameTime,
-                                            halfDurationSeconds:
-                                                _halfDurationSeconds,
-                                            isRunning: isRunning,
-                                            onStartPause: () => isRunning
-                                                ? _pauseTimer()
-                                                : _startOrResumeTimer(),
-                                            onSecondHalf: _currentHalf == 1
-                                                ? _startSecondHalf
-                                                : null,
+                      // Compact Game Control Section (only for in-progress games)
+                      if (game.gameStatus == 'in-progress')
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: ValueListenableBuilder<int>(
+                            valueListenable: _gameTimeNotifier,
+                            builder: (context, gameTime, _) =>
+                                ValueListenableBuilder<int>(
+                                  valueListenable: _currentHalfNotifier,
+                                  builder: (context, currentHalf, _) =>
+                                      ValueListenableBuilder<bool>(
+                                        valueListenable: _isRunningNotifier,
+                                        builder: (context, isRunning, _) =>
+                                            _CompactGameControl(
+                                              currentHalf: currentHalf,
+                                              gameTime: gameTime,
+                                              halfDurationSeconds:
+                                                  _halfDurationSeconds,
+                                              isRunning: isRunning,
+                                              onStartPause: () => isRunning
+                                                  ? _pauseTimer()
+                                                  : _startOrResumeTimer(),
+                                              onSecondHalf: _currentHalf == 1
+                                                  ? _startSecondHalf
+                                                  : null,
+                                            ),
+                                      ),
+                                ),
+                          ),
+                        )
+                      else
+                        // Show game completion status
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Center(
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.flag,
+                                      size: 32,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      game.gameStatus == 'completed'
+                                          ? 'Game Completed'
+                                          : 'Game ${game.gameStatus.toUpperCase()}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
                                           ),
                                     ),
+                                    if (game.endTime != null)
+                                      Text(
+                                        'Ended: ${game.endTime!.toLocal().toString().split('.')[0]}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                            ),
+                                      ),
+                                  ],
+                                ),
                               ),
+                            ),
+                          ),
                         ),
-                      ),
 
                       const Divider(height: 1),
 
@@ -2216,4 +2267,5 @@ enum _TraditionalGameMenuAction {
   metricsInput,
   attendance,
   reset,
+  endGame,
 }
