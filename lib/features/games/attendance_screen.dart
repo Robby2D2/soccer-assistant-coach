@@ -11,7 +11,24 @@ class AttendanceScreen extends ConsumerWidget {
     final db = ref.watch(dbProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Attendance')),
+      appBar: AppBar(
+        title: FutureBuilder<Game?>(
+          future: db.getGame(gameId),
+          builder: (context, gameSnap) {
+            final game = gameSnap.data;
+            if (game == null) {
+              return const Text('Attendance');
+            }
+            final opponent = game.opponent?.isNotEmpty == true
+                ? game.opponent!
+                : 'Opponent';
+            return Text(
+              'Attendance vs $opponent',
+              overflow: TextOverflow.ellipsis,
+            );
+          },
+        ),
+      ),
       body: FutureBuilder<Game?>(
         future: db.getGame(gameId),
         builder: (context, gameSnap) {

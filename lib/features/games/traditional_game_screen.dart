@@ -23,7 +23,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
 
   // Current lineup tracking
   final Map<String, int> _currentLineup = {}; // position -> playerId
-  final Map<int, int> _playingTimeThisHalf = {}; // playerId -> seconds
+  final Map<int, int> _playingTimeThisGame = {}; // playerId -> seconds
   final Map<int, int> _lastSavedPlayingTime = {}; // playerId -> seconds
 
   bool get _isRunning => _isRunningNotifier.value;
@@ -73,8 +73,8 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
       final savedPlayingTimes = await db.getTraditionalPlayingTimeByPlayer(
         widget.gameId,
       );
-      _playingTimeThisHalf.clear();
-      _playingTimeThisHalf.addAll(savedPlayingTimes);
+      _playingTimeThisGame.clear();
+      _playingTimeThisGame.addAll(savedPlayingTimes);
       // Track what has already been saved to avoid double-counting
       _lastSavedPlayingTime.clear();
       _lastSavedPlayingTime.addAll(savedPlayingTimes);
@@ -123,10 +123,10 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
           setState(() {
             _currentLineup.clear();
             _currentLineup.addAll(validLineup);
-            // Initialize last saved time for auto-populated players
+            // Initialize last saved time to avoid double-counting
             for (final playerId in validLineup.values) {
               _lastSavedPlayingTime[playerId] =
-                  _playingTimeThisHalf[playerId] ?? 0;
+                  _playingTimeThisGame[playerId] ?? 0;
             }
           });
           return;
@@ -153,7 +153,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
             // Initialize last saved time for randomly generated players
             for (final playerId in randomLineup.values) {
               _lastSavedPlayingTime[playerId] =
-                  _playingTimeThisHalf[playerId] ?? 0;
+                  _playingTimeThisGame[playerId] ?? 0;
             }
           });
         }
@@ -175,8 +175,8 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
 
       // Update playing time for current lineup
       for (final playerId in _currentLineup.values) {
-        _playingTimeThisHalf[playerId] =
-            (_playingTimeThisHalf[playerId] ?? 0) + 1;
+        _playingTimeThisGame[playerId] =
+            (_playingTimeThisGame[playerId] ?? 0) + 1;
       }
 
       // Auto-save playing time every 30 seconds
@@ -225,7 +225,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
       _gameTime = 0;
       _isRunning = false;
       _currentHalf = 1;
-      _playingTimeThisHalf.clear();
+      _playingTimeThisGame.clear();
     });
     final db = ref.read(dbProvider);
     await db.resetGameTimer(widget.gameId);
@@ -275,7 +275,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
     setState(() {
       _currentHalf = 2;
       _gameTime = 0; // Reset timer for second half
-      _playingTimeThisHalf.clear();
+      // Don't clear _playingTimeThisHalf - keep accumulating total game time
     });
 
     final db = ref.read(dbProvider);
@@ -285,7 +285,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
 
   Future<void> _savePlayingTime() async {
     final db = ref.read(dbProvider);
-    for (final entry in _playingTimeThisHalf.entries) {
+    for (final entry in _playingTimeThisGame.entries) {
       final playerId = entry.key;
       final currentTime = entry.value;
       final lastSaved = _lastSavedPlayingTime[playerId] ?? 0;
@@ -366,9 +366,13 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
                   if (!context.mounted) return;
                   context.push('/game/${widget.gameId}/edit');
                   break;
-                case _TraditionalGameMenuAction.metrics:
+                case _TraditionalGameMenuAction.metricsView:
                   if (!context.mounted) return;
                   context.push('/game/${widget.gameId}/metrics');
+                  break;
+                case _TraditionalGameMenuAction.metricsInput:
+                  if (!context.mounted) return;
+                  context.push('/game/${widget.gameId}/metrics/input');
                   break;
                 case _TraditionalGameMenuAction.attendance:
                   if (!context.mounted) return;
@@ -385,8 +389,12 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
                 child: Text('Edit game'),
               ),
               PopupMenuItem(
-                value: _TraditionalGameMenuAction.metrics,
-                child: Text('Metrics'),
+                value: _TraditionalGameMenuAction.metricsView,
+                child: Text('View Metrics'),
+              ),
+              PopupMenuItem(
+                value: _TraditionalGameMenuAction.metricsInput,
+                child: Text('Input Metrics'),
               ),
               PopupMenuItem(
                 value: _TraditionalGameMenuAction.attendance,
@@ -451,7 +459,26 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
+
+                  // Game Progress Timeline
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: ValueListenableBuilder<int>(
+                      valueListenable: _gameTimeNotifier,
+                      builder: (context, gameTime, _) =>
+                          ValueListenableBuilder<int>(
+                            valueListenable: _currentHalfNotifier,
+                            builder: (context, currentHalf, _) =>
+                                _GameProgressTimeline(
+                                  currentHalf: currentHalf,
+                                  gameTime: gameTime,
+                                  halfDurationSeconds: _halfDurationSeconds,
+                                ),
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
 
                   // Timer Card
                   Padding(
@@ -537,7 +564,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
                       players: players,
                       playersById: playersById,
                       currentLineup: _currentLineup,
-                      playingTimeThisHalf: _playingTimeThisHalf,
+                      playingTimeThisGame: _playingTimeThisGame,
                       onPlayerSubstitution: (outPlayerId, inPlayerId, position) {
                         setState(() {
                           if (outPlayerId != null) {
@@ -549,7 +576,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
                             _currentLineup[position] = inPlayerId;
                             // Initialize last saved time to current time to avoid double-counting
                             _lastSavedPlayingTime[inPlayerId] =
-                                _playingTimeThisHalf[inPlayerId] ?? 0;
+                                _playingTimeThisGame[inPlayerId] ?? 0;
                           }
                         });
                       },
@@ -570,7 +597,7 @@ class _TraditionalLineupView extends StatelessWidget {
   final List<Player> players;
   final Map<int, Player> playersById;
   final Map<String, int> currentLineup;
-  final Map<int, int> playingTimeThisHalf;
+  final Map<int, int> playingTimeThisGame;
   final Function(int? outPlayerId, int? inPlayerId, String? position)
   onPlayerSubstitution;
 
@@ -579,7 +606,7 @@ class _TraditionalLineupView extends StatelessWidget {
     required this.players,
     required this.playersById,
     required this.currentLineup,
-    required this.playingTimeThisHalf,
+    required this.playingTimeThisGame,
     required this.onPlayerSubstitution,
   });
 
@@ -663,7 +690,7 @@ class _TraditionalLineupView extends StatelessWidget {
                                 const SizedBox(width: 4),
                                 Text(
                                   _formatPlayingTime(
-                                    playingTimeThisHalf[playerId] ?? 0,
+                                    playingTimeThisGame[playerId] ?? 0,
                                   ),
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
@@ -730,7 +757,7 @@ class _TraditionalLineupView extends StatelessWidget {
                                 const SizedBox(width: 4),
                                 Text(
                                   _formatPlayingTime(
-                                    playingTimeThisHalf[player.id] ?? 0,
+                                    playingTimeThisGame[player.id] ?? 0,
                                   ),
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
@@ -800,7 +827,7 @@ class _TraditionalLineupView extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      _formatPlayingTime(playingTimeThisHalf[player.id] ?? 0),
+                      _formatPlayingTime(playingTimeThisGame[player.id] ?? 0),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
@@ -894,7 +921,7 @@ class _TraditionalLineupView extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             _formatPlayingTime(
-                              playingTimeThisHalf[playerId] ?? 0,
+                              playingTimeThisGame[playerId] ?? 0,
                             ),
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
@@ -931,4 +958,148 @@ class _TraditionalLineupView extends StatelessWidget {
   }
 }
 
-enum _TraditionalGameMenuAction { edit, metrics, attendance, reset }
+class _GameProgressTimeline extends StatelessWidget {
+  final int currentHalf;
+  final int gameTime;
+  final int halfDurationSeconds;
+
+  const _GameProgressTimeline({
+    required this.currentHalf,
+    required this.gameTime,
+    required this.halfDurationSeconds,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final totalGameSeconds = halfDurationSeconds * 2;
+
+    // Calculate total elapsed time across both halves
+    int totalElapsed;
+    if (currentHalf == 1) {
+      totalElapsed = gameTime;
+    } else {
+      // Second half: full first half + current time in second half
+      totalElapsed = halfDurationSeconds + gameTime;
+    }
+
+    // Clamp to prevent overflow beyond 100%
+    totalElapsed = totalElapsed.clamp(0, totalGameSeconds);
+
+    final progress = totalElapsed / totalGameSeconds;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Timeline labels
+        Row(
+          children: [
+            Text(
+              'Game Progress',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${(progress * 100).round()}%',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // Progress timeline
+        SizedBox(
+          height: 12,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final totalWidth = constraints.maxWidth;
+              final halfTimePosition = totalWidth * 0.5;
+
+              return Stack(
+                children: [
+                  // Background track
+                  Container(
+                    width: double.infinity,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+
+                  // Actual progress bar based on total elapsed time
+                  FractionallySizedBox(
+                    widthFactor: progress.clamp(0.0, 1.0),
+                    child: Container(
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+
+                  // Half-time marker line
+                  Positioned(
+                    left: halfTimePosition - 1,
+                    top: -2,
+                    child: Container(
+                      width: 2,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.outline,
+                        borderRadius: BorderRadius.circular(1),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 6),
+
+        // Timeline markers
+        Row(
+          children: [
+            Text(
+              '0\'',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              'HT',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${(halfDurationSeconds * 2 / 60).round()}\'',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+enum _TraditionalGameMenuAction {
+  edit,
+  metricsView,
+  metricsInput,
+  attendance,
+  reset,
+}

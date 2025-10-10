@@ -9,7 +9,8 @@ import '../features/games/games_screen.dart';
 import '../features/games/smart_game_screen.dart';
 import '../features/games/game_edit_screen.dart';
 import '../features/games/assign_players_screen.dart';
-import '../features/games/metrics_screen.dart';
+import '../features/games/metrics_overview_screen.dart';
+import '../features/games/metrics_input_screen.dart';
 import '../features/formations/team_formations_screen.dart';
 import '../features/formations/formation_edit_screen.dart';
 import '../features/games/formation_selection_screen.dart';
@@ -87,7 +88,12 @@ final router = GoRouter(
     GoRoute(
       path: '/game/:id/metrics',
       builder: (_, s) =>
-          MetricsScreen(gameId: int.parse(s.pathParameters['id']!)),
+          MetricsOverviewScreen(gameId: int.parse(s.pathParameters['id']!)),
+    ),
+    GoRoute(
+      path: '/game/:id/metrics/input',
+      builder: (_, s) =>
+          MetricsInputScreen(gameId: int.parse(s.pathParameters['id']!)),
     ),
     GoRoute(
       path: '/game/:id/formation',
