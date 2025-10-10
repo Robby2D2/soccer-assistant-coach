@@ -34,7 +34,15 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Team ${widget.teamId} Games'),
+        title: FutureBuilder<Team?>(
+          future: db.getTeam(widget.teamId),
+          builder: (context, snapshot) {
+            if (snapshot.hasData && snapshot.data != null) {
+              return Text('${snapshot.data!.name} Games');
+            }
+            return Text('Team ${widget.teamId} Games');
+          },
+        ),
         actions: [
           IconButton(
             tooltip: _showArchived ? 'Hide archived' : 'Show archived',
@@ -82,10 +90,14 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
               final game = visible[i];
               final archived = game.isArchived;
               return Card(
-                color: archived ? Theme.of(context).colorScheme.surfaceContainerHighest : null,
+                color: archived
+                    ? Theme.of(context).colorScheme.surfaceContainerHighest
+                    : null,
                 child: ListTile(
                   title: Text(
-                    game.opponent?.isNotEmpty == true ? game.opponent! : 'Opponent',
+                    game.opponent?.isNotEmpty == true
+                        ? game.opponent!
+                        : 'Opponent',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   subtitle: Text(
@@ -99,7 +111,10 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
                         icon: Icon(archived ? Icons.unarchive : Icons.archive),
                         tooltip: archived ? 'Restore game' : 'Archive game',
                         onPressed: () async {
-                          await db.setGameArchived(game.id, archived: !archived);
+                          await db.setGameArchived(
+                            game.id,
+                            archived: !archived,
+                          );
                         },
                       ),
                       IconButton(

@@ -15,3 +15,5 @@ Is updating those player metrics every second going to lead to possible issues w
 
 Can you analyze both game modes to make sure they both are working as expected?  Now that we added a Traditional Mode, I especially want to make sure the Shift Based mode is still working as expected.
 
+In the shift-based game mode, the stopwatch should really act as an alarm where it continues to sound (for maybe a minute) until acknowledged.  In traditional mode, no alarm is necessary.
+

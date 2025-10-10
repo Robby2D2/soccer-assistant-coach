@@ -1898,150 +1898,207 @@ class _CompactGameControl extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Half indicator and timer in one row
-            Row(
+            // Large time display at top
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  over ? '+${_formatTime(-remaining)}' : _formatTime(remaining),
+                  style: theme.textTheme.displayMedium?.copyWith(
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    letterSpacing: 2.0,
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Timeline with embedded half labels
+            Column(
               children: [
-                // Half indicator
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    currentHalf == 1 ? '1st Half' : '2nd Half',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w600,
+                // Half labels above timeline
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '1st Half',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: currentHalf == 1
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurfaceVariant,
+                          fontWeight: currentHalf == 1
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                        ),
+                      ),
                     ),
-                  ),
+                    Expanded(
+                      child: Text(
+                        '2nd Half',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: currentHalf == 2
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurfaceVariant,
+                          fontWeight: currentHalf == 2
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
 
-                const SizedBox(width: 16),
+                const SizedBox(height: 4),
 
-                // Timer
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      over
-                          ? '+${_formatTime(-remaining)}'
-                          : _formatTime(remaining),
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                        letterSpacing: 1.5,
-                        fontWeight: FontWeight.w400,
+                // Timeline progress bar
+                Row(
+                  children: [
+                    Text(
+                      '0\'',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SizedBox(
+                        height: 8,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final totalWidth = constraints.maxWidth;
+                            final halfTimePosition = totalWidth * 0.5;
+
+                            return Stack(
+                              children: [
+                                // Background track
+                                Container(
+                                  width: double.infinity,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.outline.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+
+                                // Progress bar
+                                FractionallySizedBox(
+                                  widthFactor: progress.clamp(0.0, 1.0),
+                                  child: Container(
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primary,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                ),
+
+                                // Half-time marker
+                                Positioned(
+                                  left: halfTimePosition - 1,
+                                  top: 0,
+                                  child: Container(
+                                    width: 2,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.outline,
+                                      borderRadius: BorderRadius.circular(1),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${(halfDurationSeconds * 2 / 60).round()}\'',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-
-                // Controls
-                if (onSecondHalf != null)
-                  TextButton.icon(
-                    icon: const Icon(Icons.skip_next, size: 18),
-                    label: const Text('2nd'),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    onPressed: onSecondHalf,
-                  )
-                else
-                  FilledButton.icon(
-                    icon: Icon(
-                      isRunning ? Icons.pause : Icons.play_arrow,
-                      size: 18,
-                    ),
-                    label: Text(isRunning ? 'Pause' : 'Start'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    onPressed: onStartPause,
-                  ),
               ],
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
 
-            // Compact progress bar
+            // Controls row
             Row(
               children: [
-                Text(
-                  '0\'',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(width: 8),
+                // Left side - Start/Pause button under current half
                 Expanded(
-                  child: SizedBox(
-                    height: 6,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final totalWidth = constraints.maxWidth;
-                        final halfTimePosition = totalWidth * 0.5;
-
-                        return Stack(
-                          children: [
-                            // Background track
-                            Container(
-                              width: double.infinity,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.outline.withValues(
-                                  alpha: 0.3,
-                                ),
-                                borderRadius: BorderRadius.circular(3),
-                              ),
+                  child: currentHalf == 1
+                      ? FilledButton.icon(
+                          icon: Icon(
+                            isRunning ? Icons.pause : Icons.play_arrow,
+                            size: 16,
+                          ),
+                          label: Text(isRunning ? 'Pause' : 'Start'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
                             ),
-
-                            // Progress bar
-                            FractionallySizedBox(
-                              widthFactor: progress.clamp(0.0, 1.0),
-                              child: Container(
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary,
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                              ),
-                            ),
-
-                            // Half-time marker
-                            Positioned(
-                              left: halfTimePosition - 0.5,
-                              top: 0,
-                              child: Container(
-                                width: 1,
-                                height: 6,
-                                color: theme.colorScheme.outline,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: onStartPause,
+                        )
+                      : const SizedBox.shrink(),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  '${(halfDurationSeconds * 2 / 60).round()}\'',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+
+                // Center - Empty space (time is now at top)
+                const Expanded(child: SizedBox.shrink()),
+
+                // Right side - 2nd Half button (first half) or Start/Pause (second half)
+                Expanded(
+                  child: currentHalf == 1
+                      ? (onSecondHalf != null
+                            ? Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton.icon(
+                                  icon: const Icon(Icons.skip_next, size: 16),
+                                  label: const Text('2nd Half'),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 6,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  onPressed: onSecondHalf,
+                                ),
+                              )
+                            : const SizedBox.shrink())
+                      : FilledButton.icon(
+                          icon: Icon(
+                            isRunning ? Icons.pause : Icons.play_arrow,
+                            size: 16,
+                          ),
+                          label: Text(isRunning ? 'Pause' : 'Start'),
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: onStartPause,
+                        ),
                 ),
               ],
             ),
