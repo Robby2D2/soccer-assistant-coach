@@ -4,6 +4,10 @@ class Teams extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  TextColumn get teamMode =>
+      text().withDefault(const Constant('shift'))(); // 'shift' or 'traditional'
+  IntColumn get halfDurationSeconds =>
+      integer().withDefault(const Constant(1200))(); // 20 minutes default
 }
 
 class Players extends Table {
@@ -21,6 +25,17 @@ class Games extends Table {
   IntColumn get currentShiftId => integer().nullable()();
   IntColumn get teamId => integer().references(Teams, #id)();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  IntColumn get currentHalf =>
+      integer().withDefault(const Constant(1))(); // 1 or 2
+  IntColumn get gameTimeSeconds => integer().withDefault(
+    const Constant(0),
+  )(); // Total game time for traditional mode
+  BoolColumn get isGameActive =>
+      boolean().withDefault(const Constant(false))(); // Is game timer running
+  IntColumn get formationId => integer().nullable().references(
+    Formations,
+    #id,
+  )(); // Selected formation for the game
 }
 
 class Shifts extends Table {

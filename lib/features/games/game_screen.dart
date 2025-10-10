@@ -206,9 +206,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   if (!context.mounted) return;
                   context.push('/game/${widget.gameId}/formation');
                   break;
-                case _GameMenuAction.metrics:
+                case _GameMenuAction.metricsView:
                   if (!context.mounted) return;
                   context.push('/game/${widget.gameId}/metrics');
+                  break;
+                case _GameMenuAction.metricsInput:
+                  if (!context.mounted) return;
+                  context.push('/game/${widget.gameId}/metrics/input');
                   break;
                 case _GameMenuAction.attendance:
                   if (!context.mounted) return;
@@ -245,8 +249,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 child: Text('Formation'),
               ),
               PopupMenuItem(
-                value: _GameMenuAction.metrics,
-                child: Text('Metrics'),
+                value: _GameMenuAction.metricsView,
+                child: Text('View Metrics'),
+              ),
+              PopupMenuItem(
+                value: _GameMenuAction.metricsInput,
+                child: Text('Input Metrics'),
               ),
               PopupMenuItem(
                 value: _GameMenuAction.attendance,
@@ -1153,6 +1161,13 @@ String _formatDateTime(DateTime dt) {
   return '$year-$month-$day • $hour:$minute';
 }
 
-enum _GameMenuAction { edit, lineup, metrics, attendance, reset }
+enum _GameMenuAction {
+  edit,
+  lineup,
+  metricsView,
+  metricsInput,
+  attendance,
+  reset,
+}
 
 // (Play Time chart widgets moved to Metrics screen)

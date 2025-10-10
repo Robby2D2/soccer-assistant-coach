@@ -24,7 +24,24 @@ class AssignPlayersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(dbProvider);
     return Scaffold(
-      appBar: AppBar(title: Text('Assign Players (Shift $shiftId)')),
+      appBar: AppBar(
+        title: FutureBuilder<Game?>(
+          future: db.getGame(gameId),
+          builder: (context, gameSnap) {
+            final game = gameSnap.data;
+            if (game == null) {
+              return Text('Assign Players (Shift $shiftId)');
+            }
+            final opponent = game.opponent?.isNotEmpty == true
+                ? game.opponent!
+                : 'Opponent';
+            return Text(
+              'Assign vs $opponent (Shift $shiftId)',
+              overflow: TextOverflow.ellipsis,
+            );
+          },
+        ),
+      ),
       body: FutureBuilder<Game?>(
         future: db.getGame(gameId),
         builder: (context, snapGame) {
@@ -42,10 +59,13 @@ class AssignPlayersScreen extends ConsumerWidget {
               return StreamBuilder<List<GamePlayer>>(
                 stream: db.watchAttendance(gameId),
                 builder: (context, attendanceSnap) {
-                  if (attendanceSnap.connectionState == ConnectionState.waiting && !attendanceSnap.hasData) {
+                  if (attendanceSnap.connectionState ==
+                          ConnectionState.waiting &&
+                      !attendanceSnap.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  final attendance = attendanceSnap.data ?? const <GamePlayer>[];
+                  final attendance =
+                      attendanceSnap.data ?? const <GamePlayer>[];
                   final filteredPlayers = <Player>[];
                   for (final p in players) {
                     GamePlayer? entry;
@@ -63,7 +83,9 @@ class AssignPlayersScreen extends ConsumerWidget {
                     return const Center(
                       child: Padding(
                         padding: EdgeInsets.all(24),
-                        child: Text('No present players available for this game.'),
+                        child: Text(
+                          'No present players available for this game.',
+                        ),
                       ),
                     );
                   }
@@ -72,7 +94,9 @@ class AssignPlayersScreen extends ConsumerWidget {
                     stream: db.watchAssignments(shiftId),
                     builder: (context, snapAssign) {
                       final assigns = (snapAssign.data ?? <PlayerShift>[]);
-                      final map = {for (final a in assigns) a.playerId: a.position};
+                      final map = {
+                        for (final a in assigns) a.playerId: a.position,
+                      };
                       return ListView.separated(
                         itemCount: filteredPlayers.length,
                         separatorBuilder: (_, __) => const Divider(height: 0),
