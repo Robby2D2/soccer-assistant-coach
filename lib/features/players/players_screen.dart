@@ -84,7 +84,7 @@ class PlayersScreen extends ConsumerWidget {
             itemBuilder: (_, i) => Card(
               child: ListTile(
                 title: Text('${rows[i].firstName} ${rows[i].lastName}'),
-                subtitle: Text(rows[i].isPresent ? 'Present' : 'Absent'),
+                subtitle: Text(rows[i].isPresent ? 'Active' : 'Inactive'),
                 leading: Switch(
                   value: rows[i].isPresent,
                   onChanged: (v) {

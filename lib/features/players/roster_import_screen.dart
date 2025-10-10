@@ -36,7 +36,7 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
         child: Column(
           children: [
             Text(
-              'Paste CSV with header: firstName,lastName,isPresent',
+              'Paste CSV with header: firstName,lastName,isPresent (active status)',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 8),
@@ -48,7 +48,8 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
                 minLines: null,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
-                  hintText: 'firstName,lastName,isPresent\nJane,Doe,true',
+                  hintText:
+                      'firstName,lastName,isPresent\nJane,Doe,true\nJohn,Smith,false',
                 ),
                 onChanged: (_) => _parse(),
               ),
@@ -68,7 +69,7 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
                   return ListTile(
                     dense: true,
                     title: Text('${r['firstName']} ${r['lastName']}'),
-                    subtitle: Text('Present: ${r['isPresent']}'),
+                    subtitle: Text('Active: ${r['isPresent']}'),
                   );
                 },
               ),
