@@ -4,6 +4,14 @@ import 'schema.dart';
 
 part 'database.g.dart';
 
+/// Combined Game and Team data for active game views
+class GameWithTeam {
+  final Game game;
+  final Team team;
+
+  const GameWithTeam({required this.game, required this.team});
+}
+
 @DriftDatabase(
   tables: [
     Teams,
@@ -387,6 +395,25 @@ extension GameQueries on AppDb {
         currentHalf: Value(1),
       ),
     );
+  }
+
+  /// Watch active games across all teams (games with isGameActive = true or recent active shifts)
+  Stream<List<GameWithTeam>> watchActiveGames() {
+    return (select(
+            games,
+          ).join([leftOuterJoin(teams, teams.id.equalsExp(games.teamId))])
+          ..where(
+            games.isGameActive.equals(true) & games.isArchived.equals(false),
+          )
+          ..orderBy([OrderingTerm.desc(games.startTime)]))
+        .watch()
+        .map(
+          (rows) => rows.map((row) {
+            final game = row.readTable(games);
+            final team = row.readTable(teams);
+            return GameWithTeam(game: game, team: team);
+          }).toList(),
+        );
   }
 
   /// Get the most recent completed game for a team (excluding current game)

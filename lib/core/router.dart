@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import '../features/home/home_screen.dart';
 import '../features/teams/teams_screen.dart';
 import '../features/teams/team_detail_screen.dart';
 import '../features/teams/team_edit_screen.dart';
@@ -18,7 +19,8 @@ import '../features/games/attendance_screen.dart';
 
 final router = GoRouter(
   routes: [
-    GoRoute(path: '/', builder: (_, __) => const TeamsScreen()),
+    GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
+    GoRoute(path: '/teams', builder: (_, __) => const TeamsScreen()),
     GoRoute(
       path: '/team/:id',
       builder: (_, s) =>
