@@ -30,7 +30,7 @@ class AppDb extends _$AppDb {
   AppDb()
     : super(SqfliteQueryExecutor.inDatabaseFolder(path: 'soccer_manager.db'));
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -79,6 +79,9 @@ class AppDb extends _$AppDb {
       }
       if (from < 11) {
         await m.addColumn(games, games.formationId);
+      }
+      if (from < 12) {
+        await m.addColumn(games, games.timerStartTime as GeneratedColumn);
       }
     },
   );
@@ -365,13 +368,19 @@ extension GameQueries on AppDb {
   // Traditional mode game management methods
   Future<void> startGameTimer(int gameId) async {
     await (update(games)..where((g) => g.id.equals(gameId))).write(
-      const GamesCompanion(isGameActive: Value(true)),
+      GamesCompanion(
+        isGameActive: const Value(true),
+        timerStartTime: Value(DateTime.now()),
+      ),
     );
   }
 
   Future<void> pauseGameTimer(int gameId) async {
     await (update(games)..where((g) => g.id.equals(gameId))).write(
-      const GamesCompanion(isGameActive: Value(false)),
+      const GamesCompanion(
+        isGameActive: Value(false),
+        timerStartTime: Value(null),
+      ),
     );
   }
 
@@ -393,7 +402,31 @@ extension GameQueries on AppDb {
         gameTimeSeconds: Value(0),
         isGameActive: Value(false),
         currentHalf: Value(1),
+        timerStartTime: Value(null),
       ),
+    );
+  }
+
+  /// Calculate the current game time based on stored game time and timer start time
+  /// This ensures accuracy even after the app has been in the background
+  Future<int> calculateCurrentGameTime(int gameId) async {
+    final game = await getGame(gameId);
+    if (game == null) return 0;
+
+    if (!game.isGameActive || game.timerStartTime == null) {
+      return game.gameTimeSeconds;
+    }
+
+    final elapsedSinceStart = DateTime.now()
+        .difference(game.timerStartTime!)
+        .inSeconds;
+    return game.gameTimeSeconds + elapsedSinceStart;
+  }
+
+  /// Update timer start time while keeping current game time
+  Future<void> updateTimerStartTime(int gameId) async {
+    await (update(games)..where((g) => g.id.equals(gameId))).write(
+      GamesCompanion(timerStartTime: Value(DateTime.now())),
     );
   }
 

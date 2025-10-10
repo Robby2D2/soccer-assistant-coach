@@ -6,27 +6,17 @@ import '../../core/providers.dart';
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  String _formatGameTime(int seconds) {
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
-  }
+  String _formatTimeRemaining(int gameTimeSeconds, int halfDurationSeconds) {
+    final remaining = halfDurationSeconds - gameTimeSeconds;
+    final isOvertime = remaining <= 0;
 
-  String _formatTimeAgo(DateTime? startTime) {
-    if (startTime == null) return 'No start time';
+    final displaySeconds = isOvertime ? -remaining : remaining;
+    final minutes = displaySeconds ~/ 60;
+    final seconds = displaySeconds % 60;
+    final timeString =
+        '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
 
-    final now = DateTime.now();
-    final difference = now.difference(startTime);
-
-    if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
-    } else {
-      return 'Just started';
-    }
+    return isOvertime ? '+$timeString' : timeString;
   }
 
   @override
@@ -245,43 +235,44 @@ class HomeScreen extends ConsumerWidget {
                                                           .onSurfaceVariant,
                                                     ),
                                               ),
-                                              const Spacer(),
-                                              Text(
-                                                _formatTimeAgo(game.startTime),
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .bodySmall
-                                                    ?.copyWith(
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onSurfaceVariant,
-                                                    ),
-                                              ),
                                             ],
                                           ),
                                         ],
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    Column(
-                                      children: [
-                                        Text(
-                                          _formatGameTime(game.gameTimeSeconds),
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleLarge
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                                fontFamily: 'monospace',
+                                    FutureBuilder<int>(
+                                      future: db.getTeamHalfDurationSeconds(
+                                        team.id,
+                                      ),
+                                      builder: (context, halfDurationSnapshot) {
+                                        final halfDuration =
+                                            halfDurationSnapshot.data ??
+                                            1200; // 20 min default
+                                        return Column(
+                                          children: [
+                                            Text(
+                                              _formatTimeRemaining(
+                                                game.gameTimeSeconds,
+                                                halfDuration,
                                               ),
-                                        ),
-                                        Icon(
-                                          Icons.chevron_right,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
-                                        ),
-                                      ],
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleLarge
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontFamily: 'monospace',
+                                                  ),
+                                            ),
+                                            Icon(
+                                              Icons.chevron_right,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                            ),
+                                          ],
+                                        );
+                                      },
                                     ),
                                   ],
                                 ),

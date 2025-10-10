@@ -13,7 +13,8 @@ class TraditionalGameScreen extends ConsumerStatefulWidget {
       _TraditionalGameScreenState();
 }
 
-class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
+class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
+    with WidgetsBindingObserver {
   late final ValueNotifier<int> _gameTimeNotifier;
   late final ValueNotifier<bool> _isRunningNotifier;
   late final ValueNotifier<int> _currentHalfNotifier;
@@ -40,6 +41,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _gameTimeNotifier = ValueNotifier<int>(0);
     _isRunningNotifier = ValueNotifier<bool>(false);
     _currentHalfNotifier = ValueNotifier<int>(1);
@@ -48,6 +50,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _gameTimer?.cancel();
     // Note: No need to save playing time here since we have:
     // 1. Periodic auto-saving every 30 seconds
@@ -57,6 +60,70 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
     _isRunningNotifier.dispose();
     _currentHalfNotifier.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        // App is going to background or being terminated
+        if (_isRunning) {
+          _saveCurrentState();
+        }
+        break;
+      case AppLifecycleState.resumed:
+        // App is coming back from background
+        if (_isRunning) {
+          _recalculateFromBackground();
+        }
+        break;
+      case AppLifecycleState.inactive:
+        // App is temporarily inactive (e.g., during phone calls)
+        // Don't need to do anything special here
+        break;
+      case AppLifecycleState.hidden:
+        // App is hidden but still running
+        break;
+    }
+  }
+
+  Future<void> _saveCurrentState() async {
+    final db = ref.read(dbProvider);
+    // Save current game time and playing times
+    await db.updateGameTime(widget.gameId, _gameTime);
+    await _savePlayingTime();
+  }
+
+  Future<void> _recalculateFromBackground() async {
+    final db = ref.read(dbProvider);
+    final game = await db.getGame(widget.gameId);
+
+    if (game != null && game.isGameActive && game.timerStartTime != null) {
+      // Calculate how much time passed while in background
+      final currentGameTime = await db.calculateCurrentGameTime(widget.gameId);
+      final backgroundTime = currentGameTime - _gameTime;
+
+      if (backgroundTime > 0) {
+        // Update game time
+        setState(() {
+          _gameTime = currentGameTime;
+        });
+
+        // Add background time to current players' playing time
+        for (final playerId in _currentLineup.values) {
+          _playingTimeThisGame[playerId] =
+              (_playingTimeThisGame[playerId] ?? 0) + backgroundTime;
+        }
+
+        // Update timer start time to now and save progress
+        await db.updateGameTime(widget.gameId, currentGameTime);
+        await db.updateTimerStartTime(widget.gameId);
+        await _savePlayingTime();
+      }
+    }
   }
 
   Future<void> _loadFormationPositions(Game game) async {
@@ -90,7 +157,9 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
     final game = await db.getGame(widget.gameId);
 
     if (game != null) {
-      _gameTimeNotifier.value = game.gameTimeSeconds;
+      // Calculate actual current game time accounting for background time
+      final currentGameTime = await db.calculateCurrentGameTime(widget.gameId);
+      _gameTimeNotifier.value = currentGameTime;
       _currentHalfNotifier.value = game.currentHalf;
       _isRunning = game.isGameActive;
 
@@ -116,8 +185,20 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
         await _autoPopulateLineup(game.teamId);
       }
 
-      // Resume timer if game was active when app was closed
-      if (game.isGameActive) {
+      // If timer was running when app was closed, calculate missed playing time
+      if (game.isGameActive && game.timerStartTime != null) {
+        final backgroundTime = currentGameTime - game.gameTimeSeconds;
+        if (backgroundTime > 0) {
+          // Add background time to players who were in the lineup
+          for (final playerId in _currentLineup.values) {
+            _playingTimeThisGame[playerId] =
+                (_playingTimeThisGame[playerId] ?? 0) + backgroundTime;
+          }
+        }
+
+        // Update timer start time to now and save current progress
+        await db.updateGameTime(widget.gameId, currentGameTime);
+        await db.updateTimerStartTime(widget.gameId);
         _startTimer();
       }
     }
@@ -223,9 +304,8 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
         return;
       }
 
-      setState(() {
-        _gameTime = _gameTime + 1;
-      });
+      // Update time based on actual elapsed time (fire and forget)
+      _updateGameTimeFromBackground();
 
       // Update playing time for current lineup
       for (final playerId in _currentLineup.values) {
@@ -238,9 +318,21 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen> {
         _savePlayingTime();
       }
 
-      // Save game time to database
-      final db = ref.read(dbProvider);
-      db.updateGameTime(widget.gameId, _gameTime);
+      // Save game time to database periodically (every 5 seconds to reduce DB calls)
+      if (_gameTime % 5 == 0) {
+        final db = ref.read(dbProvider);
+        db.updateGameTime(widget.gameId, _gameTime);
+      }
+    });
+  }
+
+  void _updateGameTimeFromBackground() async {
+    final db = ref.read(dbProvider);
+    // Calculate current time based on actual elapsed time
+    final currentGameTime = await db.calculateCurrentGameTime(widget.gameId);
+
+    setState(() {
+      _gameTime = currentGameTime;
     });
   }
 
@@ -1093,194 +1185,203 @@ class _TraditionalLineupView extends StatelessWidget {
         title: Text('Substitute $position'),
         content: SizedBox(
           width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Current player display
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primaryContainer.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        position,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '${currentPlayer.firstName} ${currentPlayer.lastName}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    Icon(
-                      Icons.timer,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      _formatPlayingTime(
-                        playingTimeThisGame[currentPlayer.id] ?? 0,
-                      ),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Select replacement:'),
-              ),
-              const SizedBox(height: 8),
-              if (availablePlayers.isEmpty)
+          height: 400, // Set a maximum height for the dialog content
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Current player display
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Theme.of(
                       context,
-                    ).colorScheme.surfaceContainerHighest,
+                    ).colorScheme.primaryContainer.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Text(
-                    'No players available on bench.',
-                    style: TextStyle(fontStyle: FontStyle.italic),
-                    textAlign: TextAlign.center,
-                  ),
-                )
-              else
-                // Available players grid
-                SizedBox(
-                  height: 200, // Fixed height for scrollable area
-                  child: GridView.builder(
-                    shrinkWrap: true,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 3.0,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
                         ),
-                    itemCount: availablePlayers.length,
-                    itemBuilder: (context, index) {
-                      final player = availablePlayers[index];
-                      return Card(
-                        margin: EdgeInsets.zero,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            onPlayerSubstitution(
-                              currentPlayer.id,
-                              player.id,
-                              position,
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 4,
-                                        vertical: 1,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.secondaryContainer,
-                                        borderRadius: BorderRadius.circular(3),
-                                      ),
-                                      child: Text(
-                                        'SUB',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelSmall
-                                            ?.copyWith(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSecondaryContainer,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 10,
-                                            ),
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.timer,
-                                          size: 12,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          position,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimaryContainer,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${currentPlayer.firstName} ${currentPlayer.lastName}',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      Icon(
+                        Icons.timer,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _formatPlayingTime(
+                          playingTimeThisGame[currentPlayer.id] ?? 0,
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Select replacement:'),
+                ),
+                const SizedBox(height: 8),
+                if (availablePlayers.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'No players available on bench.',
+                      style: TextStyle(fontStyle: FontStyle.italic),
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                else
+                  // Available players grid
+                  SizedBox(
+                    height: 200, // Fixed height for scrollable area
+                    child: GridView.builder(
+                      shrinkWrap: true,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio:
+                                2.5, // Increased height to fit content
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                          ),
+                      itemCount: availablePlayers.length,
+                      itemBuilder: (context, index) {
+                        final player = availablePlayers[index];
+                        return Card(
+                          margin: EdgeInsets.zero,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              onPlayerSubstitution(
+                                currentPlayer.id,
+                                player.id,
+                                position,
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(
+                                6,
+                              ), // Reduced padding
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 4,
+                                          vertical: 1,
+                                        ),
+                                        decoration: BoxDecoration(
                                           color: Theme.of(
                                             context,
-                                          ).colorScheme.onSurfaceVariant,
-                                        ),
-                                        const SizedBox(width: 2),
-                                        Text(
-                                          _formatPlayingTime(
-                                            playingTimeThisGame[player.id] ?? 0,
+                                          ).colorScheme.secondaryContainer,
+                                          borderRadius: BorderRadius.circular(
+                                            3,
                                           ),
+                                        ),
+                                        child: Text(
+                                          'SUB',
                                           style: Theme.of(context)
                                               .textTheme
                                               .labelSmall
                                               ?.copyWith(
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurfaceVariant,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSecondaryContainer,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 10,
                                               ),
                                         ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${player.firstName} ${player.lastName}',
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(fontWeight: FontWeight.w500),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
+                                      ),
+                                      const Spacer(),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.timer,
+                                            size: 12,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                          ),
+                                          const SizedBox(width: 2),
+                                          Text(
+                                            _formatPlayingTime(
+                                              playingTimeThisGame[player.id] ??
+                                                  0,
+                                            ),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelSmall
+                                                ?.copyWith(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2), // Reduced spacing
+                                  Text(
+                                    '${player.firstName} ${player.lastName}',
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(fontWeight: FontWeight.w500),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [

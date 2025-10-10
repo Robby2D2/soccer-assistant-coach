@@ -9,6 +9,80 @@ import 'package:go_router/go_router.dart';
 class PlayersScreen extends ConsumerWidget {
   final int teamId;
   const PlayersScreen({super.key, required this.teamId});
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(60),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+              child: Icon(
+                Icons.people,
+                size: 60,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'No Players Yet',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Add players to your team roster to get started with lineup management.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FilledButton.icon(
+                  onPressed: () {
+                    final db = ProviderScope.containerOf(
+                      context,
+                    ).read(dbProvider);
+                    db
+                        .into(db.players)
+                        .insert(
+                          PlayersCompanion.insert(
+                            teamId: teamId,
+                            firstName: 'New',
+                            lastName: 'Player',
+                            isPresent: const drift.Value(true),
+                          ),
+                        );
+                  },
+                  icon: const Icon(Icons.person_add),
+                  label: const Text('Add Player'),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      GoRouter.of(context).push('/team/$teamId/players/import'),
+                  icon: const Icon(Icons.file_upload),
+                  label: const Text('Import CSV'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(dbProvider);
@@ -74,47 +148,149 @@ class PlayersScreen extends ConsumerWidget {
           }
           final rows = snap.data as List<Player>;
           if (rows.isEmpty) {
-            return const Center(
-              child: Text('No players yet. Tap + to add one.'),
-            );
+            return _buildEmptyState(context);
           }
           return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.all(16),
             itemCount: rows.length,
-            itemBuilder: (_, i) => Card(
-              child: ListTile(
-                title: Text('${rows[i].firstName} ${rows[i].lastName}'),
-                subtitle: Text(rows[i].isPresent ? 'Active' : 'Inactive'),
-                leading: Switch(
-                  value: rows[i].isPresent,
-                  onChanged: (v) {
-                    db
-                        .update(db.players)
-                        .replace(rows[i].copyWith(isPresent: v));
-                  },
-                ),
-                trailing: Wrap(
-                  spacing: 4,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit),
-                      onPressed: () =>
-                          context.push('/player/${rows[i].id}/edit'),
+            itemBuilder: (_, i) {
+              final player = rows[i];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: Card(
+                  elevation: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        // Player avatar
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: player.isPresent
+                                ? Theme.of(context).colorScheme.primaryContainer
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
+                          ),
+                          child: Icon(
+                            Icons.person,
+                            color: player.isPresent
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+
+                        // Player info
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${player.firstName} ${player.lastName}',
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      color: player.isPresent
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.primaryContainer
+                                          : Theme.of(
+                                              context,
+                                            ).colorScheme.errorContainer,
+                                    ),
+                                    child: Text(
+                                      player.isPresent ? 'Active' : 'Inactive',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: player.isPresent
+                                                ? Theme.of(context)
+                                                      .colorScheme
+                                                      .onPrimaryContainer
+                                                : Theme.of(context)
+                                                      .colorScheme
+                                                      .onErrorContainer,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Toggle switch
+                        Switch(
+                          value: player.isPresent,
+                          onChanged: (v) {
+                            db
+                                .update(db.players)
+                                .replace(player.copyWith(isPresent: v));
+                          },
+                        ),
+                        const SizedBox(width: 8),
+
+                        // Action buttons
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert),
+                          onSelected: (value) async {
+                            switch (value) {
+                              case 'edit':
+                                context.push('/player/${player.id}/edit');
+                                break;
+                              case 'delete':
+                                final ok = await _confirm(
+                                  context,
+                                  'Delete ${player.firstName} ${player.lastName}?',
+                                );
+                                if (ok) await db.deletePlayer(player.id);
+                                break;
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: ListTile(
+                                leading: Icon(Icons.edit_outlined),
+                                title: Text('Edit'),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: ListTile(
+                                leading: Icon(Icons.delete_outline),
+                                title: Text('Delete'),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () async {
-                        final ok = await _confirm(
-                          context,
-                          'Delete ${rows[i].firstName} ${rows[i].lastName}?',
-                        );
-                        if (ok) await db.deletePlayer(rows[i].id);
-                      },
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),

@@ -32,6 +32,8 @@ class Games extends Table {
   )(); // Total game time for traditional mode
   BoolColumn get isGameActive =>
       boolean().withDefault(const Constant(false))(); // Is game timer running
+  DateTimeColumn get timerStartTime => dateTime()
+      .nullable()(); // When timer was started for background persistence
   IntColumn get formationId => integer().nullable().references(
     Formations,
     #id,

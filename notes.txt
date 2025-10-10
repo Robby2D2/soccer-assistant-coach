@@ -17,3 +17,7 @@ Can you analyze both game modes to make sure they both are working as expected? 
 
 In the shift-based game mode, the stopwatch should really act as an alarm where it continues to sound (for maybe a minute) until acknowledged.  In traditional mode, no alarm is necessary.
 
+Player details updates: default position, picture, jersey number
+Team details updates: team logo
+
+

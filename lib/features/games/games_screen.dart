@@ -25,6 +25,66 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
     return '$year-$month-$day • $hour:$minute';
   }
 
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(60),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              ),
+              child: Icon(
+                Icons.sports_soccer,
+                size: 60,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              _showArchived ? 'No Archived Games' : 'No Games Yet',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _showArchived
+                  ? 'You don\'t have any archived games.'
+                  : 'Schedule your first game to start tracking match performance and player statistics.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            FilledButton.icon(
+              onPressed: () async {
+                final db = ref.read(dbProvider);
+                final gameId = await db.addGame(
+                  GamesCompanion.insert(
+                    teamId: widget.teamId,
+                    startTime: const drift.Value.absent(),
+                    opponent: const drift.Value.absent(),
+                  ),
+                );
+                if (!context.mounted) return;
+                context.push('/game/$gameId/edit');
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Create Game'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(dbProvider);
@@ -81,50 +141,179 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
               ? games
               : games.where((g) => !g.isArchived).toList();
           if (visible.isEmpty) {
-            return const Center(child: Text('No games. Tap + to add one.'));
+            return _buildEmptyState(context);
           }
           return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.all(16),
             itemCount: visible.length,
             itemBuilder: (_, i) {
               final game = visible[i];
               final archived = game.isArchived;
-              return Card(
-                color: archived
-                    ? Theme.of(context).colorScheme.surfaceContainerHighest
-                    : null,
-                child: ListTile(
-                  title: Text(
-                    game.opponent?.isNotEmpty == true
-                        ? game.opponent!
-                        : 'Opponent',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  subtitle: Text(
-                    'ID: ${game.id} • ${_formatDate(game.startTime)}${archived ? ' • Archived' : ''}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  trailing: Wrap(
-                    spacing: 4,
-                    children: [
-                      IconButton(
-                        icon: Icon(archived ? Icons.unarchive : Icons.archive),
-                        tooltip: archived ? 'Restore game' : 'Archive game',
-                        onPressed: () async {
-                          await db.setGameArchived(
-                            game.id,
-                            archived: !archived,
-                          );
-                        },
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: Card(
+                  elevation: archived ? 0 : 2,
+                  color: archived
+                      ? Theme.of(context).colorScheme.surfaceContainerHighest
+                      : null,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => context.push('/game/${game.id}'),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          // Game icon
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: archived
+                                  ? Theme.of(
+                                      context,
+                                    ).colorScheme.outline.withOpacity(0.12)
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.tertiaryContainer,
+                            ),
+                            child: Icon(
+                              Icons.sports_soccer,
+                              color: archived
+                                  ? Theme.of(context).colorScheme.outline
+                                  : Theme.of(context).colorScheme.tertiary,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+
+                          // Game info
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  game.opponent?.isNotEmpty == true
+                                      ? 'vs ${game.opponent!}'
+                                      : 'vs Opponent',
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: archived
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant
+                                            : null,
+                                      ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    if (game.startTime != null)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primaryContainer,
+                                        ),
+                                        child: Text(
+                                          _formatDate(game.startTime),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall
+                                              ?.copyWith(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onPrimaryContainer,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                        ),
+                                      ),
+                                    if (archived) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.errorContainer,
+                                        ),
+                                        child: Text(
+                                          'Archived',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall
+                                              ?.copyWith(
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onErrorContainer,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Action menu
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert),
+                            onSelected: (value) async {
+                              switch (value) {
+                                case 'edit':
+                                  context.push('/game/${game.id}/edit');
+                                  break;
+                                case 'archive':
+                                  await db.setGameArchived(
+                                    game.id,
+                                    archived: !archived,
+                                  );
+                                  break;
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: ListTile(
+                                  leading: Icon(Icons.edit_outlined),
+                                  title: Text('Edit'),
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'archive',
+                                child: ListTile(
+                                  leading: Icon(
+                                    archived
+                                        ? Icons.unarchive
+                                        : Icons.archive_outlined,
+                                  ),
+                                  title: Text(archived ? 'Restore' : 'Archive'),
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => context.push('/game/${game.id}/edit'),
-                      ),
-                      const Icon(Icons.chevron_right),
-                    ],
+                    ),
                   ),
-                  onTap: () => context.push('/game/${game.id}'),
                 ),
               );
             },
