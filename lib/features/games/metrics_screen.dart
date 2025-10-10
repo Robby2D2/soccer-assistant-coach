@@ -26,7 +26,12 @@ class MetricsScreen extends ConsumerWidget {
                 final map = per.putIfAbsent(m.playerId, () => {});
                 map[m.metric] = (map[m.metric] ?? 0) + m.value;
               }
-              final playedSeconds = await db.playedSecondsByPlayer(gameId);
+
+              // Get playing time based on team mode
+              final teamMode = await db.getTeamMode(game.teamId);
+              final playedSeconds = teamMode == 'traditional'
+                  ? await db.getTraditionalPlayingTimeByPlayer(gameId)
+                  : await db.playedSecondsByPlayer(gameId);
               final buffer = StringBuffer();
               buffer.writeln(
                 'playerId,firstName,lastName,minutesPlayed,GOAL,ASSIST,SAVE',
@@ -75,93 +80,140 @@ class MetricsScreen extends ConsumerWidget {
                     agg.putIfAbsent(m.playerId, () => {});
                     agg[m.playerId]![m.metric] = m.value;
                   }
-                  return StreamBuilder<Map<int, int>>(
-                    stream: db.watchPlayedSecondsByPlayer(gameId),
-                    builder: (context, playedSnap) {
-                      final playedSeconds =
-                          playedSnap.data ?? const <int, int>{};
-                      return ListView.separated(
-                        itemCount: players.length + 1,
-                        separatorBuilder: (_, __) => const Divider(height: 0),
-                        itemBuilder: (_, i) {
-                          if (i == 0) {
-                            // Chart header
-                            if (playedSeconds.isEmpty) {
-                              return const Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Text('No play time recorded yet.'),
-                              );
-                            }
-                            final entries = playedSeconds.entries.toList()
-                              ..sort((a, b) => b.value.compareTo(a.value));
-                            return Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Card(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
-                                    children: [
-                                      const ListTile(
-                                        contentPadding: EdgeInsets.zero,
-                                        leading: Icon(Icons.bar_chart),
-                                        title: Text('Play Time'),
-                                        subtitle: Text(
-                                          'Total time per player in this game',
-                                        ),
-                                      ),
-                                      _PlaytimeBarChart(
-                                        entries: entries,
-                                        playersById: playersById,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
+                  // Determine which playing time data to use based on team mode
+                  return FutureBuilder<String>(
+                    future: db.getTeamMode(game.teamId),
+                    builder: (context, teamModeSnap) {
+                      if (!teamModeSnap.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                          final p = players[i - 1];
-                          final mv = agg[p.id] ?? const {};
-                          final seconds = playedSeconds[p.id] ?? 0;
-                          final minutesText = (seconds / 60.0).toStringAsFixed(
-                            1,
-                          );
-                          return ListTile(
-                            title: Text('${p.firstName} ${p.lastName}'),
-                            subtitle: Text(
-                              'Min:$minutesText  G:${mv['GOAL'] ?? 0}  A:${mv['ASSIST'] ?? 0}  S:${mv['SAVE'] ?? 0}',
-                            ),
-                            trailing: Wrap(
-                              spacing: 8,
-                              children: [
-                                OutlinedButton(
-                                  onPressed: () => db.incrementMetric(
-                                    gameId: gameId,
-                                    playerId: p.id,
-                                    metric: 'GOAL',
+                      final isTraditionalMode =
+                          teamModeSnap.data == 'traditional';
+
+                      return StreamBuilder<Map<int, int>>(
+                        stream: isTraditionalMode
+                            ? db.watchTraditionalPlayingTimeByPlayer(gameId)
+                            : db.watchPlayedSecondsByPlayer(gameId),
+                        builder: (context, playedSnap) {
+                          final playedSeconds =
+                              playedSnap.data ?? const <int, int>{};
+                          return ListView.builder(
+                            itemCount: players.length + 1,
+                            itemBuilder: (_, i) {
+                              if (i == 0) {
+                                // Chart header
+                                if (playedSeconds.isEmpty) {
+                                  return const Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: Text('No play time recorded yet.'),
+                                  );
+                                }
+                                final entries = playedSeconds.entries.toList()
+                                  ..sort((a, b) => b.value.compareTo(a.value));
+                                return Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          const ListTile(
+                                            contentPadding: EdgeInsets.zero,
+                                            leading: Icon(Icons.bar_chart),
+                                            title: Text('Play Time'),
+                                            subtitle: Text(
+                                              'Total time per player in this game',
+                                            ),
+                                          ),
+                                          _PlaytimeBarChart(
+                                            entries: entries,
+                                            playersById: playersById,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-                                  child: const Text('＋Goal'),
+                                );
+                              }
+
+                              final p = players[i - 1];
+                              final mv = agg[p.id] ?? const {};
+                              final seconds = playedSeconds[p.id] ?? 0;
+                              final minutesText = (seconds / 60.0)
+                                  .toStringAsFixed(1);
+                              return ListTile(
+                                dense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 0,
                                 ),
-                                OutlinedButton(
-                                  onPressed: () => db.incrementMetric(
-                                    gameId: gameId,
-                                    playerId: p.id,
-                                    metric: 'ASSIST',
-                                  ),
-                                  child: const Text('＋Assist'),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '${p.firstName} ${p.lastName}',
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Icon(
+                                      Icons.timer,
+                                      size: 16,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      minutesText,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ],
                                 ),
-                                OutlinedButton(
-                                  onPressed: () => db.incrementMetric(
-                                    gameId: gameId,
-                                    playerId: p.id,
-                                    metric: 'SAVE',
-                                  ),
-                                  child: const Text('＋Save'),
+                                subtitle: Text(
+                                  'G:${mv['GOAL'] ?? 0}  A:${mv['ASSIST'] ?? 0}  S:${mv['SAVE'] ?? 0}',
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
-                              ],
-                            ),
+                                trailing: Wrap(
+                                  spacing: 8,
+                                  children: [
+                                    OutlinedButton(
+                                      onPressed: () => db.incrementMetric(
+                                        gameId: gameId,
+                                        playerId: p.id,
+                                        metric: 'GOAL',
+                                      ),
+                                      child: const Text('＋Goal'),
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: () => db.incrementMetric(
+                                        gameId: gameId,
+                                        playerId: p.id,
+                                        metric: 'ASSIST',
+                                      ),
+                                      child: const Text('＋Assist'),
+                                    ),
+                                    OutlinedButton(
+                                      onPressed: () => db.incrementMetric(
+                                        gameId: gameId,
+                                        playerId: p.id,
+                                        metric: 'SAVE',
+                                      ),
+                                      child: const Text('＋Save'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                           );
                         },
                       );

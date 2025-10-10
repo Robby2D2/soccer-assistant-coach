@@ -1,0 +1,16 @@
+I'd like to add another team mode - so a team would be able to be configured as either doing full shift-based substitutions where the stopwatch counts down (which is what we currently have), OR they could select a typical substitution model where they basically just have one "shift" (although it's not really shift) and they do one-off player substitutions where they would get to choose which player to put in for which other player.  
+
+Traditional Mode should still have stopwatch functionality.  But this time we'll need to know how long a half is.  This should be configurable similar to how shift time is configured for a team - but for the traditional mode.  Then we need a way to easily reset the timer when the second half starts.
+
+Traditional mode should also keep track of playing time for each player and each position just like it does for shift mode.  If it's easier, we could think of traditional mode as similar to shift mode but just with one long shift.  This should be updated in the Metrics page as well. 
+
+Also in traditional mode, can we show each players playing time next to their name with a little stopwatch for both active players, players sitting on the bench, and players being substituted in.  This would be especially helpful to the coach when determining which players may need a break and which players might be more rested to jump in!
+
+The button to switch to the second half should be above the stopwatch next to the first half title. And, could you add a confirmation dialog to this start second half button if the coach tries to start the second half before the first half is over? 
+
+In traditional mode, there should be no time to change shifts alerting notification.  Also, you can remove the stop button and just use start/pause.
+
+
+Is updating those player metrics every second going to lead to possible issues with performance and battery life?  If so, we could probably update them every 10 seconds or so.  Oh, also, Can you fix all the dart analyze warnings?  
+
+

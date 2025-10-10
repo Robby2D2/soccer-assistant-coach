@@ -272,6 +272,7 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                               id: widget.gameId,
                               opponent: _opp.text.trim(),
                               startTime: _start,
+                              formationId: _selectedFormationId,
                             );
                             if (!widget.basicOnly) {
                               for (final player in _players) {

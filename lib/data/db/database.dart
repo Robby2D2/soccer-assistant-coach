@@ -22,7 +22,7 @@ class AppDb extends _$AppDb {
   AppDb()
     : super(SqfliteQueryExecutor.inDatabaseFolder(path: 'soccer_manager.db'));
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -56,8 +56,43 @@ class AppDb extends _$AppDb {
           'ALTER TABLE teams ADD COLUMN shift_length_seconds INTEGER NOT NULL DEFAULT 300',
         );
       }
+      if (from < 8) {
+        await m.addColumn(teams, teams.teamMode);
+        await m.addColumn(teams, teams.halfDurationSeconds);
+      }
+      if (from < 9) {
+        await m.addColumn(games, games.currentHalf);
+        await m.addColumn(games, games.gameTimeSeconds);
+        await m.addColumn(games, games.isGameActive);
+      }
+      if (from < 10) {
+        // Force rebuild for traditional mode support
+        // All necessary columns should be added through the try-catch blocks above
+      }
+      if (from < 11) {
+        await m.addColumn(games, games.formationId);
+      }
     },
   );
+
+  /// Helper method to reset database if migrations fail
+  /// Use this only in development when database schema changes cause issues
+  Future<void> resetDatabase() async {
+    await customStatement('DROP TABLE IF EXISTS teams');
+    await customStatement('DROP TABLE IF EXISTS players');
+    await customStatement('DROP TABLE IF EXISTS games');
+    await customStatement('DROP TABLE IF EXISTS shifts');
+    await customStatement('DROP TABLE IF EXISTS player_shifts');
+    await customStatement('DROP TABLE IF EXISTS player_metrics');
+    await customStatement('DROP TABLE IF EXISTS game_players');
+    await customStatement('DROP TABLE IF EXISTS player_position_totals');
+    await customStatement('DROP TABLE IF EXISTS formations');
+    await customStatement('DROP TABLE IF EXISTS formation_positions');
+
+    // Recreate all tables with current schema
+    final m = createMigrator();
+    await m.createAll();
+  }
 }
 
 extension TeamQueries on AppDb {
@@ -101,6 +136,41 @@ extension TeamQueries on AppDb {
     if (seconds <= 0) seconds = 300;
     await customUpdate(
       'UPDATE teams SET shift_length_seconds = ? WHERE id = ?',
+      variables: [Variable<int>(seconds), Variable<int>(teamId)],
+      updates: {teams},
+    );
+  }
+
+  Future<String> getTeamMode(int teamId) async {
+    final row = await customSelect(
+      'SELECT COALESCE(team_mode, "shift") AS tm FROM teams WHERE id = ?',
+      variables: [Variable<int>(teamId)],
+      readsFrom: {teams},
+    ).getSingleOrNull();
+    return row?.read<String>('tm') ?? 'shift';
+  }
+
+  Future<void> setTeamMode(int teamId, String mode) async {
+    await customUpdate(
+      'UPDATE teams SET team_mode = ? WHERE id = ?',
+      variables: [Variable<String>(mode), Variable<int>(teamId)],
+      updates: {teams},
+    );
+  }
+
+  Future<int> getTeamHalfDurationSeconds(int teamId) async {
+    final row = await customSelect(
+      'SELECT COALESCE(half_duration_seconds, 1200) AS hd FROM teams WHERE id = ?',
+      variables: [Variable<int>(teamId)],
+      readsFrom: {teams},
+    ).getSingleOrNull();
+    return row?.read<int>('hd') ?? 1200;
+  }
+
+  Future<void> setTeamHalfDurationSeconds(int teamId, int seconds) async {
+    if (seconds <= 0) seconds = 1200; // Default 20 minutes
+    await customUpdate(
+      'UPDATE teams SET half_duration_seconds = ? WHERE id = ?',
       variables: [Variable<int>(seconds), Variable<int>(teamId)],
       updates: {teams},
     );
@@ -267,10 +337,14 @@ extension GameQueries on AppDb {
     required int id,
     String? opponent,
     DateTime? startTime,
+    int? formationId,
   }) => (update(games)..where((g) => g.id.equals(id))).write(
     GamesCompanion(
       opponent: opponent == null ? const Value.absent() : Value(opponent),
       startTime: startTime == null ? const Value.absent() : Value(startTime),
+      formationId: formationId == null
+          ? const Value.absent()
+          : Value(formationId),
     ),
   );
   Future<void> deleteGame(int id) =>
@@ -279,6 +353,131 @@ extension GameQueries on AppDb {
       (update(games)..where((g) => g.id.equals(id))).write(
         GamesCompanion(isArchived: Value(archived)),
       );
+
+  // Traditional mode game management methods
+  Future<void> startGameTimer(int gameId) async {
+    await (update(games)..where((g) => g.id.equals(gameId))).write(
+      const GamesCompanion(isGameActive: Value(true)),
+    );
+  }
+
+  Future<void> pauseGameTimer(int gameId) async {
+    await (update(games)..where((g) => g.id.equals(gameId))).write(
+      const GamesCompanion(isGameActive: Value(false)),
+    );
+  }
+
+  Future<void> updateGameTime(int gameId, int seconds) async {
+    await (update(games)..where((g) => g.id.equals(gameId))).write(
+      GamesCompanion(gameTimeSeconds: Value(seconds)),
+    );
+  }
+
+  Future<void> startSecondHalf(int gameId) async {
+    await (update(games)..where((g) => g.id.equals(gameId))).write(
+      const GamesCompanion(currentHalf: Value(2), isGameActive: Value(false)),
+    );
+  }
+
+  Future<void> resetGameTimer(int gameId) async {
+    await (update(games)..where((g) => g.id.equals(gameId))).write(
+      const GamesCompanion(
+        gameTimeSeconds: Value(0),
+        isGameActive: Value(false),
+        currentHalf: Value(1),
+      ),
+    );
+  }
+
+  /// Get the most recent completed game for a team (excluding current game)
+  Future<Game?> getMostRecentCompletedGame(
+    int teamId,
+    int excludeGameId,
+  ) async {
+    return await (select(games)
+          ..where(
+            (g) =>
+                g.teamId.equals(teamId) &
+                g.id.equals(excludeGameId).not() &
+                g.isArchived.equals(false),
+          )
+          ..orderBy([(g) => OrderingTerm.desc(g.startTime)])
+          ..limit(1))
+        .getSingleOrNull();
+  }
+
+  /// Save traditional game lineup configuration
+  Future<void> saveTraditionalLineup({
+    required int gameId,
+    required Map<String, int> lineup, // position -> playerId
+  }) async {
+    // Delete any existing lineup for this game
+    await (delete(playerShifts)..where(
+          (ps) => ps.shiftId.equals(-gameId),
+        )) // Use negative gameId as special shiftId
+        .go();
+
+    // Insert new lineup assignments
+    for (final entry in lineup.entries) {
+      await into(playerShifts).insert(
+        PlayerShiftsCompanion.insert(
+          shiftId:
+              -gameId, // Use negative gameId as special identifier for traditional lineup
+          playerId: entry.value,
+          position: entry.key,
+        ),
+      );
+    }
+  }
+
+  /// Get traditional game lineup from previous games
+  Future<Map<String, int>?> getTraditionalLineupFromGame(int gameId) async {
+    final lineupData = await (select(
+      playerShifts,
+    )..where((ps) => ps.shiftId.equals(-gameId))).get();
+
+    if (lineupData.isEmpty) return null;
+
+    final lineup = <String, int>{};
+    for (final ps in lineupData) {
+      lineup[ps.position] = ps.playerId;
+    }
+    return lineup;
+  }
+
+  /// Generate random lineup based on formation and available players
+  Future<Map<String, int>> generateRandomLineup({
+    required int gameId,
+    required int? formationId,
+  }) async {
+    final lineup = <String, int>{};
+
+    if (formationId == null) return lineup;
+
+    // Get formation positions
+    final positions = await getFormationPositions(formationId);
+    if (positions.isEmpty) return lineup;
+
+    // Get available players for this game
+    final availablePlayers =
+        await (select(gamePlayers)..where(
+              (gp) => gp.gameId.equals(gameId) & gp.isPresent.equals(true),
+            ))
+            .get();
+
+    if (availablePlayers.isEmpty) return lineup;
+
+    // Shuffle players for random assignment
+    final playerIds = availablePlayers.map((gp) => gp.playerId).toList();
+    playerIds.shuffle();
+
+    // Assign players to positions
+    for (int i = 0; i < positions.length && i < playerIds.length; i++) {
+      lineup[positions[i].positionName] = playerIds[i];
+    }
+
+    return lineup;
+  }
 }
 
 extension ShiftQueries on AppDb {
@@ -439,6 +638,83 @@ extension PlayerShiftQueries on AppDb {
 
   Future<List<PlayerShift>> getAssignments(int shiftId) =>
       (select(playerShifts)..where((ps) => ps.shiftId.equals(shiftId))).get();
+}
+
+// Traditional mode playing time tracking
+extension TraditionalModeQueries on AppDb {
+  // Track individual playing time sessions for traditional mode
+  Future<void> updateTraditionalPlayingTime({
+    required int gameId,
+    required int playerId,
+    required String position,
+    required int seconds,
+  }) async {
+    // Update position totals for this session
+    await _incrementPositionTotal(
+      playerId: playerId,
+      position: position,
+      seconds: seconds,
+    );
+
+    // Create or update player metric for this game session
+    final existing =
+        await (select(playerMetrics)..where(
+              (m) =>
+                  m.gameId.equals(gameId) &
+                  m.playerId.equals(playerId) &
+                  m.metric.equals('traditional_playing_time'),
+            ))
+            .getSingleOrNull();
+
+    if (existing == null) {
+      await into(playerMetrics).insert(
+        PlayerMetricsCompanion.insert(
+          gameId: gameId,
+          playerId: playerId,
+          metric: 'traditional_playing_time',
+          value: Value(seconds),
+        ),
+      );
+    } else {
+      await (update(
+        playerMetrics,
+      )..where((m) => m.id.equals(existing.id))).write(
+        PlayerMetricsCompanion(value: Value(existing.value + seconds)),
+      );
+    }
+  }
+
+  Future<Map<int, int>> getTraditionalPlayingTimeByPlayer(int gameId) async {
+    final result =
+        await (select(playerMetrics)..where(
+              (m) =>
+                  m.gameId.equals(gameId) &
+                  m.metric.equals('traditional_playing_time'),
+            ))
+            .get();
+
+    final map = <int, int>{};
+    for (final metric in result) {
+      map[metric.playerId] = metric.value;
+    }
+    return map;
+  }
+
+  Stream<Map<int, int>> watchTraditionalPlayingTimeByPlayer(int gameId) {
+    final query = select(playerMetrics)
+      ..where(
+        (m) =>
+            m.gameId.equals(gameId) &
+            m.metric.equals('traditional_playing_time'),
+      );
+    return query.watch().map((metrics) {
+      final map = <int, int>{};
+      for (final metric in metrics) {
+        map[metric.playerId] = metric.value;
+      }
+      return map;
+    });
+  }
 }
 
 extension PlayerMetricQueries on AppDb {

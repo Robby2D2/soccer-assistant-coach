@@ -45,8 +45,37 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, Team> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _teamModeMeta = const VerificationMeta(
+    'teamMode',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name, isArchived];
+  late final GeneratedColumn<String> teamMode = GeneratedColumn<String>(
+    'team_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('shift'),
+  );
+  static const VerificationMeta _halfDurationSecondsMeta =
+      const VerificationMeta('halfDurationSeconds');
+  @override
+  late final GeneratedColumn<int> halfDurationSeconds = GeneratedColumn<int>(
+    'half_duration_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1200),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    isArchived,
+    teamMode,
+    halfDurationSeconds,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -76,6 +105,21 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, Team> {
         isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
       );
     }
+    if (data.containsKey('team_mode')) {
+      context.handle(
+        _teamModeMeta,
+        teamMode.isAcceptableOrUnknown(data['team_mode']!, _teamModeMeta),
+      );
+    }
+    if (data.containsKey('half_duration_seconds')) {
+      context.handle(
+        _halfDurationSecondsMeta,
+        halfDurationSeconds.isAcceptableOrUnknown(
+          data['half_duration_seconds']!,
+          _halfDurationSecondsMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -97,6 +141,14 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, Team> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_archived'],
       )!,
+      teamMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}team_mode'],
+      )!,
+      halfDurationSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}half_duration_seconds'],
+      )!,
     );
   }
 
@@ -110,13 +162,23 @@ class Team extends DataClass implements Insertable<Team> {
   final int id;
   final String name;
   final bool isArchived;
-  const Team({required this.id, required this.name, required this.isArchived});
+  final String teamMode;
+  final int halfDurationSeconds;
+  const Team({
+    required this.id,
+    required this.name,
+    required this.isArchived,
+    required this.teamMode,
+    required this.halfDurationSeconds,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
     map['is_archived'] = Variable<bool>(isArchived);
+    map['team_mode'] = Variable<String>(teamMode);
+    map['half_duration_seconds'] = Variable<int>(halfDurationSeconds);
     return map;
   }
 
@@ -125,6 +187,8 @@ class Team extends DataClass implements Insertable<Team> {
       id: Value(id),
       name: Value(name),
       isArchived: Value(isArchived),
+      teamMode: Value(teamMode),
+      halfDurationSeconds: Value(halfDurationSeconds),
     );
   }
 
@@ -137,6 +201,10 @@ class Team extends DataClass implements Insertable<Team> {
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       isArchived: serializer.fromJson<bool>(json['isArchived']),
+      teamMode: serializer.fromJson<String>(json['teamMode']),
+      halfDurationSeconds: serializer.fromJson<int>(
+        json['halfDurationSeconds'],
+      ),
     );
   }
   @override
@@ -146,13 +214,23 @@ class Team extends DataClass implements Insertable<Team> {
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
       'isArchived': serializer.toJson<bool>(isArchived),
+      'teamMode': serializer.toJson<String>(teamMode),
+      'halfDurationSeconds': serializer.toJson<int>(halfDurationSeconds),
     };
   }
 
-  Team copyWith({int? id, String? name, bool? isArchived}) => Team(
+  Team copyWith({
+    int? id,
+    String? name,
+    bool? isArchived,
+    String? teamMode,
+    int? halfDurationSeconds,
+  }) => Team(
     id: id ?? this.id,
     name: name ?? this.name,
     isArchived: isArchived ?? this.isArchived,
+    teamMode: teamMode ?? this.teamMode,
+    halfDurationSeconds: halfDurationSeconds ?? this.halfDurationSeconds,
   );
   Team copyWithCompanion(TeamsCompanion data) {
     return Team(
@@ -161,6 +239,10 @@ class Team extends DataClass implements Insertable<Team> {
       isArchived: data.isArchived.present
           ? data.isArchived.value
           : this.isArchived,
+      teamMode: data.teamMode.present ? data.teamMode.value : this.teamMode,
+      halfDurationSeconds: data.halfDurationSeconds.present
+          ? data.halfDurationSeconds.value
+          : this.halfDurationSeconds,
     );
   }
 
@@ -169,45 +251,61 @@ class Team extends DataClass implements Insertable<Team> {
     return (StringBuffer('Team(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('isArchived: $isArchived')
+          ..write('isArchived: $isArchived, ')
+          ..write('teamMode: $teamMode, ')
+          ..write('halfDurationSeconds: $halfDurationSeconds')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, isArchived);
+  int get hashCode =>
+      Object.hash(id, name, isArchived, teamMode, halfDurationSeconds);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Team &&
           other.id == this.id &&
           other.name == this.name &&
-          other.isArchived == this.isArchived);
+          other.isArchived == this.isArchived &&
+          other.teamMode == this.teamMode &&
+          other.halfDurationSeconds == this.halfDurationSeconds);
 }
 
 class TeamsCompanion extends UpdateCompanion<Team> {
   final Value<int> id;
   final Value<String> name;
   final Value<bool> isArchived;
+  final Value<String> teamMode;
+  final Value<int> halfDurationSeconds;
   const TeamsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.isArchived = const Value.absent(),
+    this.teamMode = const Value.absent(),
+    this.halfDurationSeconds = const Value.absent(),
   });
   TeamsCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     this.isArchived = const Value.absent(),
+    this.teamMode = const Value.absent(),
+    this.halfDurationSeconds = const Value.absent(),
   }) : name = Value(name);
   static Insertable<Team> custom({
     Expression<int>? id,
     Expression<String>? name,
     Expression<bool>? isArchived,
+    Expression<String>? teamMode,
+    Expression<int>? halfDurationSeconds,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (isArchived != null) 'is_archived': isArchived,
+      if (teamMode != null) 'team_mode': teamMode,
+      if (halfDurationSeconds != null)
+        'half_duration_seconds': halfDurationSeconds,
     });
   }
 
@@ -215,11 +313,15 @@ class TeamsCompanion extends UpdateCompanion<Team> {
     Value<int>? id,
     Value<String>? name,
     Value<bool>? isArchived,
+    Value<String>? teamMode,
+    Value<int>? halfDurationSeconds,
   }) {
     return TeamsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       isArchived: isArchived ?? this.isArchived,
+      teamMode: teamMode ?? this.teamMode,
+      halfDurationSeconds: halfDurationSeconds ?? this.halfDurationSeconds,
     );
   }
 
@@ -235,6 +337,12 @@ class TeamsCompanion extends UpdateCompanion<Team> {
     if (isArchived.present) {
       map['is_archived'] = Variable<bool>(isArchived.value);
     }
+    if (teamMode.present) {
+      map['team_mode'] = Variable<String>(teamMode.value);
+    }
+    if (halfDurationSeconds.present) {
+      map['half_duration_seconds'] = Variable<int>(halfDurationSeconds.value);
+    }
     return map;
   }
 
@@ -243,7 +351,9 @@ class TeamsCompanion extends UpdateCompanion<Team> {
     return (StringBuffer('TeamsCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('isArchived: $isArchived')
+          ..write('isArchived: $isArchived, ')
+          ..write('teamMode: $teamMode, ')
+          ..write('halfDurationSeconds: $halfDurationSeconds')
           ..write(')'))
         .toString();
   }
@@ -602,6 +712,306 @@ class PlayersCompanion extends UpdateCompanion<Player> {
   }
 }
 
+class $FormationsTable extends Formations
+    with TableInfo<$FormationsTable, Formation> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FormationsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _teamIdMeta = const VerificationMeta('teamId');
+  @override
+  late final GeneratedColumn<int> teamId = GeneratedColumn<int>(
+    'team_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES teams (id)',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _playerCountMeta = const VerificationMeta(
+    'playerCount',
+  );
+  @override
+  late final GeneratedColumn<int> playerCount = GeneratedColumn<int>(
+    'player_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, teamId, name, playerCount];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'formations';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Formation> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('team_id')) {
+      context.handle(
+        _teamIdMeta,
+        teamId.isAcceptableOrUnknown(data['team_id']!, _teamIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_teamIdMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('player_count')) {
+      context.handle(
+        _playerCountMeta,
+        playerCount.isAcceptableOrUnknown(
+          data['player_count']!,
+          _playerCountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_playerCountMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Formation map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Formation(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      teamId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}team_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      playerCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}player_count'],
+      )!,
+    );
+  }
+
+  @override
+  $FormationsTable createAlias(String alias) {
+    return $FormationsTable(attachedDatabase, alias);
+  }
+}
+
+class Formation extends DataClass implements Insertable<Formation> {
+  final int id;
+  final int teamId;
+  final String name;
+  final int playerCount;
+  const Formation({
+    required this.id,
+    required this.teamId,
+    required this.name,
+    required this.playerCount,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['team_id'] = Variable<int>(teamId);
+    map['name'] = Variable<String>(name);
+    map['player_count'] = Variable<int>(playerCount);
+    return map;
+  }
+
+  FormationsCompanion toCompanion(bool nullToAbsent) {
+    return FormationsCompanion(
+      id: Value(id),
+      teamId: Value(teamId),
+      name: Value(name),
+      playerCount: Value(playerCount),
+    );
+  }
+
+  factory Formation.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Formation(
+      id: serializer.fromJson<int>(json['id']),
+      teamId: serializer.fromJson<int>(json['teamId']),
+      name: serializer.fromJson<String>(json['name']),
+      playerCount: serializer.fromJson<int>(json['playerCount']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'teamId': serializer.toJson<int>(teamId),
+      'name': serializer.toJson<String>(name),
+      'playerCount': serializer.toJson<int>(playerCount),
+    };
+  }
+
+  Formation copyWith({int? id, int? teamId, String? name, int? playerCount}) =>
+      Formation(
+        id: id ?? this.id,
+        teamId: teamId ?? this.teamId,
+        name: name ?? this.name,
+        playerCount: playerCount ?? this.playerCount,
+      );
+  Formation copyWithCompanion(FormationsCompanion data) {
+    return Formation(
+      id: data.id.present ? data.id.value : this.id,
+      teamId: data.teamId.present ? data.teamId.value : this.teamId,
+      name: data.name.present ? data.name.value : this.name,
+      playerCount: data.playerCount.present
+          ? data.playerCount.value
+          : this.playerCount,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Formation(')
+          ..write('id: $id, ')
+          ..write('teamId: $teamId, ')
+          ..write('name: $name, ')
+          ..write('playerCount: $playerCount')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, teamId, name, playerCount);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Formation &&
+          other.id == this.id &&
+          other.teamId == this.teamId &&
+          other.name == this.name &&
+          other.playerCount == this.playerCount);
+}
+
+class FormationsCompanion extends UpdateCompanion<Formation> {
+  final Value<int> id;
+  final Value<int> teamId;
+  final Value<String> name;
+  final Value<int> playerCount;
+  const FormationsCompanion({
+    this.id = const Value.absent(),
+    this.teamId = const Value.absent(),
+    this.name = const Value.absent(),
+    this.playerCount = const Value.absent(),
+  });
+  FormationsCompanion.insert({
+    this.id = const Value.absent(),
+    required int teamId,
+    required String name,
+    required int playerCount,
+  }) : teamId = Value(teamId),
+       name = Value(name),
+       playerCount = Value(playerCount);
+  static Insertable<Formation> custom({
+    Expression<int>? id,
+    Expression<int>? teamId,
+    Expression<String>? name,
+    Expression<int>? playerCount,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (teamId != null) 'team_id': teamId,
+      if (name != null) 'name': name,
+      if (playerCount != null) 'player_count': playerCount,
+    });
+  }
+
+  FormationsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? teamId,
+    Value<String>? name,
+    Value<int>? playerCount,
+  }) {
+    return FormationsCompanion(
+      id: id ?? this.id,
+      teamId: teamId ?? this.teamId,
+      name: name ?? this.name,
+      playerCount: playerCount ?? this.playerCount,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (teamId.present) {
+      map['team_id'] = Variable<int>(teamId.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (playerCount.present) {
+      map['player_count'] = Variable<int>(playerCount.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FormationsCompanion(')
+          ..write('id: $id, ')
+          ..write('teamId: $teamId, ')
+          ..write('name: $name, ')
+          ..write('playerCount: $playerCount')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $GamesTable extends Games with TableInfo<$GamesTable, Game> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -680,6 +1090,59 @@ class $GamesTable extends Games with TableInfo<$GamesTable, Game> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _currentHalfMeta = const VerificationMeta(
+    'currentHalf',
+  );
+  @override
+  late final GeneratedColumn<int> currentHalf = GeneratedColumn<int>(
+    'current_half',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _gameTimeSecondsMeta = const VerificationMeta(
+    'gameTimeSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> gameTimeSeconds = GeneratedColumn<int>(
+    'game_time_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _isGameActiveMeta = const VerificationMeta(
+    'isGameActive',
+  );
+  @override
+  late final GeneratedColumn<bool> isGameActive = GeneratedColumn<bool>(
+    'is_game_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_game_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _formationIdMeta = const VerificationMeta(
+    'formationId',
+  );
+  @override
+  late final GeneratedColumn<int> formationId = GeneratedColumn<int>(
+    'formation_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES formations (id)',
+    ),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -688,6 +1151,10 @@ class $GamesTable extends Games with TableInfo<$GamesTable, Game> {
     currentShiftId,
     teamId,
     isArchived,
+    currentHalf,
+    gameTimeSeconds,
+    isGameActive,
+    formationId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -739,6 +1206,42 @@ class $GamesTable extends Games with TableInfo<$GamesTable, Game> {
         isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
       );
     }
+    if (data.containsKey('current_half')) {
+      context.handle(
+        _currentHalfMeta,
+        currentHalf.isAcceptableOrUnknown(
+          data['current_half']!,
+          _currentHalfMeta,
+        ),
+      );
+    }
+    if (data.containsKey('game_time_seconds')) {
+      context.handle(
+        _gameTimeSecondsMeta,
+        gameTimeSeconds.isAcceptableOrUnknown(
+          data['game_time_seconds']!,
+          _gameTimeSecondsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_game_active')) {
+      context.handle(
+        _isGameActiveMeta,
+        isGameActive.isAcceptableOrUnknown(
+          data['is_game_active']!,
+          _isGameActiveMeta,
+        ),
+      );
+    }
+    if (data.containsKey('formation_id')) {
+      context.handle(
+        _formationIdMeta,
+        formationId.isAcceptableOrUnknown(
+          data['formation_id']!,
+          _formationIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -772,6 +1275,22 @@ class $GamesTable extends Games with TableInfo<$GamesTable, Game> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_archived'],
       )!,
+      currentHalf: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}current_half'],
+      )!,
+      gameTimeSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}game_time_seconds'],
+      )!,
+      isGameActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_game_active'],
+      )!,
+      formationId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}formation_id'],
+      ),
     );
   }
 
@@ -788,6 +1307,10 @@ class Game extends DataClass implements Insertable<Game> {
   final int? currentShiftId;
   final int teamId;
   final bool isArchived;
+  final int currentHalf;
+  final int gameTimeSeconds;
+  final bool isGameActive;
+  final int? formationId;
   const Game({
     required this.id,
     this.startTime,
@@ -795,6 +1318,10 @@ class Game extends DataClass implements Insertable<Game> {
     this.currentShiftId,
     required this.teamId,
     required this.isArchived,
+    required this.currentHalf,
+    required this.gameTimeSeconds,
+    required this.isGameActive,
+    this.formationId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -811,6 +1338,12 @@ class Game extends DataClass implements Insertable<Game> {
     }
     map['team_id'] = Variable<int>(teamId);
     map['is_archived'] = Variable<bool>(isArchived);
+    map['current_half'] = Variable<int>(currentHalf);
+    map['game_time_seconds'] = Variable<int>(gameTimeSeconds);
+    map['is_game_active'] = Variable<bool>(isGameActive);
+    if (!nullToAbsent || formationId != null) {
+      map['formation_id'] = Variable<int>(formationId);
+    }
     return map;
   }
 
@@ -828,6 +1361,12 @@ class Game extends DataClass implements Insertable<Game> {
           : Value(currentShiftId),
       teamId: Value(teamId),
       isArchived: Value(isArchived),
+      currentHalf: Value(currentHalf),
+      gameTimeSeconds: Value(gameTimeSeconds),
+      isGameActive: Value(isGameActive),
+      formationId: formationId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(formationId),
     );
   }
 
@@ -843,6 +1382,10 @@ class Game extends DataClass implements Insertable<Game> {
       currentShiftId: serializer.fromJson<int?>(json['currentShiftId']),
       teamId: serializer.fromJson<int>(json['teamId']),
       isArchived: serializer.fromJson<bool>(json['isArchived']),
+      currentHalf: serializer.fromJson<int>(json['currentHalf']),
+      gameTimeSeconds: serializer.fromJson<int>(json['gameTimeSeconds']),
+      isGameActive: serializer.fromJson<bool>(json['isGameActive']),
+      formationId: serializer.fromJson<int?>(json['formationId']),
     );
   }
   @override
@@ -855,6 +1398,10 @@ class Game extends DataClass implements Insertable<Game> {
       'currentShiftId': serializer.toJson<int?>(currentShiftId),
       'teamId': serializer.toJson<int>(teamId),
       'isArchived': serializer.toJson<bool>(isArchived),
+      'currentHalf': serializer.toJson<int>(currentHalf),
+      'gameTimeSeconds': serializer.toJson<int>(gameTimeSeconds),
+      'isGameActive': serializer.toJson<bool>(isGameActive),
+      'formationId': serializer.toJson<int?>(formationId),
     };
   }
 
@@ -865,6 +1412,10 @@ class Game extends DataClass implements Insertable<Game> {
     Value<int?> currentShiftId = const Value.absent(),
     int? teamId,
     bool? isArchived,
+    int? currentHalf,
+    int? gameTimeSeconds,
+    bool? isGameActive,
+    Value<int?> formationId = const Value.absent(),
   }) => Game(
     id: id ?? this.id,
     startTime: startTime.present ? startTime.value : this.startTime,
@@ -874,6 +1425,10 @@ class Game extends DataClass implements Insertable<Game> {
         : this.currentShiftId,
     teamId: teamId ?? this.teamId,
     isArchived: isArchived ?? this.isArchived,
+    currentHalf: currentHalf ?? this.currentHalf,
+    gameTimeSeconds: gameTimeSeconds ?? this.gameTimeSeconds,
+    isGameActive: isGameActive ?? this.isGameActive,
+    formationId: formationId.present ? formationId.value : this.formationId,
   );
   Game copyWithCompanion(GamesCompanion data) {
     return Game(
@@ -887,6 +1442,18 @@ class Game extends DataClass implements Insertable<Game> {
       isArchived: data.isArchived.present
           ? data.isArchived.value
           : this.isArchived,
+      currentHalf: data.currentHalf.present
+          ? data.currentHalf.value
+          : this.currentHalf,
+      gameTimeSeconds: data.gameTimeSeconds.present
+          ? data.gameTimeSeconds.value
+          : this.gameTimeSeconds,
+      isGameActive: data.isGameActive.present
+          ? data.isGameActive.value
+          : this.isGameActive,
+      formationId: data.formationId.present
+          ? data.formationId.value
+          : this.formationId,
     );
   }
 
@@ -898,14 +1465,28 @@ class Game extends DataClass implements Insertable<Game> {
           ..write('opponent: $opponent, ')
           ..write('currentShiftId: $currentShiftId, ')
           ..write('teamId: $teamId, ')
-          ..write('isArchived: $isArchived')
+          ..write('isArchived: $isArchived, ')
+          ..write('currentHalf: $currentHalf, ')
+          ..write('gameTimeSeconds: $gameTimeSeconds, ')
+          ..write('isGameActive: $isGameActive, ')
+          ..write('formationId: $formationId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, startTime, opponent, currentShiftId, teamId, isArchived);
+  int get hashCode => Object.hash(
+    id,
+    startTime,
+    opponent,
+    currentShiftId,
+    teamId,
+    isArchived,
+    currentHalf,
+    gameTimeSeconds,
+    isGameActive,
+    formationId,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -915,7 +1496,11 @@ class Game extends DataClass implements Insertable<Game> {
           other.opponent == this.opponent &&
           other.currentShiftId == this.currentShiftId &&
           other.teamId == this.teamId &&
-          other.isArchived == this.isArchived);
+          other.isArchived == this.isArchived &&
+          other.currentHalf == this.currentHalf &&
+          other.gameTimeSeconds == this.gameTimeSeconds &&
+          other.isGameActive == this.isGameActive &&
+          other.formationId == this.formationId);
 }
 
 class GamesCompanion extends UpdateCompanion<Game> {
@@ -925,6 +1510,10 @@ class GamesCompanion extends UpdateCompanion<Game> {
   final Value<int?> currentShiftId;
   final Value<int> teamId;
   final Value<bool> isArchived;
+  final Value<int> currentHalf;
+  final Value<int> gameTimeSeconds;
+  final Value<bool> isGameActive;
+  final Value<int?> formationId;
   const GamesCompanion({
     this.id = const Value.absent(),
     this.startTime = const Value.absent(),
@@ -932,6 +1521,10 @@ class GamesCompanion extends UpdateCompanion<Game> {
     this.currentShiftId = const Value.absent(),
     this.teamId = const Value.absent(),
     this.isArchived = const Value.absent(),
+    this.currentHalf = const Value.absent(),
+    this.gameTimeSeconds = const Value.absent(),
+    this.isGameActive = const Value.absent(),
+    this.formationId = const Value.absent(),
   });
   GamesCompanion.insert({
     this.id = const Value.absent(),
@@ -940,6 +1533,10 @@ class GamesCompanion extends UpdateCompanion<Game> {
     this.currentShiftId = const Value.absent(),
     required int teamId,
     this.isArchived = const Value.absent(),
+    this.currentHalf = const Value.absent(),
+    this.gameTimeSeconds = const Value.absent(),
+    this.isGameActive = const Value.absent(),
+    this.formationId = const Value.absent(),
   }) : teamId = Value(teamId);
   static Insertable<Game> custom({
     Expression<int>? id,
@@ -948,6 +1545,10 @@ class GamesCompanion extends UpdateCompanion<Game> {
     Expression<int>? currentShiftId,
     Expression<int>? teamId,
     Expression<bool>? isArchived,
+    Expression<int>? currentHalf,
+    Expression<int>? gameTimeSeconds,
+    Expression<bool>? isGameActive,
+    Expression<int>? formationId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -956,6 +1557,10 @@ class GamesCompanion extends UpdateCompanion<Game> {
       if (currentShiftId != null) 'current_shift_id': currentShiftId,
       if (teamId != null) 'team_id': teamId,
       if (isArchived != null) 'is_archived': isArchived,
+      if (currentHalf != null) 'current_half': currentHalf,
+      if (gameTimeSeconds != null) 'game_time_seconds': gameTimeSeconds,
+      if (isGameActive != null) 'is_game_active': isGameActive,
+      if (formationId != null) 'formation_id': formationId,
     });
   }
 
@@ -966,6 +1571,10 @@ class GamesCompanion extends UpdateCompanion<Game> {
     Value<int?>? currentShiftId,
     Value<int>? teamId,
     Value<bool>? isArchived,
+    Value<int>? currentHalf,
+    Value<int>? gameTimeSeconds,
+    Value<bool>? isGameActive,
+    Value<int?>? formationId,
   }) {
     return GamesCompanion(
       id: id ?? this.id,
@@ -974,6 +1583,10 @@ class GamesCompanion extends UpdateCompanion<Game> {
       currentShiftId: currentShiftId ?? this.currentShiftId,
       teamId: teamId ?? this.teamId,
       isArchived: isArchived ?? this.isArchived,
+      currentHalf: currentHalf ?? this.currentHalf,
+      gameTimeSeconds: gameTimeSeconds ?? this.gameTimeSeconds,
+      isGameActive: isGameActive ?? this.isGameActive,
+      formationId: formationId ?? this.formationId,
     );
   }
 
@@ -998,6 +1611,18 @@ class GamesCompanion extends UpdateCompanion<Game> {
     if (isArchived.present) {
       map['is_archived'] = Variable<bool>(isArchived.value);
     }
+    if (currentHalf.present) {
+      map['current_half'] = Variable<int>(currentHalf.value);
+    }
+    if (gameTimeSeconds.present) {
+      map['game_time_seconds'] = Variable<int>(gameTimeSeconds.value);
+    }
+    if (isGameActive.present) {
+      map['is_game_active'] = Variable<bool>(isGameActive.value);
+    }
+    if (formationId.present) {
+      map['formation_id'] = Variable<int>(formationId.value);
+    }
     return map;
   }
 
@@ -1009,7 +1634,11 @@ class GamesCompanion extends UpdateCompanion<Game> {
           ..write('opponent: $opponent, ')
           ..write('currentShiftId: $currentShiftId, ')
           ..write('teamId: $teamId, ')
-          ..write('isArchived: $isArchived')
+          ..write('isArchived: $isArchived, ')
+          ..write('currentHalf: $currentHalf, ')
+          ..write('gameTimeSeconds: $gameTimeSeconds, ')
+          ..write('isGameActive: $isGameActive, ')
+          ..write('formationId: $formationId')
           ..write(')'))
         .toString();
   }
@@ -2684,306 +3313,6 @@ class PlayerPositionTotalsCompanion
   }
 }
 
-class $FormationsTable extends Formations
-    with TableInfo<$FormationsTable, Formation> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $FormationsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _teamIdMeta = const VerificationMeta('teamId');
-  @override
-  late final GeneratedColumn<int> teamId = GeneratedColumn<int>(
-    'team_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES teams (id)',
-    ),
-  );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _playerCountMeta = const VerificationMeta(
-    'playerCount',
-  );
-  @override
-  late final GeneratedColumn<int> playerCount = GeneratedColumn<int>(
-    'player_count',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [id, teamId, name, playerCount];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'formations';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<Formation> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('team_id')) {
-      context.handle(
-        _teamIdMeta,
-        teamId.isAcceptableOrUnknown(data['team_id']!, _teamIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_teamIdMeta);
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
-    }
-    if (data.containsKey('player_count')) {
-      context.handle(
-        _playerCountMeta,
-        playerCount.isAcceptableOrUnknown(
-          data['player_count']!,
-          _playerCountMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_playerCountMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  Formation map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return Formation(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      teamId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}team_id'],
-      )!,
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      playerCount: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}player_count'],
-      )!,
-    );
-  }
-
-  @override
-  $FormationsTable createAlias(String alias) {
-    return $FormationsTable(attachedDatabase, alias);
-  }
-}
-
-class Formation extends DataClass implements Insertable<Formation> {
-  final int id;
-  final int teamId;
-  final String name;
-  final int playerCount;
-  const Formation({
-    required this.id,
-    required this.teamId,
-    required this.name,
-    required this.playerCount,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['team_id'] = Variable<int>(teamId);
-    map['name'] = Variable<String>(name);
-    map['player_count'] = Variable<int>(playerCount);
-    return map;
-  }
-
-  FormationsCompanion toCompanion(bool nullToAbsent) {
-    return FormationsCompanion(
-      id: Value(id),
-      teamId: Value(teamId),
-      name: Value(name),
-      playerCount: Value(playerCount),
-    );
-  }
-
-  factory Formation.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return Formation(
-      id: serializer.fromJson<int>(json['id']),
-      teamId: serializer.fromJson<int>(json['teamId']),
-      name: serializer.fromJson<String>(json['name']),
-      playerCount: serializer.fromJson<int>(json['playerCount']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'teamId': serializer.toJson<int>(teamId),
-      'name': serializer.toJson<String>(name),
-      'playerCount': serializer.toJson<int>(playerCount),
-    };
-  }
-
-  Formation copyWith({int? id, int? teamId, String? name, int? playerCount}) =>
-      Formation(
-        id: id ?? this.id,
-        teamId: teamId ?? this.teamId,
-        name: name ?? this.name,
-        playerCount: playerCount ?? this.playerCount,
-      );
-  Formation copyWithCompanion(FormationsCompanion data) {
-    return Formation(
-      id: data.id.present ? data.id.value : this.id,
-      teamId: data.teamId.present ? data.teamId.value : this.teamId,
-      name: data.name.present ? data.name.value : this.name,
-      playerCount: data.playerCount.present
-          ? data.playerCount.value
-          : this.playerCount,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('Formation(')
-          ..write('id: $id, ')
-          ..write('teamId: $teamId, ')
-          ..write('name: $name, ')
-          ..write('playerCount: $playerCount')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, teamId, name, playerCount);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is Formation &&
-          other.id == this.id &&
-          other.teamId == this.teamId &&
-          other.name == this.name &&
-          other.playerCount == this.playerCount);
-}
-
-class FormationsCompanion extends UpdateCompanion<Formation> {
-  final Value<int> id;
-  final Value<int> teamId;
-  final Value<String> name;
-  final Value<int> playerCount;
-  const FormationsCompanion({
-    this.id = const Value.absent(),
-    this.teamId = const Value.absent(),
-    this.name = const Value.absent(),
-    this.playerCount = const Value.absent(),
-  });
-  FormationsCompanion.insert({
-    this.id = const Value.absent(),
-    required int teamId,
-    required String name,
-    required int playerCount,
-  }) : teamId = Value(teamId),
-       name = Value(name),
-       playerCount = Value(playerCount);
-  static Insertable<Formation> custom({
-    Expression<int>? id,
-    Expression<int>? teamId,
-    Expression<String>? name,
-    Expression<int>? playerCount,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (teamId != null) 'team_id': teamId,
-      if (name != null) 'name': name,
-      if (playerCount != null) 'player_count': playerCount,
-    });
-  }
-
-  FormationsCompanion copyWith({
-    Value<int>? id,
-    Value<int>? teamId,
-    Value<String>? name,
-    Value<int>? playerCount,
-  }) {
-    return FormationsCompanion(
-      id: id ?? this.id,
-      teamId: teamId ?? this.teamId,
-      name: name ?? this.name,
-      playerCount: playerCount ?? this.playerCount,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (teamId.present) {
-      map['team_id'] = Variable<int>(teamId.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (playerCount.present) {
-      map['player_count'] = Variable<int>(playerCount.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('FormationsCompanion(')
-          ..write('id: $id, ')
-          ..write('teamId: $teamId, ')
-          ..write('name: $name, ')
-          ..write('playerCount: $playerCount')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $FormationPositionsTable extends FormationPositions
     with TableInfo<$FormationPositionsTable, FormationPosition> {
   @override
@@ -3301,6 +3630,7 @@ abstract class _$AppDb extends GeneratedDatabase {
   $AppDbManager get managers => $AppDbManager(this);
   late final $TeamsTable teams = $TeamsTable(this);
   late final $PlayersTable players = $PlayersTable(this);
+  late final $FormationsTable formations = $FormationsTable(this);
   late final $GamesTable games = $GamesTable(this);
   late final $ShiftsTable shifts = $ShiftsTable(this);
   late final $PlayerShiftsTable playerShifts = $PlayerShiftsTable(this);
@@ -3308,7 +3638,6 @@ abstract class _$AppDb extends GeneratedDatabase {
   late final $GamePlayersTable gamePlayers = $GamePlayersTable(this);
   late final $PlayerPositionTotalsTable playerPositionTotals =
       $PlayerPositionTotalsTable(this);
-  late final $FormationsTable formations = $FormationsTable(this);
   late final $FormationPositionsTable formationPositions =
       $FormationPositionsTable(this);
   @override
@@ -3318,13 +3647,13 @@ abstract class _$AppDb extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     teams,
     players,
+    formations,
     games,
     shifts,
     playerShifts,
     playerMetrics,
     gamePlayers,
     playerPositionTotals,
-    formations,
     formationPositions,
   ];
 }
@@ -3334,12 +3663,16 @@ typedef $$TeamsTableCreateCompanionBuilder =
       Value<int> id,
       required String name,
       Value<bool> isArchived,
+      Value<String> teamMode,
+      Value<int> halfDurationSeconds,
     });
 typedef $$TeamsTableUpdateCompanionBuilder =
     TeamsCompanion Function({
       Value<int> id,
       Value<String> name,
       Value<bool> isArchived,
+      Value<String> teamMode,
+      Value<int> halfDurationSeconds,
     });
 
 final class $$TeamsTableReferences
@@ -3365,6 +3698,24 @@ final class $$TeamsTableReferences
     );
   }
 
+  static MultiTypedResultKey<$FormationsTable, List<Formation>>
+  _formationsRefsTable(_$AppDb db) => MultiTypedResultKey.fromTable(
+    db.formations,
+    aliasName: $_aliasNameGenerator(db.teams.id, db.formations.teamId),
+  );
+
+  $$FormationsTableProcessedTableManager get formationsRefs {
+    final manager = $$FormationsTableTableManager(
+      $_db,
+      $_db.formations,
+    ).filter((f) => f.teamId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_formationsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$GamesTable, List<Game>> _gamesRefsTable(
     _$AppDb db,
   ) => MultiTypedResultKey.fromTable(
@@ -3379,24 +3730,6 @@ final class $$TeamsTableReferences
     ).filter((f) => f.teamId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_gamesRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<$FormationsTable, List<Formation>>
-  _formationsRefsTable(_$AppDb db) => MultiTypedResultKey.fromTable(
-    db.formations,
-    aliasName: $_aliasNameGenerator(db.teams.id, db.formations.teamId),
-  );
-
-  $$FormationsTableProcessedTableManager get formationsRefs {
-    final manager = $$FormationsTableTableManager(
-      $_db,
-      $_db.formations,
-    ).filter((f) => f.teamId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_formationsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -3426,6 +3759,16 @@ class $$TeamsTableFilterComposer extends Composer<_$AppDb, $TeamsTable> {
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get teamMode => $composableBuilder(
+    column: $table.teamMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get halfDurationSeconds => $composableBuilder(
+    column: $table.halfDurationSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> playersRefs(
     Expression<bool> Function($$PlayersTableFilterComposer f) f,
   ) {
@@ -3442,31 +3785,6 @@ class $$TeamsTableFilterComposer extends Composer<_$AppDb, $TeamsTable> {
           }) => $$PlayersTableFilterComposer(
             $db: $db,
             $table: $db.players,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> gamesRefs(
-    Expression<bool> Function($$GamesTableFilterComposer f) f,
-  ) {
-    final $$GamesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.games,
-      getReferencedColumn: (t) => t.teamId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GamesTableFilterComposer(
-            $db: $db,
-            $table: $db.games,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3500,6 +3818,31 @@ class $$TeamsTableFilterComposer extends Composer<_$AppDb, $TeamsTable> {
     );
     return f(composer);
   }
+
+  Expression<bool> gamesRefs(
+    Expression<bool> Function($$GamesTableFilterComposer f) f,
+  ) {
+    final $$GamesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.games,
+      getReferencedColumn: (t) => t.teamId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GamesTableFilterComposer(
+            $db: $db,
+            $table: $db.games,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TeamsTableOrderingComposer extends Composer<_$AppDb, $TeamsTable> {
@@ -3524,6 +3867,16 @@ class $$TeamsTableOrderingComposer extends Composer<_$AppDb, $TeamsTable> {
     column: $table.isArchived,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get teamMode => $composableBuilder(
+    column: $table.teamMode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get halfDurationSeconds => $composableBuilder(
+    column: $table.halfDurationSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TeamsTableAnnotationComposer extends Composer<_$AppDb, $TeamsTable> {
@@ -3545,6 +3898,14 @@ class $$TeamsTableAnnotationComposer extends Composer<_$AppDb, $TeamsTable> {
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get teamMode =>
+      $composableBuilder(column: $table.teamMode, builder: (column) => column);
+
+  GeneratedColumn<int> get halfDurationSeconds => $composableBuilder(
+    column: $table.halfDurationSeconds,
+    builder: (column) => column,
+  );
+
   Expression<T> playersRefs<T extends Object>(
     Expression<T> Function($$PlayersTableAnnotationComposer a) f,
   ) {
@@ -3561,31 +3922,6 @@ class $$TeamsTableAnnotationComposer extends Composer<_$AppDb, $TeamsTable> {
           }) => $$PlayersTableAnnotationComposer(
             $db: $db,
             $table: $db.players,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<T> gamesRefs<T extends Object>(
-    Expression<T> Function($$GamesTableAnnotationComposer a) f,
-  ) {
-    final $$GamesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.games,
-      getReferencedColumn: (t) => t.teamId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GamesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.games,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3619,6 +3955,31 @@ class $$TeamsTableAnnotationComposer extends Composer<_$AppDb, $TeamsTable> {
     );
     return f(composer);
   }
+
+  Expression<T> gamesRefs<T extends Object>(
+    Expression<T> Function($$GamesTableAnnotationComposer a) f,
+  ) {
+    final $$GamesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.games,
+      getReferencedColumn: (t) => t.teamId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GamesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.games,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TeamsTableTableManager
@@ -3636,8 +3997,8 @@ class $$TeamsTableTableManager
           Team,
           PrefetchHooks Function({
             bool playersRefs,
-            bool gamesRefs,
             bool formationsRefs,
+            bool gamesRefs,
           })
         > {
   $$TeamsTableTableManager(_$AppDb db, $TeamsTable table)
@@ -3656,16 +4017,28 @@ class $$TeamsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
-              }) => TeamsCompanion(id: id, name: name, isArchived: isArchived),
+                Value<String> teamMode = const Value.absent(),
+                Value<int> halfDurationSeconds = const Value.absent(),
+              }) => TeamsCompanion(
+                id: id,
+                name: name,
+                isArchived: isArchived,
+                teamMode: teamMode,
+                halfDurationSeconds: halfDurationSeconds,
+              ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required String name,
                 Value<bool> isArchived = const Value.absent(),
+                Value<String> teamMode = const Value.absent(),
+                Value<int> halfDurationSeconds = const Value.absent(),
               }) => TeamsCompanion.insert(
                 id: id,
                 name: name,
                 isArchived: isArchived,
+                teamMode: teamMode,
+                halfDurationSeconds: halfDurationSeconds,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -3676,15 +4049,15 @@ class $$TeamsTableTableManager
           prefetchHooksCallback:
               ({
                 playersRefs = false,
-                gamesRefs = false,
                 formationsRefs = false,
+                gamesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (playersRefs) db.players,
-                    if (gamesRefs) db.games,
                     if (formationsRefs) db.formations,
+                    if (gamesRefs) db.games,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -3702,19 +4075,6 @@ class $$TeamsTableTableManager
                               ),
                           typedResults: items,
                         ),
-                      if (gamesRefs)
-                        await $_getPrefetchedData<Team, $TeamsTable, Game>(
-                          currentTable: table,
-                          referencedTable: $$TeamsTableReferences
-                              ._gamesRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$TeamsTableReferences(db, table, p0).gamesRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.teamId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
                       if (formationsRefs)
                         await $_getPrefetchedData<Team, $TeamsTable, Formation>(
                           currentTable: table,
@@ -3726,6 +4086,19 @@ class $$TeamsTableTableManager
                                 table,
                                 p0,
                               ).formationsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.teamId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (gamesRefs)
+                        await $_getPrefetchedData<Team, $TeamsTable, Game>(
+                          currentTable: table,
+                          referencedTable: $$TeamsTableReferences
+                              ._gamesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TeamsTableReferences(db, table, p0).gamesRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.teamId == item.id,
@@ -3754,8 +4127,8 @@ typedef $$TeamsTableProcessedTableManager =
       Team,
       PrefetchHooks Function({
         bool playersRefs,
-        bool gamesRefs,
         bool formationsRefs,
+        bool gamesRefs,
       })
     >;
 typedef $$PlayersTableCreateCompanionBuilder =
@@ -4459,6 +4832,504 @@ typedef $$PlayersTableProcessedTableManager =
         bool playerPositionTotalsRefs,
       })
     >;
+typedef $$FormationsTableCreateCompanionBuilder =
+    FormationsCompanion Function({
+      Value<int> id,
+      required int teamId,
+      required String name,
+      required int playerCount,
+    });
+typedef $$FormationsTableUpdateCompanionBuilder =
+    FormationsCompanion Function({
+      Value<int> id,
+      Value<int> teamId,
+      Value<String> name,
+      Value<int> playerCount,
+    });
+
+final class $$FormationsTableReferences
+    extends BaseReferences<_$AppDb, $FormationsTable, Formation> {
+  $$FormationsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $TeamsTable _teamIdTable(_$AppDb db) => db.teams.createAlias(
+    $_aliasNameGenerator(db.formations.teamId, db.teams.id),
+  );
+
+  $$TeamsTableProcessedTableManager get teamId {
+    final $_column = $_itemColumn<int>('team_id')!;
+
+    final manager = $$TeamsTableTableManager(
+      $_db,
+      $_db.teams,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_teamIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$GamesTable, List<Game>> _gamesRefsTable(
+    _$AppDb db,
+  ) => MultiTypedResultKey.fromTable(
+    db.games,
+    aliasName: $_aliasNameGenerator(db.formations.id, db.games.formationId),
+  );
+
+  $$GamesTableProcessedTableManager get gamesRefs {
+    final manager = $$GamesTableTableManager(
+      $_db,
+      $_db.games,
+    ).filter((f) => f.formationId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_gamesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$FormationPositionsTable, List<FormationPosition>>
+  _formationPositionsRefsTable(_$AppDb db) => MultiTypedResultKey.fromTable(
+    db.formationPositions,
+    aliasName: $_aliasNameGenerator(
+      db.formations.id,
+      db.formationPositions.formationId,
+    ),
+  );
+
+  $$FormationPositionsTableProcessedTableManager get formationPositionsRefs {
+    final manager = $$FormationPositionsTableTableManager(
+      $_db,
+      $_db.formationPositions,
+    ).filter((f) => f.formationId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _formationPositionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$FormationsTableFilterComposer
+    extends Composer<_$AppDb, $FormationsTable> {
+  $$FormationsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get playerCount => $composableBuilder(
+    column: $table.playerCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$TeamsTableFilterComposer get teamId {
+    final $$TeamsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableFilterComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> gamesRefs(
+    Expression<bool> Function($$GamesTableFilterComposer f) f,
+  ) {
+    final $$GamesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.games,
+      getReferencedColumn: (t) => t.formationId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GamesTableFilterComposer(
+            $db: $db,
+            $table: $db.games,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> formationPositionsRefs(
+    Expression<bool> Function($$FormationPositionsTableFilterComposer f) f,
+  ) {
+    final $$FormationPositionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.formationPositions,
+      getReferencedColumn: (t) => t.formationId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FormationPositionsTableFilterComposer(
+            $db: $db,
+            $table: $db.formationPositions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$FormationsTableOrderingComposer
+    extends Composer<_$AppDb, $FormationsTable> {
+  $$FormationsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get playerCount => $composableBuilder(
+    column: $table.playerCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$TeamsTableOrderingComposer get teamId {
+    final $$TeamsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableOrderingComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$FormationsTableAnnotationComposer
+    extends Composer<_$AppDb, $FormationsTable> {
+  $$FormationsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get playerCount => $composableBuilder(
+    column: $table.playerCount,
+    builder: (column) => column,
+  );
+
+  $$TeamsTableAnnotationComposer get teamId {
+    final $$TeamsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.teamId,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> gamesRefs<T extends Object>(
+    Expression<T> Function($$GamesTableAnnotationComposer a) f,
+  ) {
+    final $$GamesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.games,
+      getReferencedColumn: (t) => t.formationId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GamesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.games,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> formationPositionsRefs<T extends Object>(
+    Expression<T> Function($$FormationPositionsTableAnnotationComposer a) f,
+  ) {
+    final $$FormationPositionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.formationPositions,
+          getReferencedColumn: (t) => t.formationId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$FormationPositionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.formationPositions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$FormationsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDb,
+          $FormationsTable,
+          Formation,
+          $$FormationsTableFilterComposer,
+          $$FormationsTableOrderingComposer,
+          $$FormationsTableAnnotationComposer,
+          $$FormationsTableCreateCompanionBuilder,
+          $$FormationsTableUpdateCompanionBuilder,
+          (Formation, $$FormationsTableReferences),
+          Formation,
+          PrefetchHooks Function({
+            bool teamId,
+            bool gamesRefs,
+            bool formationPositionsRefs,
+          })
+        > {
+  $$FormationsTableTableManager(_$AppDb db, $FormationsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FormationsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FormationsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FormationsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> teamId = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> playerCount = const Value.absent(),
+              }) => FormationsCompanion(
+                id: id,
+                teamId: teamId,
+                name: name,
+                playerCount: playerCount,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int teamId,
+                required String name,
+                required int playerCount,
+              }) => FormationsCompanion.insert(
+                id: id,
+                teamId: teamId,
+                name: name,
+                playerCount: playerCount,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$FormationsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                teamId = false,
+                gamesRefs = false,
+                formationPositionsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (gamesRefs) db.games,
+                    if (formationPositionsRefs) db.formationPositions,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (teamId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.teamId,
+                                    referencedTable: $$FormationsTableReferences
+                                        ._teamIdTable(db),
+                                    referencedColumn:
+                                        $$FormationsTableReferences
+                                            ._teamIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (gamesRefs)
+                        await $_getPrefetchedData<
+                          Formation,
+                          $FormationsTable,
+                          Game
+                        >(
+                          currentTable: table,
+                          referencedTable: $$FormationsTableReferences
+                              ._gamesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$FormationsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).gamesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.formationId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (formationPositionsRefs)
+                        await $_getPrefetchedData<
+                          Formation,
+                          $FormationsTable,
+                          FormationPosition
+                        >(
+                          currentTable: table,
+                          referencedTable: $$FormationsTableReferences
+                              ._formationPositionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$FormationsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).formationPositionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.formationId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$FormationsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDb,
+      $FormationsTable,
+      Formation,
+      $$FormationsTableFilterComposer,
+      $$FormationsTableOrderingComposer,
+      $$FormationsTableAnnotationComposer,
+      $$FormationsTableCreateCompanionBuilder,
+      $$FormationsTableUpdateCompanionBuilder,
+      (Formation, $$FormationsTableReferences),
+      Formation,
+      PrefetchHooks Function({
+        bool teamId,
+        bool gamesRefs,
+        bool formationPositionsRefs,
+      })
+    >;
 typedef $$GamesTableCreateCompanionBuilder =
     GamesCompanion Function({
       Value<int> id,
@@ -4467,6 +5338,10 @@ typedef $$GamesTableCreateCompanionBuilder =
       Value<int?> currentShiftId,
       required int teamId,
       Value<bool> isArchived,
+      Value<int> currentHalf,
+      Value<int> gameTimeSeconds,
+      Value<bool> isGameActive,
+      Value<int?> formationId,
     });
 typedef $$GamesTableUpdateCompanionBuilder =
     GamesCompanion Function({
@@ -4476,6 +5351,10 @@ typedef $$GamesTableUpdateCompanionBuilder =
       Value<int?> currentShiftId,
       Value<int> teamId,
       Value<bool> isArchived,
+      Value<int> currentHalf,
+      Value<int> gameTimeSeconds,
+      Value<bool> isGameActive,
+      Value<int?> formationId,
     });
 
 final class $$GamesTableReferences
@@ -4493,6 +5372,25 @@ final class $$GamesTableReferences
       $_db.teams,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_teamIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $FormationsTable _formationIdTable(_$AppDb db) =>
+      db.formations.createAlias(
+        $_aliasNameGenerator(db.games.formationId, db.formations.id),
+      );
+
+  $$FormationsTableProcessedTableManager? get formationId {
+    final $_column = $_itemColumn<int>('formation_id');
+    if ($_column == null) return null;
+    final manager = $$FormationsTableTableManager(
+      $_db,
+      $_db.formations,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_formationIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -4588,6 +5486,21 @@ class $$GamesTableFilterComposer extends Composer<_$AppDb, $GamesTable> {
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get currentHalf => $composableBuilder(
+    column: $table.currentHalf,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get gameTimeSeconds => $composableBuilder(
+    column: $table.gameTimeSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isGameActive => $composableBuilder(
+    column: $table.isGameActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$TeamsTableFilterComposer get teamId {
     final $$TeamsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -4602,6 +5515,29 @@ class $$GamesTableFilterComposer extends Composer<_$AppDb, $GamesTable> {
           }) => $$TeamsTableFilterComposer(
             $db: $db,
             $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$FormationsTableFilterComposer get formationId {
+    final $$FormationsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.formationId,
+      referencedTable: $db.formations,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FormationsTableFilterComposer(
+            $db: $db,
+            $table: $db.formations,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -4720,6 +5656,21 @@ class $$GamesTableOrderingComposer extends Composer<_$AppDb, $GamesTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get currentHalf => $composableBuilder(
+    column: $table.currentHalf,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get gameTimeSeconds => $composableBuilder(
+    column: $table.gameTimeSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isGameActive => $composableBuilder(
+    column: $table.isGameActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$TeamsTableOrderingComposer get teamId {
     final $$TeamsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -4734,6 +5685,29 @@ class $$GamesTableOrderingComposer extends Composer<_$AppDb, $GamesTable> {
           }) => $$TeamsTableOrderingComposer(
             $db: $db,
             $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$FormationsTableOrderingComposer get formationId {
+    final $$FormationsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.formationId,
+      referencedTable: $db.formations,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FormationsTableOrderingComposer(
+            $db: $db,
+            $table: $db.formations,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -4771,6 +5745,21 @@ class $$GamesTableAnnotationComposer extends Composer<_$AppDb, $GamesTable> {
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get currentHalf => $composableBuilder(
+    column: $table.currentHalf,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get gameTimeSeconds => $composableBuilder(
+    column: $table.gameTimeSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isGameActive => $composableBuilder(
+    column: $table.isGameActive,
+    builder: (column) => column,
+  );
+
   $$TeamsTableAnnotationComposer get teamId {
     final $$TeamsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -4785,6 +5774,29 @@ class $$GamesTableAnnotationComposer extends Composer<_$AppDb, $GamesTable> {
           }) => $$TeamsTableAnnotationComposer(
             $db: $db,
             $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$FormationsTableAnnotationComposer get formationId {
+    final $$FormationsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.formationId,
+      referencedTable: $db.formations,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FormationsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.formations,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -4885,6 +5897,7 @@ class $$GamesTableTableManager
           Game,
           PrefetchHooks Function({
             bool teamId,
+            bool formationId,
             bool shiftsRefs,
             bool playerMetricsRefs,
             bool gamePlayersRefs,
@@ -4909,6 +5922,10 @@ class $$GamesTableTableManager
                 Value<int?> currentShiftId = const Value.absent(),
                 Value<int> teamId = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
+                Value<int> currentHalf = const Value.absent(),
+                Value<int> gameTimeSeconds = const Value.absent(),
+                Value<bool> isGameActive = const Value.absent(),
+                Value<int?> formationId = const Value.absent(),
               }) => GamesCompanion(
                 id: id,
                 startTime: startTime,
@@ -4916,6 +5933,10 @@ class $$GamesTableTableManager
                 currentShiftId: currentShiftId,
                 teamId: teamId,
                 isArchived: isArchived,
+                currentHalf: currentHalf,
+                gameTimeSeconds: gameTimeSeconds,
+                isGameActive: isGameActive,
+                formationId: formationId,
               ),
           createCompanionCallback:
               ({
@@ -4925,6 +5946,10 @@ class $$GamesTableTableManager
                 Value<int?> currentShiftId = const Value.absent(),
                 required int teamId,
                 Value<bool> isArchived = const Value.absent(),
+                Value<int> currentHalf = const Value.absent(),
+                Value<int> gameTimeSeconds = const Value.absent(),
+                Value<bool> isGameActive = const Value.absent(),
+                Value<int?> formationId = const Value.absent(),
               }) => GamesCompanion.insert(
                 id: id,
                 startTime: startTime,
@@ -4932,6 +5957,10 @@ class $$GamesTableTableManager
                 currentShiftId: currentShiftId,
                 teamId: teamId,
                 isArchived: isArchived,
+                currentHalf: currentHalf,
+                gameTimeSeconds: gameTimeSeconds,
+                isGameActive: isGameActive,
+                formationId: formationId,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -4942,6 +5971,7 @@ class $$GamesTableTableManager
           prefetchHooksCallback:
               ({
                 teamId = false,
+                formationId = false,
                 shiftsRefs = false,
                 playerMetricsRefs = false,
                 gamePlayersRefs = false,
@@ -4978,6 +6008,19 @@ class $$GamesTableTableManager
                                         ._teamIdTable(db),
                                     referencedColumn: $$GamesTableReferences
                                         ._teamIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (formationId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.formationId,
+                                    referencedTable: $$GamesTableReferences
+                                        ._formationIdTable(db),
+                                    referencedColumn: $$GamesTableReferences
+                                        ._formationIdTable(db)
                                         .id,
                                   )
                                   as T;
@@ -5064,6 +6107,7 @@ typedef $$GamesTableProcessedTableManager =
       Game,
       PrefetchHooks Function({
         bool teamId,
+        bool formationId,
         bool shiftsRefs,
         bool playerMetricsRefs,
         bool gamePlayersRefs,
@@ -6960,401 +8004,6 @@ typedef $$PlayerPositionTotalsTableProcessedTableManager =
       PlayerPositionTotal,
       PrefetchHooks Function({bool playerId})
     >;
-typedef $$FormationsTableCreateCompanionBuilder =
-    FormationsCompanion Function({
-      Value<int> id,
-      required int teamId,
-      required String name,
-      required int playerCount,
-    });
-typedef $$FormationsTableUpdateCompanionBuilder =
-    FormationsCompanion Function({
-      Value<int> id,
-      Value<int> teamId,
-      Value<String> name,
-      Value<int> playerCount,
-    });
-
-final class $$FormationsTableReferences
-    extends BaseReferences<_$AppDb, $FormationsTable, Formation> {
-  $$FormationsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $TeamsTable _teamIdTable(_$AppDb db) => db.teams.createAlias(
-    $_aliasNameGenerator(db.formations.teamId, db.teams.id),
-  );
-
-  $$TeamsTableProcessedTableManager get teamId {
-    final $_column = $_itemColumn<int>('team_id')!;
-
-    final manager = $$TeamsTableTableManager(
-      $_db,
-      $_db.teams,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_teamIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static MultiTypedResultKey<$FormationPositionsTable, List<FormationPosition>>
-  _formationPositionsRefsTable(_$AppDb db) => MultiTypedResultKey.fromTable(
-    db.formationPositions,
-    aliasName: $_aliasNameGenerator(
-      db.formations.id,
-      db.formationPositions.formationId,
-    ),
-  );
-
-  $$FormationPositionsTableProcessedTableManager get formationPositionsRefs {
-    final manager = $$FormationPositionsTableTableManager(
-      $_db,
-      $_db.formationPositions,
-    ).filter((f) => f.formationId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _formationPositionsRefsTable($_db),
-    );
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
-class $$FormationsTableFilterComposer
-    extends Composer<_$AppDb, $FormationsTable> {
-  $$FormationsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get playerCount => $composableBuilder(
-    column: $table.playerCount,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  $$TeamsTableFilterComposer get teamId {
-    final $$TeamsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.teamId,
-      referencedTable: $db.teams,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TeamsTableFilterComposer(
-            $db: $db,
-            $table: $db.teams,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  Expression<bool> formationPositionsRefs(
-    Expression<bool> Function($$FormationPositionsTableFilterComposer f) f,
-  ) {
-    final $$FormationPositionsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.formationPositions,
-      getReferencedColumn: (t) => t.formationId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$FormationPositionsTableFilterComposer(
-            $db: $db,
-            $table: $db.formationPositions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$FormationsTableOrderingComposer
-    extends Composer<_$AppDb, $FormationsTable> {
-  $$FormationsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get playerCount => $composableBuilder(
-    column: $table.playerCount,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  $$TeamsTableOrderingComposer get teamId {
-    final $$TeamsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.teamId,
-      referencedTable: $db.teams,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TeamsTableOrderingComposer(
-            $db: $db,
-            $table: $db.teams,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$FormationsTableAnnotationComposer
-    extends Composer<_$AppDb, $FormationsTable> {
-  $$FormationsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<int> get playerCount => $composableBuilder(
-    column: $table.playerCount,
-    builder: (column) => column,
-  );
-
-  $$TeamsTableAnnotationComposer get teamId {
-    final $$TeamsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.teamId,
-      referencedTable: $db.teams,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TeamsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.teams,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  Expression<T> formationPositionsRefs<T extends Object>(
-    Expression<T> Function($$FormationPositionsTableAnnotationComposer a) f,
-  ) {
-    final $$FormationPositionsTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.formationPositions,
-          getReferencedColumn: (t) => t.formationId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$FormationPositionsTableAnnotationComposer(
-                $db: $db,
-                $table: $db.formationPositions,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return f(composer);
-  }
-}
-
-class $$FormationsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDb,
-          $FormationsTable,
-          Formation,
-          $$FormationsTableFilterComposer,
-          $$FormationsTableOrderingComposer,
-          $$FormationsTableAnnotationComposer,
-          $$FormationsTableCreateCompanionBuilder,
-          $$FormationsTableUpdateCompanionBuilder,
-          (Formation, $$FormationsTableReferences),
-          Formation,
-          PrefetchHooks Function({bool teamId, bool formationPositionsRefs})
-        > {
-  $$FormationsTableTableManager(_$AppDb db, $FormationsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$FormationsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$FormationsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$FormationsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<int> teamId = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<int> playerCount = const Value.absent(),
-              }) => FormationsCompanion(
-                id: id,
-                teamId: teamId,
-                name: name,
-                playerCount: playerCount,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required int teamId,
-                required String name,
-                required int playerCount,
-              }) => FormationsCompanion.insert(
-                id: id,
-                teamId: teamId,
-                name: name,
-                playerCount: playerCount,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$FormationsTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback:
-              ({teamId = false, formationPositionsRefs = false}) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (formationPositionsRefs) db.formationPositions,
-                  ],
-                  addJoins:
-                      <
-                        T extends TableManagerState<
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic,
-                          dynamic
-                        >
-                      >(state) {
-                        if (teamId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.teamId,
-                                    referencedTable: $$FormationsTableReferences
-                                        ._teamIdTable(db),
-                                    referencedColumn:
-                                        $$FormationsTableReferences
-                                            ._teamIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
-                        }
-
-                        return state;
-                      },
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (formationPositionsRefs)
-                        await $_getPrefetchedData<
-                          Formation,
-                          $FormationsTable,
-                          FormationPosition
-                        >(
-                          currentTable: table,
-                          referencedTable: $$FormationsTableReferences
-                              ._formationPositionsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$FormationsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).formationPositionsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.formationId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                    ];
-                  },
-                );
-              },
-        ),
-      );
-}
-
-typedef $$FormationsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDb,
-      $FormationsTable,
-      Formation,
-      $$FormationsTableFilterComposer,
-      $$FormationsTableOrderingComposer,
-      $$FormationsTableAnnotationComposer,
-      $$FormationsTableCreateCompanionBuilder,
-      $$FormationsTableUpdateCompanionBuilder,
-      (Formation, $$FormationsTableReferences),
-      Formation,
-      PrefetchHooks Function({bool teamId, bool formationPositionsRefs})
-    >;
 typedef $$FormationPositionsTableCreateCompanionBuilder =
     FormationPositionsCompanion Function({
       Value<int> id,
@@ -7674,6 +8323,8 @@ class $AppDbManager {
       $$TeamsTableTableManager(_db, _db.teams);
   $$PlayersTableTableManager get players =>
       $$PlayersTableTableManager(_db, _db.players);
+  $$FormationsTableTableManager get formations =>
+      $$FormationsTableTableManager(_db, _db.formations);
   $$GamesTableTableManager get games =>
       $$GamesTableTableManager(_db, _db.games);
   $$ShiftsTableTableManager get shifts =>
@@ -7686,8 +8337,6 @@ class $AppDbManager {
       $$GamePlayersTableTableManager(_db, _db.gamePlayers);
   $$PlayerPositionTotalsTableTableManager get playerPositionTotals =>
       $$PlayerPositionTotalsTableTableManager(_db, _db.playerPositionTotals);
-  $$FormationsTableTableManager get formations =>
-      $$FormationsTableTableManager(_db, _db.formations);
   $$FormationPositionsTableTableManager get formationPositions =>
       $$FormationPositionsTableTableManager(_db, _db.formationPositions);
 }

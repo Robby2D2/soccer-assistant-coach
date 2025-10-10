@@ -12,13 +12,7 @@ class RosterImportScreen extends ConsumerStatefulWidget {
 }
 
 class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
-  final _text = TextEditingController(
-    text:
-        'firstName,lastName,isPresent\n'
-        'Sam,Keeper,true\n'
-        'Chris,Defender,true\n'
-        'Alex,Forward,false\n',
-  );
+  final _text = TextEditingController();
   List<Map<String, String>> _rows = [];
 
   void _parse() {
@@ -29,7 +23,7 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
   @override
   void initState() {
     super.initState();
-    _parse();
+    // Start with empty text field - no default parsing needed
   }
 
   @override
