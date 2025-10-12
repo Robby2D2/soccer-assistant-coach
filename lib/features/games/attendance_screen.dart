@@ -25,6 +25,7 @@ class AttendanceScreen extends ConsumerWidget {
             return Text(
               'Attendance vs $opponent',
               overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             );
           },
         ),
@@ -57,7 +58,11 @@ class AttendanceScreen extends ConsumerWidget {
                       final p = players[i];
                       final present = att[p.id] ?? false;
                       return SwitchListTile(
-                        title: Text('${p.firstName} ${p.lastName}'),
+                        title: Text(
+                          '${p.firstName} ${p.lastName}',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                         value: present,
                         onChanged: (v) => db.setAttendance(
                           gameId: gameId,

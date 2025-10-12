@@ -230,8 +230,14 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                                 return SwitchListTile(
                                   title: Text(
                                     '${player.firstName} ${player.lastName}',
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
                                   ),
-                                  subtitle: Text('Player ID: ${player.id}'),
+                                  subtitle: Text(
+                                    'Player ID: ${player.id}',
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
                                   value: present,
                                   onChanged: _saving
                                       ? null

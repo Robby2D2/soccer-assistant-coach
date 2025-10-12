@@ -107,7 +107,11 @@ class _FormationsState extends State<_Formations> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Present players: ${widget.present.length}'),
+          Text(
+            'Present players: ${widget.present.length}',
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
           const SizedBox(height: 12),
           DropdownButton<String>(
             value: _formation,
@@ -119,7 +123,11 @@ class _FormationsState extends State<_Formations> {
             onChanged: (v) => setState(() => _formation = v!),
           ),
           const SizedBox(height: 16),
-          Text('Will assign first ${positions.length} present players to:'),
+          Text(
+            'Will assign first ${positions.length} present players to:',
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,

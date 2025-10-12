@@ -422,7 +422,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
       'DELETE FROM player_metrics WHERE game_id = ? AND metric = ?',
       variables: [
         drift.Variable<int>(widget.gameId),
-        drift.Variable<String>('traditional_playing_time'),
+        const drift.Variable<String>('traditional_playing_time'),
       ],
     );
   }
@@ -821,7 +821,7 @@ class _TraditionalLineupView extends StatelessWidget {
   String _formatPlayingTime(int seconds) {
     final minutes = seconds ~/ 60;
     final secs = seconds % 60;
-    return '${minutes}:${secs.toString().padLeft(2, '0')}';
+    return '$minutes:${secs.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -1224,7 +1224,11 @@ class _TraditionalLineupView extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Assign player to ${getPositionAbbreviation(position)}'),
+        title: Text(
+          'Assign player to ${getPositionAbbreviation(position)}',
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
         content: SizedBox(
           width: double.maxFinite,
           height:

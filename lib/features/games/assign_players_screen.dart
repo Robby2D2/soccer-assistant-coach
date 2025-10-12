@@ -38,6 +38,7 @@ class AssignPlayersScreen extends ConsumerWidget {
             return Text(
               'Assign vs $opponent (Shift $shiftId)',
               overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             );
           },
         ),
@@ -104,8 +105,16 @@ class AssignPlayersScreen extends ConsumerWidget {
                           final p = filteredPlayers[i];
                           final current = map[p.id];
                           return ListTile(
-                            title: Text('${p.firstName} ${p.lastName}'),
-                            subtitle: Text('Player ID: ${p.id}'),
+                            title: Text(
+                              '${p.firstName} ${p.lastName}',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                            subtitle: Text(
+                              'Player ID: ${p.id}',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                             trailing: DropdownButton<String>(
                               value: current,
                               hint: const Text('Position'),

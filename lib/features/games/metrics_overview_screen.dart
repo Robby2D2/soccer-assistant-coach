@@ -489,7 +489,13 @@ class _PlayerMetricsTable extends StatelessWidget {
 
           return DataRow(
             cells: [
-              DataCell(Text('${player.firstName} ${player.lastName}')),
+              DataCell(
+                Text(
+                  '${player.firstName} ${player.lastName}',
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
               DataCell(Text(minutesText)),
               DataCell(Text(goals.toString())),
               DataCell(Text(assists.toString())),

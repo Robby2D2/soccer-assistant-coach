@@ -57,7 +57,11 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerLeft,
-              child: Text('Preview: ${_rows.length} rows'),
+              child: Text(
+                'Preview: ${_rows.length} rows',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
             ),
             const SizedBox(height: 8),
             SizedBox(
@@ -68,8 +72,16 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
                   final r = _rows[i];
                   return ListTile(
                     dense: true,
-                    title: Text('${r['firstName']} ${r['lastName']}'),
-                    subtitle: Text('Jersey #: ${r['jerseyNumber'] ?? 'N/A'}'),
+                    title: Text(
+                      '${r['firstName']} ${r['lastName']}',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                    subtitle: Text(
+                      'Jersey #: ${r['jerseyNumber'] ?? 'N/A'}',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   );
                 },
               ),

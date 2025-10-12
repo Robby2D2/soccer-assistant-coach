@@ -122,9 +122,17 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
           future: db.getTeam(widget.teamId),
           builder: (context, snapshot) {
             if (snapshot.hasData && snapshot.data != null) {
-              return Text('${snapshot.data!.name} Games');
+              return Text(
+                '${snapshot.data!.name} Games',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              );
             }
-            return Text('Team ${widget.teamId} Games');
+            return Text(
+              'Team ${widget.teamId} Games',
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            );
           },
         ),
         actions: [

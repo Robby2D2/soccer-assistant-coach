@@ -89,7 +89,11 @@ class PlayersScreen extends ConsumerWidget {
     final db = ref.watch(dbProvider);
     return Scaffold(
       appBar: AppBar(
-        title: Text('Team $teamId Players'),
+        title: Text(
+          'Team $teamId Players',
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
         actions: [
           IconButton(
             tooltip: 'Export CSV',
