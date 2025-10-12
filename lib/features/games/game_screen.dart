@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,6 +8,7 @@ import '../../core/providers.dart';
 import '../../core/positions.dart';
 import '../../data/services/stopwatch_service.dart';
 import '../../data/services/notification_service.dart';
+import '../../data/services/alert_service.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   final int gameId;
@@ -30,6 +31,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   int _shiftLengthSeconds = 300;
   int? _shiftLenForTeamId;
   bool _alertedThisShift = false;
+  late final ValueNotifier<bool> _alertActiveNotifier;
   final GlobalKey<_ShiftsListState> _shiftsListKey =
       GlobalKey<_ShiftsListState>();
 
@@ -56,6 +58,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       ref.read(stopwatchProvider(widget.gameId)),
     );
     _isRunningNotifier = ValueNotifier<bool>(false);
+    _alertActiveNotifier = ValueNotifier<bool>(false);
     _lastTickSeconds = _secondsNotifier.value;
     _checkInitialRunningState();
     _stopwatchSubscription = ref.listenManual<int>(
@@ -83,6 +86,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     _stopwatchSubscription.close();
     _secondsNotifier.dispose();
     _isRunningNotifier.dispose();
+    _alertActiveNotifier.dispose();
     super.dispose();
   }
 
@@ -129,6 +133,31 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     return kPositions;
   }
 
+  void _startAlertStatusMonitoring() {
+    // Check alert status every second to update the UI
+    Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      final isAlerting = AlertService.instance.isAlerting;
+      if (_alertActiveNotifier.value != isAlerting) {
+        _alertActiveNotifier.value = isAlerting;
+      }
+
+      // Cancel timer if alert is no longer active
+      if (!isAlerting) {
+        timer.cancel();
+      }
+    });
+  }
+
+  void _acknowledgeAlert() {
+    AlertService.instance.acknowledgeAlert();
+    _alertActiveNotifier.value = false;
+  }
+
   Future<void> _handleTick(AppDb db, int seconds) async {
     if (_isRunning && _currentShiftId != null) {
       final delta = seconds - _lastTickSeconds;
@@ -138,16 +167,25 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       // Alert once when countdown reaches zero
       if (!_alertedThisShift && seconds >= _shiftLengthSeconds) {
         _alertedThisShift = true;
-        // Haptic + system click, and a brief snackbar notification
-        try {
-          HapticFeedback.heavyImpact();
-        } catch (_) {}
-        try {
-          SystemSound.play(SystemSoundType.click);
-        } catch (_) {}
+        // Trigger enhanced shift change alert with audio and strong haptic feedback
+        AlertService.instance.triggerShiftChangeAlert(durationSeconds: 60);
+        _alertActiveNotifier.value = true;
+
+        // Start monitoring alert status
+        _startAlertStatusMonitoring();
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Shift time! Prepare to change.')),
+            SnackBar(
+              content: const Text('Shift time! Tap to acknowledge alert.'),
+              action: SnackBarAction(
+                label: 'OK',
+                onPressed: () {
+                  _acknowledgeAlert();
+                },
+              ),
+              duration: const Duration(seconds: 10),
+            ),
           );
         }
       }
@@ -774,6 +812,20 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: ValueListenableBuilder<bool>(
+        valueListenable: _alertActiveNotifier,
+        builder: (context, isAlerting, child) {
+          if (!isAlerting) return const SizedBox.shrink();
+
+          return FloatingActionButton.extended(
+            onPressed: _acknowledgeAlert,
+            backgroundColor: Theme.of(context).colorScheme.error,
+            foregroundColor: Theme.of(context).colorScheme.onError,
+            icon: const Icon(Icons.alarm_off),
+            label: const Text('Stop Alert'),
+          );
+        },
       ),
     );
   }

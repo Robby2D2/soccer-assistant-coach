@@ -19,6 +19,7 @@ dependencies:
   flutter_local_notifications: ^17.2.2
   timezone: ^0.9.4
   image_picker: ^1.1.2
+  vibration: ^2.0.0
 
 dev_dependencies:
   flutter_test:
@@ -31,6 +32,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/sounds/
 
 flutter_icons:
   android: true
