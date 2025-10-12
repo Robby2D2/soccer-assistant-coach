@@ -1124,7 +1124,7 @@ class _TraditionalLineupView extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Substitute ${getPositionAbbreviation(position)}'),
+        title: Text('Substitute $position'),
         content: SizedBox(
           width: double.maxFinite,
           height: 400, // Set a maximum height for the dialog content
@@ -1133,70 +1133,12 @@ class _TraditionalLineupView extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Current player display
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primaryContainer.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      // Player Avatar
-                      PlayerAvatar(
-                        firstName: currentPlayer.firstName,
-                        lastName: currentPlayer.lastName,
-                        jerseyNumber: currentPlayer.jerseyNumber,
-                        profileImagePath: currentPlayer.profileImagePath,
-                        radius: 18,
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          getPositionAbbreviation(position),
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onPrimaryContainer,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '${currentPlayer.firstName} ${currentPlayer.lastName}',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                      Icon(
-                        Icons.timer,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        _formatPlayingTime(
-                          playingTimeThisGame[currentPlayer.id] ?? 0,
-                        ),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
+                PlayerPanel(
+                  player: currentPlayer,
+                  type: PlayerPanelType.current,
+                  position: position,
+                  playingTime: playingTimeThisGame[currentPlayer.id] ?? 0,
+                  getPositionAbbreviation: getPositionAbbreviation,
                 ),
                 const SizedBox(height: 16),
                 const Align(

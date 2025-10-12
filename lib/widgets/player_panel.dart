@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../data/db/database.dart';
 import 'player_avatar.dart';
@@ -6,6 +7,7 @@ enum PlayerPanelType {
   active, // Active players with position badges
   bench, // Bench players with SUB badges
   substitute, // Players in substitution dialogs
+  current, // Current player being substituted (highlighted)
 }
 
 class PlayerPanel extends StatelessWidget {
@@ -33,12 +35,39 @@ class PlayerPanel extends StatelessWidget {
   String _formatPlayingTime(int seconds) {
     final minutes = seconds ~/ 60;
     final secs = seconds % 60;
-    return '${minutes}:${secs.toString().padLeft(2, '0')}';
+    return '$minutes:${secs.toString().padLeft(2, '0')}';
+  }
+
+  bool _hasProfileImage() {
+    if (player.profileImagePath == null || player.profileImagePath!.isEmpty) {
+      return false;
+    }
+    // Check if the image file actually exists
+    try {
+      final imageFile = File(player.profileImagePath!);
+      return imageFile.existsSync();
+    } catch (e) {
+      return false;
+    }
+  }
+
+  String _getPlayerDisplayName() {
+    final hasImage = _hasProfileImage();
+    final hasJerseyNumber = player.jerseyNumber != null;
+
+    // If player has both image and jersey number, show number before name
+    if (hasImage && hasJerseyNumber) {
+      return '#${player.jerseyNumber} ${player.firstName} ${player.lastName}';
+    }
+
+    // Otherwise just show the name
+    return '${player.firstName} ${player.lastName}';
   }
 
   Widget _buildBadge(BuildContext context) {
     switch (type) {
       case PlayerPanelType.active:
+      case PlayerPanelType.current:
         if (position != null && getPositionAbbreviation != null) {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
@@ -104,62 +133,79 @@ class PlayerPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveRadius = radius ?? 16.0;
-    final effectivePadding = padding ?? const EdgeInsets.all(6);
+    final effectiveRadius =
+        radius ?? (type == PlayerPanelType.current ? 18.0 : 16.0);
+    final effectivePadding =
+        padding ??
+        (type == PlayerPanelType.current
+            ? const EdgeInsets.all(12)
+            : const EdgeInsets.all(6));
 
-    return Card(
-      margin: EdgeInsets.zero,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: effectivePadding,
-          child: Row(
-            children: [
-              // Player avatar
-              PlayerAvatar(
-                firstName: player.firstName,
-                lastName: player.lastName,
-                jerseyNumber: player.jerseyNumber,
-                profileImagePath: player.profileImagePath,
-                radius: effectiveRadius,
-              ),
-              const SizedBox(width: 8),
-              // Player info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        _buildBadge(context),
-                        const Spacer(),
-                        _buildPlayingTimeInfo(context),
-                      ],
-                    ),
-                    const SizedBox(height: 1),
-                    // Player name
-                    Flexible(
-                      child: Text(
-                        '${player.firstName} ${player.lastName}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w500,
-                          fontSize: type == PlayerPanelType.substitute
-                              ? 10
-                              : 11,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+    Widget cardContent = InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Padding(
+        padding: effectivePadding,
+        child: Row(
+          children: [
+            // Player avatar
+            PlayerAvatar(
+              firstName: player.firstName,
+              lastName: player.lastName,
+              jerseyNumber: player.jerseyNumber,
+              profileImagePath: player.profileImagePath,
+              radius: effectiveRadius,
+            ),
+            const SizedBox(width: 8),
+            // Player info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      _buildBadge(context),
+                      const Spacer(),
+                      _buildPlayingTimeInfo(context),
+                    ],
+                  ),
+                  const SizedBox(height: 1),
+                  // Player name (with jersey number if both image and number exist)
+                  Flexible(
+                    child: Text(
+                      _getPlayerDisplayName(),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        fontSize: type == PlayerPanelType.substitute
+                            ? 10
+                            : (type == PlayerPanelType.current ? 12 : 11),
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
+
+    // Special styling for current player being substituted
+    if (type == PlayerPanelType.current) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Theme.of(
+            context,
+          ).colorScheme.primaryContainer.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: cardContent,
+      );
+    }
+
+    return Card(margin: EdgeInsets.zero, child: cardContent);
   }
 }
