@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../core/providers.dart';
+import '../../widgets/player_avatar.dart';
 
 class MetricsInputScreen extends ConsumerStatefulWidget {
   final int gameId;
@@ -128,10 +129,12 @@ class _MetricsInputScreenState extends ConsumerState<MetricsInputScreen> {
 
                             return Card(
                               child: ListTile(
-                                leading: CircleAvatar(
-                                  child: Text(
-                                    '${player.firstName[0]}${player.lastName[0]}',
-                                  ),
+                                leading: PlayerAvatar(
+                                  firstName: player.firstName,
+                                  lastName: player.lastName,
+                                  jerseyNumber: player.jerseyNumber,
+                                  profileImagePath: player.profileImagePath,
+                                  radius: 20,
                                 ),
                                 title: Text(
                                   '${player.firstName} ${player.lastName}',

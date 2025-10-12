@@ -12,13 +12,13 @@ String toCsvRow(Iterable<String> fields) => fields.map(_escape).join(',');
 
 String playersToCsv(List<Map<String, String>> rows) {
   final buffer = StringBuffer();
-  buffer.writeln('firstName,lastName,isPresent');
+  buffer.writeln('firstName,lastName,jerseyNumber');
   for (final r in rows) {
     buffer.writeln(
       toCsvRow([
         r['firstName'] ?? '',
         r['lastName'] ?? '',
-        r['isPresent'] ?? 'true',
+        r['jerseyNumber'] ?? '', // Empty string for missing jersey numbers
       ]),
     );
   }
@@ -34,13 +34,9 @@ List<Map<String, String>> csvToPlayers(String csv) {
     if (row.isEmpty) continue;
     final fn = row.isNotEmpty ? row[0] : '';
     final ln = row.length > 1 ? row[1] : '';
-    final ip = row.length > 2 ? row[2].toLowerCase() : 'true';
+    final jn = row.length > 2 ? row[2] : '';
     if (fn.isEmpty && ln.isEmpty) continue;
-    out.add({
-      'firstName': fn,
-      'lastName': ln,
-      'isPresent': ip == 'true' ? 'true' : 'false',
-    });
+    out.add({'firstName': fn, 'lastName': ln, 'jerseyNumber': jn});
   }
   return out;
 }

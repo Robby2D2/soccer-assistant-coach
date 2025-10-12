@@ -16,6 +16,8 @@ class Players extends Table {
   TextColumn get firstName => text()();
   TextColumn get lastName => text()();
   BoolColumn get isPresent => boolean().withDefault(const Constant(true))();
+  IntColumn get jerseyNumber => integer().nullable()();
+  TextColumn get profileImagePath => text().nullable()();
 }
 
 class Games extends Table {

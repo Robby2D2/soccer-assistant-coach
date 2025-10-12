@@ -36,7 +36,7 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
         child: Column(
           children: [
             Text(
-              'Paste CSV with header: firstName,lastName,isPresent (active status)',
+              'Paste CSV with header: firstName,lastName,jerseyNumber (jersey number is optional)',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 8),
@@ -49,7 +49,7 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   hintText:
-                      'firstName,lastName,isPresent\nJane,Doe,true\nJohn,Smith,false',
+                      'firstName,lastName,jerseyNumber\nJane,Doe,10\nJohn,Smith,\nAlex,Johnson,7',
                 ),
                 onChanged: (_) => _parse(),
               ),
@@ -69,7 +69,7 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
                   return ListTile(
                     dense: true,
                     title: Text('${r['firstName']} ${r['lastName']}'),
-                    subtitle: Text('Active: ${r['isPresent']}'),
+                    subtitle: Text('Jersey #: ${r['jerseyNumber'] ?? 'N/A'}'),
                   );
                 },
               ),
@@ -80,6 +80,13 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
                   ? null
                   : () async {
                       for (final r in _rows) {
+                        // Parse jersey number, handle empty or invalid values
+                        int? jerseyNumber;
+                        final jerseyStr = r['jerseyNumber']?.trim();
+                        if (jerseyStr != null && jerseyStr.isNotEmpty) {
+                          jerseyNumber = int.tryParse(jerseyStr);
+                        }
+
                         await db
                             .into(db.players)
                             .insert(
@@ -87,9 +94,10 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
                                 teamId: widget.teamId,
                                 firstName: r['firstName'] ?? '',
                                 lastName: r['lastName'] ?? '',
-                                isPresent: drift.Value(
-                                  (r['isPresent'] ?? 'true') == 'true',
-                                ),
+                                isPresent: const drift.Value(
+                                  true,
+                                ), // Default to true
+                                jerseyNumber: drift.Value(jerseyNumber),
                               ),
                             );
                       }

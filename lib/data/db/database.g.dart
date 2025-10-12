@@ -426,6 +426,28 @@ class $PlayersTable extends Players with TableInfo<$PlayersTable, Player> {
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _jerseyNumberMeta = const VerificationMeta(
+    'jerseyNumber',
+  );
+  @override
+  late final GeneratedColumn<int> jerseyNumber = GeneratedColumn<int>(
+    'jersey_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _profileImagePathMeta = const VerificationMeta(
+    'profileImagePath',
+  );
+  @override
+  late final GeneratedColumn<String> profileImagePath = GeneratedColumn<String>(
+    'profile_image_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -433,6 +455,8 @@ class $PlayersTable extends Players with TableInfo<$PlayersTable, Player> {
     firstName,
     lastName,
     isPresent,
+    jerseyNumber,
+    profileImagePath,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -479,6 +503,24 @@ class $PlayersTable extends Players with TableInfo<$PlayersTable, Player> {
         isPresent.isAcceptableOrUnknown(data['is_present']!, _isPresentMeta),
       );
     }
+    if (data.containsKey('jersey_number')) {
+      context.handle(
+        _jerseyNumberMeta,
+        jerseyNumber.isAcceptableOrUnknown(
+          data['jersey_number']!,
+          _jerseyNumberMeta,
+        ),
+      );
+    }
+    if (data.containsKey('profile_image_path')) {
+      context.handle(
+        _profileImagePathMeta,
+        profileImagePath.isAcceptableOrUnknown(
+          data['profile_image_path']!,
+          _profileImagePathMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -508,6 +550,14 @@ class $PlayersTable extends Players with TableInfo<$PlayersTable, Player> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_present'],
       )!,
+      jerseyNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}jersey_number'],
+      ),
+      profileImagePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}profile_image_path'],
+      ),
     );
   }
 
@@ -523,12 +573,16 @@ class Player extends DataClass implements Insertable<Player> {
   final String firstName;
   final String lastName;
   final bool isPresent;
+  final int? jerseyNumber;
+  final String? profileImagePath;
   const Player({
     required this.id,
     required this.teamId,
     required this.firstName,
     required this.lastName,
     required this.isPresent,
+    this.jerseyNumber,
+    this.profileImagePath,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -538,6 +592,12 @@ class Player extends DataClass implements Insertable<Player> {
     map['first_name'] = Variable<String>(firstName);
     map['last_name'] = Variable<String>(lastName);
     map['is_present'] = Variable<bool>(isPresent);
+    if (!nullToAbsent || jerseyNumber != null) {
+      map['jersey_number'] = Variable<int>(jerseyNumber);
+    }
+    if (!nullToAbsent || profileImagePath != null) {
+      map['profile_image_path'] = Variable<String>(profileImagePath);
+    }
     return map;
   }
 
@@ -548,6 +608,12 @@ class Player extends DataClass implements Insertable<Player> {
       firstName: Value(firstName),
       lastName: Value(lastName),
       isPresent: Value(isPresent),
+      jerseyNumber: jerseyNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(jerseyNumber),
+      profileImagePath: profileImagePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(profileImagePath),
     );
   }
 
@@ -562,6 +628,8 @@ class Player extends DataClass implements Insertable<Player> {
       firstName: serializer.fromJson<String>(json['firstName']),
       lastName: serializer.fromJson<String>(json['lastName']),
       isPresent: serializer.fromJson<bool>(json['isPresent']),
+      jerseyNumber: serializer.fromJson<int?>(json['jerseyNumber']),
+      profileImagePath: serializer.fromJson<String?>(json['profileImagePath']),
     );
   }
   @override
@@ -573,6 +641,8 @@ class Player extends DataClass implements Insertable<Player> {
       'firstName': serializer.toJson<String>(firstName),
       'lastName': serializer.toJson<String>(lastName),
       'isPresent': serializer.toJson<bool>(isPresent),
+      'jerseyNumber': serializer.toJson<int?>(jerseyNumber),
+      'profileImagePath': serializer.toJson<String?>(profileImagePath),
     };
   }
 
@@ -582,12 +652,18 @@ class Player extends DataClass implements Insertable<Player> {
     String? firstName,
     String? lastName,
     bool? isPresent,
+    Value<int?> jerseyNumber = const Value.absent(),
+    Value<String?> profileImagePath = const Value.absent(),
   }) => Player(
     id: id ?? this.id,
     teamId: teamId ?? this.teamId,
     firstName: firstName ?? this.firstName,
     lastName: lastName ?? this.lastName,
     isPresent: isPresent ?? this.isPresent,
+    jerseyNumber: jerseyNumber.present ? jerseyNumber.value : this.jerseyNumber,
+    profileImagePath: profileImagePath.present
+        ? profileImagePath.value
+        : this.profileImagePath,
   );
   Player copyWithCompanion(PlayersCompanion data) {
     return Player(
@@ -596,6 +672,12 @@ class Player extends DataClass implements Insertable<Player> {
       firstName: data.firstName.present ? data.firstName.value : this.firstName,
       lastName: data.lastName.present ? data.lastName.value : this.lastName,
       isPresent: data.isPresent.present ? data.isPresent.value : this.isPresent,
+      jerseyNumber: data.jerseyNumber.present
+          ? data.jerseyNumber.value
+          : this.jerseyNumber,
+      profileImagePath: data.profileImagePath.present
+          ? data.profileImagePath.value
+          : this.profileImagePath,
     );
   }
 
@@ -606,13 +688,23 @@ class Player extends DataClass implements Insertable<Player> {
           ..write('teamId: $teamId, ')
           ..write('firstName: $firstName, ')
           ..write('lastName: $lastName, ')
-          ..write('isPresent: $isPresent')
+          ..write('isPresent: $isPresent, ')
+          ..write('jerseyNumber: $jerseyNumber, ')
+          ..write('profileImagePath: $profileImagePath')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, teamId, firstName, lastName, isPresent);
+  int get hashCode => Object.hash(
+    id,
+    teamId,
+    firstName,
+    lastName,
+    isPresent,
+    jerseyNumber,
+    profileImagePath,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -621,7 +713,9 @@ class Player extends DataClass implements Insertable<Player> {
           other.teamId == this.teamId &&
           other.firstName == this.firstName &&
           other.lastName == this.lastName &&
-          other.isPresent == this.isPresent);
+          other.isPresent == this.isPresent &&
+          other.jerseyNumber == this.jerseyNumber &&
+          other.profileImagePath == this.profileImagePath);
 }
 
 class PlayersCompanion extends UpdateCompanion<Player> {
@@ -630,12 +724,16 @@ class PlayersCompanion extends UpdateCompanion<Player> {
   final Value<String> firstName;
   final Value<String> lastName;
   final Value<bool> isPresent;
+  final Value<int?> jerseyNumber;
+  final Value<String?> profileImagePath;
   const PlayersCompanion({
     this.id = const Value.absent(),
     this.teamId = const Value.absent(),
     this.firstName = const Value.absent(),
     this.lastName = const Value.absent(),
     this.isPresent = const Value.absent(),
+    this.jerseyNumber = const Value.absent(),
+    this.profileImagePath = const Value.absent(),
   });
   PlayersCompanion.insert({
     this.id = const Value.absent(),
@@ -643,6 +741,8 @@ class PlayersCompanion extends UpdateCompanion<Player> {
     required String firstName,
     required String lastName,
     this.isPresent = const Value.absent(),
+    this.jerseyNumber = const Value.absent(),
+    this.profileImagePath = const Value.absent(),
   }) : teamId = Value(teamId),
        firstName = Value(firstName),
        lastName = Value(lastName);
@@ -652,6 +752,8 @@ class PlayersCompanion extends UpdateCompanion<Player> {
     Expression<String>? firstName,
     Expression<String>? lastName,
     Expression<bool>? isPresent,
+    Expression<int>? jerseyNumber,
+    Expression<String>? profileImagePath,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -659,6 +761,8 @@ class PlayersCompanion extends UpdateCompanion<Player> {
       if (firstName != null) 'first_name': firstName,
       if (lastName != null) 'last_name': lastName,
       if (isPresent != null) 'is_present': isPresent,
+      if (jerseyNumber != null) 'jersey_number': jerseyNumber,
+      if (profileImagePath != null) 'profile_image_path': profileImagePath,
     });
   }
 
@@ -668,6 +772,8 @@ class PlayersCompanion extends UpdateCompanion<Player> {
     Value<String>? firstName,
     Value<String>? lastName,
     Value<bool>? isPresent,
+    Value<int?>? jerseyNumber,
+    Value<String?>? profileImagePath,
   }) {
     return PlayersCompanion(
       id: id ?? this.id,
@@ -675,6 +781,8 @@ class PlayersCompanion extends UpdateCompanion<Player> {
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       isPresent: isPresent ?? this.isPresent,
+      jerseyNumber: jerseyNumber ?? this.jerseyNumber,
+      profileImagePath: profileImagePath ?? this.profileImagePath,
     );
   }
 
@@ -696,6 +804,12 @@ class PlayersCompanion extends UpdateCompanion<Player> {
     if (isPresent.present) {
       map['is_present'] = Variable<bool>(isPresent.value);
     }
+    if (jerseyNumber.present) {
+      map['jersey_number'] = Variable<int>(jerseyNumber.value);
+    }
+    if (profileImagePath.present) {
+      map['profile_image_path'] = Variable<String>(profileImagePath.value);
+    }
     return map;
   }
 
@@ -706,7 +820,9 @@ class PlayersCompanion extends UpdateCompanion<Player> {
           ..write('teamId: $teamId, ')
           ..write('firstName: $firstName, ')
           ..write('lastName: $lastName, ')
-          ..write('isPresent: $isPresent')
+          ..write('isPresent: $isPresent, ')
+          ..write('jerseyNumber: $jerseyNumber, ')
+          ..write('profileImagePath: $profileImagePath')
           ..write(')'))
         .toString();
   }
@@ -4445,6 +4561,8 @@ typedef $$PlayersTableCreateCompanionBuilder =
       required String firstName,
       required String lastName,
       Value<bool> isPresent,
+      Value<int?> jerseyNumber,
+      Value<String?> profileImagePath,
     });
 typedef $$PlayersTableUpdateCompanionBuilder =
     PlayersCompanion Function({
@@ -4453,6 +4571,8 @@ typedef $$PlayersTableUpdateCompanionBuilder =
       Value<String> firstName,
       Value<String> lastName,
       Value<bool> isPresent,
+      Value<int?> jerseyNumber,
+      Value<String?> profileImagePath,
     });
 
 final class $$PlayersTableReferences
@@ -4584,6 +4704,16 @@ class $$PlayersTableFilterComposer extends Composer<_$AppDb, $PlayersTable> {
 
   ColumnFilters<bool> get isPresent => $composableBuilder(
     column: $table.isPresent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get jerseyNumber => $composableBuilder(
+    column: $table.jerseyNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get profileImagePath => $composableBuilder(
+    column: $table.profileImagePath,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4739,6 +4869,16 @@ class $$PlayersTableOrderingComposer extends Composer<_$AppDb, $PlayersTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get jerseyNumber => $composableBuilder(
+    column: $table.jerseyNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get profileImagePath => $composableBuilder(
+    column: $table.profileImagePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$TeamsTableOrderingComposer get teamId {
     final $$TeamsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -4783,6 +4923,16 @@ class $$PlayersTableAnnotationComposer
 
   GeneratedColumn<bool> get isPresent =>
       $composableBuilder(column: $table.isPresent, builder: (column) => column);
+
+  GeneratedColumn<int> get jerseyNumber => $composableBuilder(
+    column: $table.jerseyNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get profileImagePath => $composableBuilder(
+    column: $table.profileImagePath,
+    builder: (column) => column,
+  );
 
   $$TeamsTableAnnotationComposer get teamId {
     final $$TeamsTableAnnotationComposer composer = $composerBuilder(
@@ -4948,12 +5098,16 @@ class $$PlayersTableTableManager
                 Value<String> firstName = const Value.absent(),
                 Value<String> lastName = const Value.absent(),
                 Value<bool> isPresent = const Value.absent(),
+                Value<int?> jerseyNumber = const Value.absent(),
+                Value<String?> profileImagePath = const Value.absent(),
               }) => PlayersCompanion(
                 id: id,
                 teamId: teamId,
                 firstName: firstName,
                 lastName: lastName,
                 isPresent: isPresent,
+                jerseyNumber: jerseyNumber,
+                profileImagePath: profileImagePath,
               ),
           createCompanionCallback:
               ({
@@ -4962,12 +5116,16 @@ class $$PlayersTableTableManager
                 required String firstName,
                 required String lastName,
                 Value<bool> isPresent = const Value.absent(),
+                Value<int?> jerseyNumber = const Value.absent(),
+                Value<String?> profileImagePath = const Value.absent(),
               }) => PlayersCompanion.insert(
                 id: id,
                 teamId: teamId,
                 firstName: firstName,
                 lastName: lastName,
                 isPresent: isPresent,
+                jerseyNumber: jerseyNumber,
+                profileImagePath: profileImagePath,
               ),
           withReferenceMapper: (p0) => p0
               .map(

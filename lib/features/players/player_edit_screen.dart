@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 import '../../core/providers.dart';
+import '../../widgets/player_avatar.dart';
 
 class PlayerEditScreen extends ConsumerStatefulWidget {
   final int playerId;
@@ -12,7 +16,10 @@ class PlayerEditScreen extends ConsumerStatefulWidget {
 class _PlayerEditScreenState extends ConsumerState<PlayerEditScreen> {
   final _first = TextEditingController();
   final _last = TextEditingController();
+  final _jerseyNumber = TextEditingController();
   bool _present = true;
+  String? _profileImagePath;
+  final _picker = ImagePicker();
 
   @override
   void initState() {
@@ -24,8 +31,85 @@ class _PlayerEditScreenState extends ConsumerState<PlayerEditScreen> {
         _first.text = p.firstName;
         _last.text = p.lastName;
         _present = p.isPresent;
+        _jerseyNumber.text = p.jerseyNumber?.toString() ?? '';
+        _profileImagePath = p.profileImagePath;
       });
     });
+  }
+
+  Future<void> _showImagePickerOptions() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take Photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.cancel),
+              title: const Text('Cancel'),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 400,
+        maxHeight: 400,
+        imageQuality: 80,
+      );
+
+      if (pickedFile != null) {
+        // Save the image to app documents directory
+        final appDir = await getApplicationDocumentsDirectory();
+        final playersDir = Directory('${appDir.path}/player_photos');
+        if (!playersDir.existsSync()) {
+          playersDir.createSync(recursive: true);
+        }
+
+        final fileName =
+            'player_${widget.playerId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final savedImage = File('${playersDir.path}/$fileName');
+        await File(pickedFile.path).copy(savedImage.path);
+
+        setState(() {
+          _profileImagePath = savedImage.path;
+        });
+      }
+    } catch (e) {
+      // Handle image picker errors gracefully
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Unable to access ${source == ImageSource.camera ? "camera" : "photo library"}. Please check permissions.',
+            ),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            action: SnackBarAction(label: 'OK', onPressed: () {}),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -47,6 +131,46 @@ class _PlayerEditScreenState extends ConsumerState<PlayerEditScreen> {
               decoration: const InputDecoration(labelText: 'Last name'),
             ),
             const SizedBox(height: 12),
+            TextField(
+              controller: _jerseyNumber,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Jersey number',
+                hintText: 'Optional',
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Profile Picture Section
+            Row(
+              children: [
+                PlayerAvatar(
+                  firstName: _first.text,
+                  lastName: _last.text,
+                  jerseyNumber: int.tryParse(_jerseyNumber.text),
+                  profileImagePath: _profileImagePath,
+                  radius: 30,
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _showImagePickerOptions,
+                      icon: const Icon(Icons.camera_alt),
+                      label: const Text('Add Photo'),
+                    ),
+                    if (_profileImagePath != null)
+                      TextButton.icon(
+                        onPressed: () =>
+                            setState(() => _profileImagePath = null),
+                        icon: const Icon(Icons.delete, size: 16),
+                        label: const Text('Remove'),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             SwitchListTile(
               value: _present,
               title: const Text('Active'),
@@ -60,11 +184,21 @@ class _PlayerEditScreenState extends ConsumerState<PlayerEditScreen> {
                 final f = _first.text.trim();
                 final l = _last.text.trim();
                 if (f.isEmpty || l.isEmpty) return;
+
+                // Parse jersey number
+                int? jerseyNumber;
+                final jerseyStr = _jerseyNumber.text.trim();
+                if (jerseyStr.isNotEmpty) {
+                  jerseyNumber = int.tryParse(jerseyStr);
+                }
+
                 await db.updatePlayer(
                   id: widget.playerId,
                   firstName: f,
                   lastName: l,
                   isPresent: _present,
+                  jerseyNumber: jerseyNumber,
+                  profileImagePath: _profileImagePath,
                 );
                 if (!context.mounted) return;
                 Navigator.pop(context);

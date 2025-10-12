@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../core/providers.dart';
+import '../../widgets/player_avatar.dart';
+import '../../widgets/player_panel.dart';
 
 class TraditionalGameScreen extends ConsumerStatefulWidget {
   final int gameId;
@@ -171,6 +173,14 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
   /// Get position abbreviation for display, fallback to full name if not found
   String _getPositionAbbreviation(String positionName) {
     return _positionAbbreviations[positionName] ?? positionName;
+  }
+
+  String _getPlayerDisplayName(Player player) {
+    final name = '${player.firstName} ${player.lastName}';
+    if (player.jerseyNumber != null) {
+      return '#${player.jerseyNumber} $name';
+    }
+    return name;
   }
 
   Future<void> _loadGameState() async {
@@ -746,6 +756,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
                           formationPositions: _formationPositions,
                           playingTimeThisGame: _playingTimeThisGame,
                           getPositionAbbreviation: _getPositionAbbreviation,
+                          getPlayerDisplayName: _getPlayerDisplayName,
                           onPlayerSubstitution:
                               (outPlayerId, inPlayerId, position) async {
                                 setState(() {
@@ -793,6 +804,7 @@ class _TraditionalLineupView extends StatelessWidget {
   final Function(int? outPlayerId, int? inPlayerId, String? position)
   onPlayerSubstitution;
   final String Function(String) getPositionAbbreviation;
+  final String Function(Player) getPlayerDisplayName;
 
   const _TraditionalLineupView({
     required this.gameId,
@@ -803,6 +815,7 @@ class _TraditionalLineupView extends StatelessWidget {
     required this.playingTimeThisGame,
     required this.onPlayerSubstitution,
     required this.getPositionAbbreviation,
+    required this.getPlayerDisplayName,
   });
 
   String _formatPlayingTime(int seconds) {
@@ -901,109 +914,18 @@ class _TraditionalLineupView extends StatelessWidget {
 
                                 if (player != null) {
                                   // Position is filled
-                                  return Card(
-                                    margin: EdgeInsets.zero,
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(12),
-                                      onTap: () => _showSubstitutionDialog(
-                                        context,
-                                        position,
-                                        player,
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                // Position badge
-                                                Flexible(
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 4,
-                                                          vertical: 1,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .primaryContainer,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            3,
-                                                          ),
-                                                    ),
-                                                    child: Text(
-                                                      getPositionAbbreviation(
-                                                        position,
-                                                      ),
-                                                      style: Theme.of(context)
-                                                          .textTheme
-                                                          .labelSmall
-                                                          ?.copyWith(
-                                                            color: Theme.of(context)
-                                                                .colorScheme
-                                                                .onPrimaryContainer,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            fontSize: 10,
-                                                          ),
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      maxLines: 1,
-                                                    ),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 4),
-                                                // Playing time
-                                                Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.timer,
-                                                      size: 12,
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onSurfaceVariant,
-                                                    ),
-                                                    const SizedBox(width: 1),
-                                                    Text(
-                                                      _formatPlayingTime(
-                                                        playingTimeThisGame[playerId] ??
-                                                            0,
-                                                      ),
-                                                      style: Theme.of(context)
-                                                          .textTheme
-                                                          .labelSmall
-                                                          ?.copyWith(
-                                                            color: Theme.of(context)
-                                                                .colorScheme
-                                                                .onSurfaceVariant,
-                                                          ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 4),
-                                            // Player name
-                                            Text(
-                                              '${player.firstName} ${player.lastName}',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodySmall
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
+                                  return PlayerPanel(
+                                    player: player,
+                                    type: PlayerPanelType.active,
+                                    position: position,
+                                    playingTime:
+                                        playingTimeThisGame[playerId] ?? 0,
+                                    getPositionAbbreviation:
+                                        getPositionAbbreviation,
+                                    onTap: () => _showSubstitutionDialog(
+                                      context,
+                                      position,
+                                      player,
                                     ),
                                   );
                                 } else {
@@ -1165,99 +1087,14 @@ class _TraditionalLineupView extends StatelessWidget {
                                 index,
                               ) {
                                 final player = benchPlayers[index];
-                                return Card(
-                                  margin: EdgeInsets.zero,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(12),
-                                    onTap: () => _showPlayerReplacementDialog(
-                                      context,
-                                      player,
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              // Bench badge
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 4,
-                                                      vertical: 1,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .secondaryContainer,
-                                                  borderRadius:
-                                                      BorderRadius.circular(3),
-                                                ),
-                                                child: Text(
-                                                  'SUB',
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .labelSmall
-                                                      ?.copyWith(
-                                                        color: Theme.of(context)
-                                                            .colorScheme
-                                                            .onSecondaryContainer,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        fontSize: 10,
-                                                      ),
-                                                ),
-                                              ),
-                                              const Spacer(),
-                                              // Playing time
-                                              Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    Icons.timer,
-                                                    size: 12,
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurfaceVariant,
-                                                  ),
-                                                  const SizedBox(width: 1),
-                                                  Text(
-                                                    _formatPlayingTime(
-                                                      playingTimeThisGame[player
-                                                              .id] ??
-                                                          0,
-                                                    ),
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .labelSmall
-                                                        ?.copyWith(
-                                                          color: Theme.of(context)
-                                                              .colorScheme
-                                                              .onSurfaceVariant,
-                                                        ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 4),
-                                          // Player name
-                                          Text(
-                                            '${player.firstName} ${player.lastName}',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                return PlayerPanel(
+                                  player: player,
+                                  type: PlayerPanelType.bench,
+                                  playingTime:
+                                      playingTimeThisGame[player.id] ?? 0,
+                                  onTap: () => _showPlayerReplacementDialog(
+                                    context,
+                                    player,
                                   ),
                                 );
                               }, childCount: benchPlayers.length),
@@ -1307,6 +1144,15 @@ class _TraditionalLineupView extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
+                      // Player Avatar
+                      PlayerAvatar(
+                        firstName: currentPlayer.firstName,
+                        lastName: currentPlayer.lastName,
+                        jerseyNumber: currentPlayer.jerseyNumber,
+                        profileImagePath: currentPlayer.profileImagePath,
+                        radius: 18,
+                      ),
+                      const SizedBox(width: 12),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 6,
@@ -1390,93 +1236,18 @@ class _TraditionalLineupView extends StatelessWidget {
                     itemCount: availablePlayers.length,
                     itemBuilder: (context, index) {
                       final player = availablePlayers[index];
-                      return Card(
-                        margin: EdgeInsets.zero,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            onPlayerSubstitution(
-                              currentPlayer.id,
-                              player.id,
-                              position,
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(
-                              4,
-                            ), // Further reduced padding
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 4,
-                                        vertical: 1,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.secondaryContainer,
-                                        borderRadius: BorderRadius.circular(3),
-                                      ),
-                                      child: Text(
-                                        'SUB',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelSmall
-                                            ?.copyWith(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSecondaryContainer,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 10,
-                                            ),
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.timer,
-                                          size: 12,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
-                                        ),
-                                        const SizedBox(width: 2),
-                                        Text(
-                                          _formatPlayingTime(
-                                            playingTimeThisGame[player.id] ?? 0,
-                                          ),
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelSmall
-                                              ?.copyWith(
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurfaceVariant,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 2), // Reduced spacing
-                                Text(
-                                  '${player.firstName} ${player.lastName}',
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(fontWeight: FontWeight.w500),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                      return PlayerPanel(
+                        player: player,
+                        type: PlayerPanelType.substitute,
+                        playingTime: playingTimeThisGame[player.id] ?? 0,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          onPlayerSubstitution(
+                            currentPlayer.id,
+                            player.id,
+                            position,
+                          );
+                        },
                       );
                     },
                   ),
@@ -1622,96 +1393,14 @@ class _TraditionalLineupView extends StatelessWidget {
                     itemCount: availablePlayers.length,
                     itemBuilder: (context, index) {
                       final player = availablePlayers[index];
-                      return Card(
-                        margin: EdgeInsets.zero,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            onPlayerSubstitution(null, player.id, position);
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(
-                              4,
-                            ), // Further reduced padding
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 4,
-                                        vertical: 1,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.secondaryContainer,
-                                        borderRadius: BorderRadius.circular(3),
-                                      ),
-                                      child: Text(
-                                        'SUB',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelSmall
-                                            ?.copyWith(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSecondaryContainer,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 9,
-                                            ),
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.timer,
-                                          size: 10,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
-                                        ),
-                                        const SizedBox(width: 2),
-                                        Text(
-                                          _formatPlayingTime(
-                                            playingTimeThisGame[player.id] ?? 0,
-                                          ),
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelSmall
-                                              ?.copyWith(
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurfaceVariant,
-                                                fontSize: 9,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 1),
-                                Flexible(
-                                  child: Text(
-                                    '${player.firstName} ${player.lastName}',
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w500,
-                                          fontSize: 11,
-                                        ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                      return PlayerPanel(
+                        player: player,
+                        type: PlayerPanelType.substitute,
+                        playingTime: playingTimeThisGame[player.id] ?? 0,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          onPlayerSubstitution(null, player.id, position);
+                        },
                       );
                     },
                   ),
@@ -1761,6 +1450,14 @@ class _TraditionalLineupView extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
+                    PlayerAvatar(
+                      firstName: benchPlayer.firstName,
+                      lastName: benchPlayer.lastName,
+                      jerseyNumber: benchPlayer.jerseyNumber,
+                      profileImagePath: benchPlayer.profileImagePath,
+                      radius: 20,
+                    ),
+                    const SizedBox(width: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
@@ -1863,54 +1560,66 @@ class _TraditionalLineupView extends StatelessWidget {
                                 },
                                 child: Padding(
                                   padding: const EdgeInsets.all(4),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
+                                  child: Row(
                                     children: [
-                                      Row(
-                                        children: [
-                                          Flexible(
-                                            flex: 2,
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 4,
-                                                    vertical: 1,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.primaryContainer,
-                                                borderRadius:
-                                                    BorderRadius.circular(3),
-                                              ),
-                                              child: Text(
-                                                getPositionAbbreviation(
-                                                  position,
-                                                ),
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .labelSmall
-                                                    ?.copyWith(
+                                      // Player Avatar
+                                      PlayerAvatar(
+                                        firstName: activePlayer.firstName,
+                                        lastName: activePlayer.lastName,
+                                        jerseyNumber: activePlayer.jerseyNumber,
+                                        profileImagePath:
+                                            activePlayer.profileImagePath,
+                                        radius: 14,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      // Player and position info
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Flexible(
+                                                  flex: 2,
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 4,
+                                                          vertical: 1,
+                                                        ),
+                                                    decoration: BoxDecoration(
                                                       color: Theme.of(context)
                                                           .colorScheme
-                                                          .onPrimaryContainer,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      fontSize: 9,
+                                                          .primaryContainer,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            3,
+                                                          ),
                                                     ),
-                                                overflow: TextOverflow.ellipsis,
-                                                maxLines: 1,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Flexible(
-                                            flex: 1,
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
+                                                    child: Text(
+                                                      getPositionAbbreviation(
+                                                        position,
+                                                      ),
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .labelSmall
+                                                          ?.copyWith(
+                                                            color: Theme.of(context)
+                                                                .colorScheme
+                                                                .onPrimaryContainer,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            fontSize: 9,
+                                                          ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      maxLines: 1,
+                                                    ),
+                                                  ),
+                                                ),
+                                                const Spacer(),
                                                 Icon(
                                                   Icons.timer,
                                                   size: 10,
@@ -1918,44 +1627,38 @@ class _TraditionalLineupView extends StatelessWidget {
                                                       .colorScheme
                                                       .onSurfaceVariant,
                                                 ),
-                                                const SizedBox(width: 2),
-                                                Flexible(
-                                                  child: Text(
-                                                    _formatPlayingTime(
-                                                      playingTimeThisGame[playerId] ??
-                                                          0,
-                                                    ),
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .labelSmall
-                                                        ?.copyWith(
-                                                          color: Theme.of(context)
-                                                              .colorScheme
-                                                              .onSurfaceVariant,
-                                                          fontSize: 9,
-                                                        ),
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
+                                                const SizedBox(width: 1),
+                                                Text(
+                                                  _formatPlayingTime(
+                                                    playingTimeThisGame[playerId] ??
+                                                        0,
                                                   ),
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .labelSmall
+                                                      ?.copyWith(
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .onSurfaceVariant,
+                                                        fontSize: 9,
+                                                      ),
                                                 ),
                                               ],
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 1),
-                                      Flexible(
-                                        child: Text(
-                                          '${activePlayer.firstName} ${activePlayer.lastName}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w500,
-                                                fontSize: 10,
-                                              ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                            const SizedBox(height: 1),
+                                            Text(
+                                              '${activePlayer.firstName} ${activePlayer.lastName}',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 10,
+                                                  ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ],

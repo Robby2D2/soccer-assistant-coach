@@ -30,7 +30,7 @@ class AppDb extends _$AppDb {
   AppDb()
     : super(SqfliteQueryExecutor.inDatabaseFolder(path: 'soccer_manager.db'));
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -98,6 +98,15 @@ class AppDb extends _$AppDb {
         // Populate existing positions with their position names as abbreviations
         await customStatement(
           'UPDATE formation_positions SET abbreviation = position_name',
+        );
+      }
+      if (from < 15) {
+        // Add jersey number and profile image fields to players
+        await customStatement(
+          'ALTER TABLE players ADD COLUMN jersey_number INTEGER',
+        );
+        await customStatement(
+          'ALTER TABLE players ADD COLUMN profile_image_path TEXT',
         );
       }
     },
@@ -454,11 +463,15 @@ extension PlayerQueries on AppDb {
     required String firstName,
     required String lastName,
     required bool isPresent,
+    int? jerseyNumber,
+    String? profileImagePath,
   }) => (update(players)..where((p) => p.id.equals(id))).write(
     PlayersCompanion(
       firstName: Value(firstName),
       lastName: Value(lastName),
       isPresent: Value(isPresent),
+      jerseyNumber: Value(jerseyNumber),
+      profileImagePath: Value(profileImagePath),
     ),
   );
   Future<void> deletePlayer(int id) =>

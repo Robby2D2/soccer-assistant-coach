@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' as drift;
 import '../../core/providers.dart';
 import '../../utils/csv.dart';
 import '../../utils/files.dart';
+import '../../widgets/player_avatar.dart';
 import 'package:go_router/go_router.dart';
 
 class PlayersScreen extends ConsumerWidget {
@@ -100,7 +101,7 @@ class PlayersScreen extends ConsumerWidget {
                     (p) => {
                       'firstName': p.firstName,
                       'lastName': p.lastName,
-                      'isPresent': p.isPresent ? 'true' : 'false',
+                      'jerseyNumber': p.jerseyNumber?.toString() ?? '',
                     },
                   )
                   .toList();
@@ -163,27 +164,21 @@ class PlayersScreen extends ConsumerWidget {
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        // Player avatar
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            color: player.isPresent
-                                ? Theme.of(context).colorScheme.primaryContainer
-                                : Theme.of(
-                                    context,
-                                  ).colorScheme.surfaceContainerHighest,
-                          ),
-                          child: Icon(
-                            Icons.person,
-                            color: player.isPresent
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                            size: 24,
-                          ),
+                        // Player avatar with profile picture, jersey number, or initials
+                        PlayerAvatar(
+                          firstName: player.firstName,
+                          lastName: player.lastName,
+                          jerseyNumber: player.jerseyNumber,
+                          profileImagePath: player.profileImagePath,
+                          radius: 24,
+                          backgroundColor: player.isPresent
+                              ? Theme.of(context).colorScheme.primaryContainer
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
+                          textColor: player.isPresent
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 16),
 
@@ -232,6 +227,33 @@ class PlayersScreen extends ConsumerWidget {
                                           ),
                                     ),
                                   ),
+                                  if (player.jerseyNumber != null) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(12),
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.secondaryContainer,
+                                      ),
+                                      child: Text(
+                                        '#${player.jerseyNumber}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSecondaryContainer,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ],
