@@ -60,12 +60,48 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >();
     await androidImpl?.requestNotificationsPermission();
+
+    // Request exact alarm permission for Android 12+
+    await androidImpl?.requestExactAlarmsPermission();
+
     // iOS
     final iosImpl = _plugin
         .resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin
         >();
     await iosImpl?.requestPermissions(alert: true, sound: true, badge: false);
+  }
+
+  Future<bool> canScheduleExactAlarms() async {
+    final androidImpl = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    return await androidImpl?.canScheduleExactNotifications() ?? true;
+  }
+
+  /// Request exact alarm permission and return whether it was granted
+  Future<bool> requestExactAlarmPermission() async {
+    final androidImpl = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    if (androidImpl != null) {
+      // Check if already granted
+      final canSchedule = await androidImpl.canScheduleExactNotifications();
+      if (canSchedule == true) {
+        return true;
+      }
+
+      // Request permission
+      await androidImpl.requestExactAlarmsPermission();
+
+      // Check if granted after request
+      return await androidImpl.canScheduleExactNotifications() ?? false;
+    }
+
+    return true; // iOS or other platforms
   }
 
   int _idForGame(int gameId) => gameId; // stable id per game
@@ -77,12 +113,14 @@ class NotificationService {
     String body = 'Time to change lines',
   }) async {
     if (!_initialized) await init();
+
     // Ensure target time is in the future (plugin throws if not)
     final now = DateTime.now();
     if (!at.isAfter(now)) {
       // Nudge at least 1 second into future to avoid ArgumentError
       at = now.add(const Duration(seconds: 1));
     }
+
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
         'shift_alerts',
@@ -95,19 +133,42 @@ class NotificationService {
       ),
       iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true),
     );
+
     // Ensure timezone initialized upstream (documented requirement)
     final tzAt = tz.TZDateTime.from(at, tz.local);
-    await _plugin.zonedSchedule(
-      _idForGame(gameId),
-      title,
-      body,
-      tzAt,
-      details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: 'game:$gameId',
-    );
+
+    try {
+      // First try exact scheduling
+      await _plugin.zonedSchedule(
+        _idForGame(gameId),
+        title,
+        body,
+        tzAt,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: 'game:$gameId',
+      );
+    } catch (e) {
+      // If exact alarms fail, fall back to inexact
+      if (e.toString().contains('exact_alarms_not_permitted')) {
+        await _plugin.zonedSchedule(
+          _idForGame(gameId),
+          title,
+          body,
+          tzAt,
+          details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          payload: 'game:$gameId',
+        );
+      } else {
+        // Re-throw other errors
+        rethrow;
+      }
+    }
   }
 
   Future<void> cancelShiftEnd(int gameId) async {

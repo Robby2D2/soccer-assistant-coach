@@ -290,7 +290,7 @@ class HomeScreen extends ConsumerWidget {
                           crossAxisCount: 2,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
-                          childAspectRatio: 1.4,
+                          childAspectRatio: 1.3,
                           children: [
                             // Manage Teams Card
                             _QuickActionCard(
@@ -356,13 +356,14 @@ class _QuickActionCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 icon,
-                size: 32,
+                size: 28,
                 color: Theme.of(context).colorScheme.primary,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 title,
                 style: Theme.of(
@@ -372,7 +373,7 @@ class _QuickActionCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 1),
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -449,10 +450,11 @@ class _LiveGameTimerState extends ConsumerState<_LiveGameTimer> {
                 timeSnapshot.data ?? widget.game.gameTimeSeconds;
 
             return Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   _formatTimeRemaining(currentGameTime, halfDuration),
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     fontFamily: 'monospace',
                     color: widget.game.isGameActive
@@ -462,6 +464,7 @@ class _LiveGameTimerState extends ConsumerState<_LiveGameTimer> {
                 ),
                 Icon(
                   Icons.chevron_right,
+                  size: 20,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ],

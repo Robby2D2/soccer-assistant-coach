@@ -579,11 +579,35 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                                   .cancelShiftEnd(
                                                     widget.gameId,
                                                   );
-                                              await NotificationService.instance
-                                                  .scheduleShiftEnd(
-                                                    gameId: widget.gameId,
-                                                    at: when,
-                                                  );
+                                              try {
+                                                await NotificationService
+                                                    .instance
+                                                    .scheduleShiftEnd(
+                                                      gameId: widget.gameId,
+                                                      at: when,
+                                                    );
+                                              } catch (e) {
+                                                // Show user-friendly message if notification scheduling fails
+                                                if (mounted &&
+                                                    e.toString().contains(
+                                                      'exact_alarms_not_permitted',
+                                                    )) {
+                                                  if (context.mounted) {
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                          'Shift notifications may be less accurate. Enable exact alarms in Android settings for better timing.',
+                                                        ),
+                                                        duration: Duration(
+                                                          seconds: 4,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  }
+                                                }
+                                              }
                                             } else {
                                               // No future shift-end notification if already at/over time
                                               await NotificationService.instance
