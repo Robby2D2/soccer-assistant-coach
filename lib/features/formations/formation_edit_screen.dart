@@ -24,13 +24,16 @@ class _FormationEditScreenState extends ConsumerState<FormationEditScreen> {
   final _playerCountCtrl = TextEditingController(text: '6');
   int _count = 6;
   late List<TextEditingController> _positionCtrls;
+  late List<TextEditingController> _abbreviationCtrls;
   bool _loading = false;
   bool _notFound = false;
+  bool _showTemplates = false;
 
   @override
   void initState() {
     super.initState();
     _positionCtrls = List.generate(_count, (i) => TextEditingController());
+    _abbreviationCtrls = List.generate(_count, (i) => TextEditingController());
     if (widget.formationId != null) {
       _loadExisting();
     }
@@ -54,6 +57,7 @@ class _FormationEditScreenState extends ConsumerState<FormationEditScreen> {
       _updateCount(f.playerCount);
       for (var i = 0; i < f.playerCount && i < positions.length; i++) {
         _positionCtrls[i].text = positions[i].positionName;
+        _abbreviationCtrls[i].text = positions[i].abbreviation;
       }
       _loading = false;
     });
@@ -64,6 +68,9 @@ class _FormationEditScreenState extends ConsumerState<FormationEditScreen> {
     _nameCtrl.dispose();
     _playerCountCtrl.dispose();
     for (final c in _positionCtrls) {
+      c.dispose();
+    }
+    for (final c in _abbreviationCtrls) {
       c.dispose();
     }
     super.dispose();
@@ -78,14 +85,50 @@ class _FormationEditScreenState extends ConsumerState<FormationEditScreen> {
         _positionCtrls.addAll(
           List.generate(toAdd, (i) => TextEditingController()),
         );
+        _abbreviationCtrls.addAll(
+          List.generate(toAdd, (i) => TextEditingController()),
+        );
       } else if (_positionCtrls.length > _count) {
-        final extras = _positionCtrls.sublist(_count);
-        for (final c in extras) {
+        final positionExtras = _positionCtrls.sublist(_count);
+        final abbreviationExtras = _abbreviationCtrls.sublist(_count);
+        for (final c in positionExtras) {
+          c.dispose();
+        }
+        for (final c in abbreviationExtras) {
           c.dispose();
         }
         _positionCtrls = _positionCtrls.sublist(0, _count);
+        _abbreviationCtrls = _abbreviationCtrls.sublist(0, _count);
       }
     });
+  }
+
+  void _loadTemplate(FormationTemplate template) {
+    setState(() {
+      _nameCtrl.text = template.name;
+      _playerCountCtrl.text = template.playerCount.toString();
+      _updateCount(template.playerCount);
+      for (var i = 0; i < template.positions.length && i < _count; i++) {
+        _positionCtrls[i].text = template.positions[i];
+        _abbreviationCtrls[i].text = template.abbreviations[i];
+      }
+      _showTemplates = false; // Hide templates after selecting one
+    });
+  }
+
+  String _getFormationDescription(String formationName) {
+    switch (formationName) {
+      case '4-4-2':
+        return 'Classic balanced formation';
+      case '4-3-3':
+        return 'Attacking formation with wingers';
+      case '4-2-3-1':
+        return 'Modern tactical formation';
+      case '2-2-1':
+        return 'Small-sided game formation';
+      default:
+        return 'Custom formation';
+    }
   }
 
   @override
@@ -106,6 +149,65 @@ class _FormationEditScreenState extends ConsumerState<FormationEditScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Template selection for new formations
+                      if (!isEdit) ...[
+                        Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.sports_soccer),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Formation Templates',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    TextButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _showTemplates = !_showTemplates;
+                                        });
+                                      },
+                                      child: Text(
+                                        _showTemplates ? 'Hide' : 'Show',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (_showTemplates) ...[
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    'Choose a template to get started:',
+                                  ),
+                                  const SizedBox(height: 8),
+                                  ...FormationTemplates.getTemplates().map(
+                                    (template) => Card(
+                                      child: ListTile(
+                                        title: Text(template.name),
+                                        subtitle: Text(
+                                          '${template.playerCount} players • ${_getFormationDescription(template.name)}',
+                                        ),
+                                        trailing: const Icon(
+                                          Icons.arrow_forward,
+                                        ),
+                                        onTap: () => _loadTemplate(template),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       TextFormField(
                         controller: _nameCtrl,
                         decoration: const InputDecoration(
@@ -149,14 +251,36 @@ class _FormationEditScreenState extends ConsumerState<FormationEditScreen> {
                       ),
                       const SizedBox(height: 16),
                       for (var i = 0; i < _count; i++) ...[
-                        TextFormField(
-                          controller: _positionCtrls[i],
-                          decoration: InputDecoration(
-                            labelText: 'Position ${i + 1} name',
-                          ),
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? 'Enter a name'
-                              : null,
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: TextFormField(
+                                controller: _positionCtrls[i],
+                                decoration: InputDecoration(
+                                  labelText: 'Position ${i + 1} name',
+                                ),
+                                validator: (v) =>
+                                    (v == null || v.trim().isEmpty)
+                                    ? 'Enter a name'
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 1,
+                              child: TextFormField(
+                                controller: _abbreviationCtrls[i],
+                                decoration: const InputDecoration(
+                                  labelText: 'Abbr.',
+                                ),
+                                validator: (v) =>
+                                    (v == null || v.trim().isEmpty)
+                                    ? 'Enter abbreviation'
+                                    : null,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                       ],
@@ -175,12 +299,17 @@ class _FormationEditScreenState extends ConsumerState<FormationEditScreen> {
                                 .take(count)
                                 .map((c) => c.text.trim())
                                 .toList();
+                            final abbreviations = _abbreviationCtrls
+                                .take(count)
+                                .map((c) => c.text.trim())
+                                .toList();
                             if (isEdit) {
                               await db.updateFormation(
                                 id: widget.formationId!,
                                 name: _nameCtrl.text.trim(),
                                 playerCount: count,
                                 positions: positions,
+                                abbreviations: abbreviations,
                               );
                             } else {
                               await db.createFormation(
@@ -188,6 +317,7 @@ class _FormationEditScreenState extends ConsumerState<FormationEditScreen> {
                                 name: _nameCtrl.text.trim(),
                                 playerCount: count,
                                 positions: positions,
+                                abbreviations: abbreviations,
                               );
                             }
                             // After async calls, ensure the specific BuildContext is still mounted

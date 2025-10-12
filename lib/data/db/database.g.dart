@@ -3617,8 +3617,26 @@ class $FormationPositionsTable extends FormationPositions
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _abbreviationMeta = const VerificationMeta(
+    'abbreviation',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, formationId, index, positionName];
+  late final GeneratedColumn<String> abbreviation = GeneratedColumn<String>(
+    'abbreviation',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    formationId,
+    index,
+    positionName,
+    abbreviation,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -3664,6 +3682,15 @@ class $FormationPositionsTable extends FormationPositions
     } else if (isInserting) {
       context.missing(_positionNameMeta);
     }
+    if (data.containsKey('abbreviation')) {
+      context.handle(
+        _abbreviationMeta,
+        abbreviation.isAcceptableOrUnknown(
+          data['abbreviation']!,
+          _abbreviationMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -3689,6 +3716,10 @@ class $FormationPositionsTable extends FormationPositions
         DriftSqlType.string,
         data['${effectivePrefix}position_name'],
       )!,
+      abbreviation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}abbreviation'],
+      )!,
     );
   }
 
@@ -3704,11 +3735,13 @@ class FormationPosition extends DataClass
   final int formationId;
   final int index;
   final String positionName;
+  final String abbreviation;
   const FormationPosition({
     required this.id,
     required this.formationId,
     required this.index,
     required this.positionName,
+    required this.abbreviation,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3717,6 +3750,7 @@ class FormationPosition extends DataClass
     map['formation_id'] = Variable<int>(formationId);
     map['index'] = Variable<int>(index);
     map['position_name'] = Variable<String>(positionName);
+    map['abbreviation'] = Variable<String>(abbreviation);
     return map;
   }
 
@@ -3726,6 +3760,7 @@ class FormationPosition extends DataClass
       formationId: Value(formationId),
       index: Value(index),
       positionName: Value(positionName),
+      abbreviation: Value(abbreviation),
     );
   }
 
@@ -3739,6 +3774,7 @@ class FormationPosition extends DataClass
       formationId: serializer.fromJson<int>(json['formationId']),
       index: serializer.fromJson<int>(json['index']),
       positionName: serializer.fromJson<String>(json['positionName']),
+      abbreviation: serializer.fromJson<String>(json['abbreviation']),
     );
   }
   @override
@@ -3749,6 +3785,7 @@ class FormationPosition extends DataClass
       'formationId': serializer.toJson<int>(formationId),
       'index': serializer.toJson<int>(index),
       'positionName': serializer.toJson<String>(positionName),
+      'abbreviation': serializer.toJson<String>(abbreviation),
     };
   }
 
@@ -3757,11 +3794,13 @@ class FormationPosition extends DataClass
     int? formationId,
     int? index,
     String? positionName,
+    String? abbreviation,
   }) => FormationPosition(
     id: id ?? this.id,
     formationId: formationId ?? this.formationId,
     index: index ?? this.index,
     positionName: positionName ?? this.positionName,
+    abbreviation: abbreviation ?? this.abbreviation,
   );
   FormationPosition copyWithCompanion(FormationPositionsCompanion data) {
     return FormationPosition(
@@ -3773,6 +3812,9 @@ class FormationPosition extends DataClass
       positionName: data.positionName.present
           ? data.positionName.value
           : this.positionName,
+      abbreviation: data.abbreviation.present
+          ? data.abbreviation.value
+          : this.abbreviation,
     );
   }
 
@@ -3782,13 +3824,15 @@ class FormationPosition extends DataClass
           ..write('id: $id, ')
           ..write('formationId: $formationId, ')
           ..write('index: $index, ')
-          ..write('positionName: $positionName')
+          ..write('positionName: $positionName, ')
+          ..write('abbreviation: $abbreviation')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, formationId, index, positionName);
+  int get hashCode =>
+      Object.hash(id, formationId, index, positionName, abbreviation);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3796,7 +3840,8 @@ class FormationPosition extends DataClass
           other.id == this.id &&
           other.formationId == this.formationId &&
           other.index == this.index &&
-          other.positionName == this.positionName);
+          other.positionName == this.positionName &&
+          other.abbreviation == this.abbreviation);
 }
 
 class FormationPositionsCompanion extends UpdateCompanion<FormationPosition> {
@@ -3804,17 +3849,20 @@ class FormationPositionsCompanion extends UpdateCompanion<FormationPosition> {
   final Value<int> formationId;
   final Value<int> index;
   final Value<String> positionName;
+  final Value<String> abbreviation;
   const FormationPositionsCompanion({
     this.id = const Value.absent(),
     this.formationId = const Value.absent(),
     this.index = const Value.absent(),
     this.positionName = const Value.absent(),
+    this.abbreviation = const Value.absent(),
   });
   FormationPositionsCompanion.insert({
     this.id = const Value.absent(),
     required int formationId,
     required int index,
     required String positionName,
+    this.abbreviation = const Value.absent(),
   }) : formationId = Value(formationId),
        index = Value(index),
        positionName = Value(positionName);
@@ -3823,12 +3871,14 @@ class FormationPositionsCompanion extends UpdateCompanion<FormationPosition> {
     Expression<int>? formationId,
     Expression<int>? index,
     Expression<String>? positionName,
+    Expression<String>? abbreviation,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (formationId != null) 'formation_id': formationId,
       if (index != null) 'index': index,
       if (positionName != null) 'position_name': positionName,
+      if (abbreviation != null) 'abbreviation': abbreviation,
     });
   }
 
@@ -3837,12 +3887,14 @@ class FormationPositionsCompanion extends UpdateCompanion<FormationPosition> {
     Value<int>? formationId,
     Value<int>? index,
     Value<String>? positionName,
+    Value<String>? abbreviation,
   }) {
     return FormationPositionsCompanion(
       id: id ?? this.id,
       formationId: formationId ?? this.formationId,
       index: index ?? this.index,
       positionName: positionName ?? this.positionName,
+      abbreviation: abbreviation ?? this.abbreviation,
     );
   }
 
@@ -3861,6 +3913,9 @@ class FormationPositionsCompanion extends UpdateCompanion<FormationPosition> {
     if (positionName.present) {
       map['position_name'] = Variable<String>(positionName.value);
     }
+    if (abbreviation.present) {
+      map['abbreviation'] = Variable<String>(abbreviation.value);
+    }
     return map;
   }
 
@@ -3870,7 +3925,8 @@ class FormationPositionsCompanion extends UpdateCompanion<FormationPosition> {
           ..write('id: $id, ')
           ..write('formationId: $formationId, ')
           ..write('index: $index, ')
-          ..write('positionName: $positionName')
+          ..write('positionName: $positionName, ')
+          ..write('abbreviation: $abbreviation')
           ..write(')'))
         .toString();
   }
@@ -8362,6 +8418,7 @@ typedef $$FormationPositionsTableCreateCompanionBuilder =
       required int formationId,
       required int index,
       required String positionName,
+      Value<String> abbreviation,
     });
 typedef $$FormationPositionsTableUpdateCompanionBuilder =
     FormationPositionsCompanion Function({
@@ -8369,6 +8426,7 @@ typedef $$FormationPositionsTableUpdateCompanionBuilder =
       Value<int> formationId,
       Value<int> index,
       Value<String> positionName,
+      Value<String> abbreviation,
     });
 
 final class $$FormationPositionsTableReferences
@@ -8427,6 +8485,11 @@ class $$FormationPositionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get abbreviation => $composableBuilder(
+    column: $table.abbreviation,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$FormationsTableFilterComposer get formationId {
     final $$FormationsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -8475,6 +8538,11 @@ class $$FormationPositionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get abbreviation => $composableBuilder(
+    column: $table.abbreviation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$FormationsTableOrderingComposer get formationId {
     final $$FormationsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -8516,6 +8584,11 @@ class $$FormationPositionsTableAnnotationComposer
 
   GeneratedColumn<String> get positionName => $composableBuilder(
     column: $table.positionName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get abbreviation => $composableBuilder(
+    column: $table.abbreviation,
     builder: (column) => column,
   );
 
@@ -8580,11 +8653,13 @@ class $$FormationPositionsTableTableManager
                 Value<int> formationId = const Value.absent(),
                 Value<int> index = const Value.absent(),
                 Value<String> positionName = const Value.absent(),
+                Value<String> abbreviation = const Value.absent(),
               }) => FormationPositionsCompanion(
                 id: id,
                 formationId: formationId,
                 index: index,
                 positionName: positionName,
+                abbreviation: abbreviation,
               ),
           createCompanionCallback:
               ({
@@ -8592,11 +8667,13 @@ class $$FormationPositionsTableTableManager
                 required int formationId,
                 required int index,
                 required String positionName,
+                Value<String> abbreviation = const Value.absent(),
               }) => FormationPositionsCompanion.insert(
                 id: id,
                 formationId: formationId,
                 index: index,
                 positionName: positionName,
+                abbreviation: abbreviation,
               ),
           withReferenceMapper: (p0) => p0
               .map(

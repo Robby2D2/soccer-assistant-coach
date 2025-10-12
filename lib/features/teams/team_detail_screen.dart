@@ -84,6 +84,11 @@ class TeamDetailScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.home),
+            tooltip: 'Home',
+            onPressed: () => context.go('/'),
+          ),
+          IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () => context.push('/team/$id/edit'),
           ),

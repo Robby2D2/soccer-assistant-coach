@@ -28,6 +28,8 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
 
   // Formation positions - tracks all positions that should be available
   final List<String> _formationPositions = [];
+  // Map full position names to abbreviations for display
+  final Map<String, String> _positionAbbreviations = {};
 
   bool get _isRunning => _isRunningNotifier.value;
   set _isRunning(bool value) => _isRunningNotifier.value = value;
@@ -129,6 +131,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
   Future<void> _loadFormationPositions(Game game) async {
     final db = ref.read(dbProvider);
     _formationPositions.clear();
+    _positionAbbreviations.clear();
 
     // Get formation for this game
     int? formationId = game.formationId;
@@ -136,20 +139,38 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
 
     if (formationId != null) {
       final positions = await db.getFormationPositions(formationId);
-      _formationPositions.addAll(positions.map((p) => p.positionName));
+      for (final position in positions) {
+        _formationPositions.add(position.positionName);
+        _positionAbbreviations[position.positionName] = position.abbreviation;
+      }
     }
 
     // Fallback to default positions if no formation found
     if (_formationPositions.isEmpty) {
-      _formationPositions.addAll([
+      const defaultPositions = [
         'GOALIE',
         'RIGHT_DEFENSE',
         'LEFT_DEFENSE',
         'CENTER_FORWARD',
         'RIGHT_FORWARD',
         'LEFT_FORWARD',
-      ]);
+      ];
+      _formationPositions.addAll(defaultPositions);
+      // Add default abbreviations for fallback positions
+      _positionAbbreviations.addAll({
+        'GOALIE': 'GK',
+        'RIGHT_DEFENSE': 'RD',
+        'LEFT_DEFENSE': 'LD',
+        'CENTER_FORWARD': 'CF',
+        'RIGHT_FORWARD': 'RF',
+        'LEFT_FORWARD': 'LF',
+      });
     }
+  }
+
+  /// Get position abbreviation for display, fallback to full name if not found
+  String _getPositionAbbreviation(String positionName) {
+    return _positionAbbreviations[positionName] ?? positionName;
   }
 
   Future<void> _loadGameState() async {
@@ -209,6 +230,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
 
     // Try to load existing lineup for this game
     final existingLineup = await db.getTraditionalLineupFromGame(widget.gameId);
+
     if (existingLineup != null && existingLineup.isNotEmpty) {
       setState(() {
         _currentLineup.clear();
@@ -229,10 +251,12 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
       teamId,
       widget.gameId,
     );
+
     if (recentGame != null) {
       final previousLineup = await db.getTraditionalLineupFromGame(
         recentGame.id,
       );
+
       if (previousLineup != null && previousLineup.isNotEmpty) {
         // Verify all players are still available for this game
         final availablePlayers =
@@ -246,15 +270,18 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
             .map((gp) => gp.playerId)
             .toSet();
 
-        // Only use positions where players are still available
+        // Only use positions where players are still available AND positions match current formation
         final validLineup = <String, int>{};
         for (final entry in previousLineup.entries) {
-          if (availablePlayerIds.contains(entry.value)) {
+          if (availablePlayerIds.contains(entry.value) &&
+              _formationPositions.contains(entry.key)) {
             validLineup[entry.key] = entry.value;
           }
         }
 
-        if (validLineup.isNotEmpty) {
+        // Only use previous lineup if we have a reasonable number of matching positions
+        // (at least half of the formation positions should be filled)
+        if (validLineup.length >= (_formationPositions.length * 0.5).round()) {
           setState(() {
             _currentLineup.clear();
             _currentLineup.addAll(validLineup);
@@ -264,6 +291,11 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
                   _playingTimeThisGame[playerId] ?? 0;
             }
           });
+          // Save the lineup to database
+          await db.saveTraditionalLineup(
+            gameId: widget.gameId,
+            lineup: _currentLineup,
+          );
           return;
         }
       }
@@ -271,6 +303,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
 
     // Fallback: Generate random lineup based on game's formation
     final game = await db.getGame(widget.gameId);
+
     if (game != null) {
       // Use the game's selected formation, or fall back to most used formation
       var formationId = game.formationId;
@@ -281,6 +314,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
           gameId: widget.gameId,
           formationId: formationId,
         );
+
         if (randomLineup.isNotEmpty) {
           setState(() {
             _currentLineup.clear();
@@ -291,6 +325,11 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
                   _playingTimeThisGame[playerId] ?? 0;
             }
           });
+          // Save the generated lineup to database immediately
+          await db.saveTraditionalLineup(
+            gameId: widget.gameId,
+            lineup: _currentLineup,
+          );
         }
       }
     }
@@ -523,9 +562,17 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
                   if (!context.mounted) return;
                   context.push('/game/${widget.gameId}/end');
                   break;
+                case _TraditionalGameMenuAction.home:
+                  if (!context.mounted) return;
+                  context.go('/');
+                  break;
               }
             },
             itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: _TraditionalGameMenuAction.home,
+                child: Text('Home'),
+              ),
               PopupMenuItem(
                 value: _TraditionalGameMenuAction.edit,
                 child: Text('Edit game'),
@@ -698,6 +745,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
                           currentLineup: _currentLineup,
                           formationPositions: _formationPositions,
                           playingTimeThisGame: _playingTimeThisGame,
+                          getPositionAbbreviation: _getPositionAbbreviation,
                           onPlayerSubstitution:
                               (outPlayerId, inPlayerId, position) async {
                                 setState(() {
@@ -744,6 +792,7 @@ class _TraditionalLineupView extends StatelessWidget {
   final Map<int, int> playingTimeThisGame;
   final Function(int? outPlayerId, int? inPlayerId, String? position)
   onPlayerSubstitution;
+  final String Function(String) getPositionAbbreviation;
 
   const _TraditionalLineupView({
     required this.gameId,
@@ -753,6 +802,7 @@ class _TraditionalLineupView extends StatelessWidget {
     required this.formationPositions,
     required this.playingTimeThisGame,
     required this.onPlayerSubstitution,
+    required this.getPositionAbbreviation,
   });
 
   String _formatPlayingTime(int seconds) {
@@ -886,7 +936,9 @@ class _TraditionalLineupView extends StatelessWidget {
                                                           ),
                                                     ),
                                                     child: Text(
-                                                      position,
+                                                      getPositionAbbreviation(
+                                                        position,
+                                                      ),
                                                       style: Theme.of(context)
                                                           .textTheme
                                                           .labelSmall
@@ -996,7 +1048,9 @@ class _TraditionalLineupView extends StatelessWidget {
                                                           ),
                                                     ),
                                                     child: Text(
-                                                      position,
+                                                      getPositionAbbreviation(
+                                                        position,
+                                                      ),
                                                       style: Theme.of(context)
                                                           .textTheme
                                                           .labelSmall
@@ -1233,7 +1287,7 @@ class _TraditionalLineupView extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Substitute $position'),
+        title: Text('Substitute ${getPositionAbbreviation(position)}'),
         content: SizedBox(
           width: double.maxFinite,
           height: 400, // Set a maximum height for the dialog content
@@ -1263,7 +1317,7 @@ class _TraditionalLineupView extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          position,
+                          getPositionAbbreviation(position),
                           style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(
                                 color: Theme.of(
@@ -1322,240 +1376,14 @@ class _TraditionalLineupView extends StatelessWidget {
                   )
                 else
                   // Available players grid
-                  SizedBox(
-                    height: 200, // Fixed height for scrollable area
-                    child: GridView.builder(
-                      shrinkWrap: true,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio:
-                                2.5, // Increased height to fit content
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                          ),
-                      itemCount: availablePlayers.length,
-                      itemBuilder: (context, index) {
-                        final player = availablePlayers[index];
-                        return Card(
-                          margin: EdgeInsets.zero,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              onPlayerSubstitution(
-                                currentPlayer.id,
-                                player.id,
-                                position,
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(
-                                6,
-                              ), // Reduced padding
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 4,
-                                          vertical: 1,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.secondaryContainer,
-                                          borderRadius: BorderRadius.circular(
-                                            3,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          'SUB',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelSmall
-                                              ?.copyWith(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSecondaryContainer,
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 10,
-                                              ),
-                                        ),
-                                      ),
-                                      const Spacer(),
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.timer,
-                                            size: 12,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurfaceVariant,
-                                          ),
-                                          const SizedBox(width: 2),
-                                          Text(
-                                            _formatPlayingTime(
-                                              playingTimeThisGame[player.id] ??
-                                                  0,
-                                            ),
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .labelSmall
-                                                ?.copyWith(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 2), // Reduced spacing
-                                  Text(
-                                    '${player.firstName} ${player.lastName}',
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(fontWeight: FontWeight.w500),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              onPlayerSubstitution(currentPlayer.id, null, null);
-            },
-            child: const Text('Remove Only'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEmptyPositionDialog(BuildContext context, String position) {
-    // Get bench players for assignment
-    final activePlayerIds = currentLineup.values.toSet();
-    final availablePlayers = players
-        .where((p) => !activePlayerIds.contains(p.id))
-        .toList();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Assign player to $position'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Empty position display
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.outline.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outline.withValues(alpha: 0.3),
-                    style: BorderStyle.solid,
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outline.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        position,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Empty Position',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontStyle: FontStyle.italic,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                    Icon(
-                      Icons.add_circle_outline,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Select player to assign:'),
-              ),
-              const SizedBox(height: 8),
-              if (availablePlayers.isEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'No players available on bench.',
-                    style: TextStyle(fontStyle: FontStyle.italic),
-                    textAlign: TextAlign.center,
-                  ),
-                )
-              else
-                // Available players grid
-                SizedBox(
-                  height: 200, // Fixed height for scrollable area
-                  child: GridView.builder(
+                  GridView.builder(
                     shrinkWrap: true,
+                    physics:
+                        const NeverScrollableScrollPhysics(), // Let parent scroll
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
-                          childAspectRatio: 3.0,
+                          childAspectRatio: 3.2, // Increased for proper fit
                           crossAxisSpacing: 8,
                           mainAxisSpacing: 8,
                         ),
@@ -1568,10 +1396,16 @@ class _TraditionalLineupView extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                           onTap: () {
                             Navigator.of(context).pop();
-                            onPlayerSubstitution(null, player.id, position);
+                            onPlayerSubstitution(
+                              currentPlayer.id,
+                              player.id,
+                              position,
+                            );
                           },
                           child: Padding(
-                            padding: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.all(
+                              4,
+                            ), // Further reduced padding
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -1631,7 +1465,7 @@ class _TraditionalLineupView extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 2), // Reduced spacing
                                 Text(
                                   '${player.firstName} ${player.lastName}',
                                   style: Theme.of(context).textTheme.bodySmall
@@ -1646,8 +1480,243 @@ class _TraditionalLineupView extends StatelessWidget {
                       );
                     },
                   ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              onPlayerSubstitution(currentPlayer.id, null, null);
+            },
+            child: const Text('Remove Only'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEmptyPositionDialog(BuildContext context, String position) {
+    // Get bench players for assignment
+    final activePlayerIds = currentLineup.values.toSet();
+    final availablePlayers = players
+        .where((p) => !activePlayerIds.contains(p.id))
+        .toList();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Assign player to ${getPositionAbbreviation(position)}'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height:
+              MediaQuery.of(context).size.height *
+              0.5, // Max 50% of screen height
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Empty position display
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outline.withValues(alpha: 0.3),
+                      style: BorderStyle.solid,
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          getPositionAbbreviation(position),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Empty Position',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                fontStyle: FontStyle.italic,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.add_circle_outline,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ],
+                  ),
                 ),
-            ],
+                const SizedBox(height: 16),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Select player to assign:'),
+                ),
+                const SizedBox(height: 8),
+                if (availablePlayers.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'No players available on bench.',
+                      style: TextStyle(fontStyle: FontStyle.italic),
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                else
+                  // Available players grid - using shrinkWrap instead of fixed height
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics:
+                        const NeverScrollableScrollPhysics(), // Let parent scroll
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio:
+                              3.2, // Increased for more width and proper fit
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
+                    itemCount: availablePlayers.length,
+                    itemBuilder: (context, index) {
+                      final player = availablePlayers[index];
+                      return Card(
+                        margin: EdgeInsets.zero,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            onPlayerSubstitution(null, player.id, position);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(
+                              4,
+                            ), // Further reduced padding
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                        vertical: 1,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.secondaryContainer,
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                      child: Text(
+                                        'SUB',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSecondaryContainer,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 9,
+                                            ),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.timer,
+                                          size: 10,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          _formatPlayingTime(
+                                            playingTimeThisGame[player.id] ?? 0,
+                                          ),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall
+                                              ?.copyWith(
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                                fontSize: 9,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 1),
+                                Flexible(
+                                  child: Text(
+                                    '${player.firstName} ${player.lastName}',
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 11,
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -1817,7 +1886,9 @@ class _TraditionalLineupView extends StatelessWidget {
                                                     BorderRadius.circular(3),
                                               ),
                                               child: Text(
-                                                position,
+                                                getPositionAbbreviation(
+                                                  position,
+                                                ),
                                                 style: Theme.of(context)
                                                     .textTheme
                                                     .labelSmall
@@ -1936,7 +2007,7 @@ class _TraditionalLineupView extends StatelessWidget {
                                                   BorderRadius.circular(3),
                                             ),
                                             child: Text(
-                                              position,
+                                              getPositionAbbreviation(position),
                                               style: Theme.of(context)
                                                   .textTheme
                                                   .labelSmall
@@ -2268,4 +2339,5 @@ enum _TraditionalGameMenuAction {
   attendance,
   reset,
   endGame,
+  home,
 }

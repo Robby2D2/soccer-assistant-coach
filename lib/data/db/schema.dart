@@ -102,4 +102,5 @@ class FormationPositions extends Table {
   IntColumn get formationId => integer().references(Formations, #id)();
   IntColumn get index => integer()();
   TextColumn get positionName => text()();
+  TextColumn get abbreviation => text().withDefault(const Constant(''))();
 }

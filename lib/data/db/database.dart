@@ -30,7 +30,7 @@ class AppDb extends _$AppDb {
   AppDb()
     : super(SqfliteQueryExecutor.inDatabaseFolder(path: 'soccer_manager.db'));
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -90,6 +90,16 @@ class AppDb extends _$AppDb {
         await m.addColumn(games, games.teamScore);
         await m.addColumn(games, games.opponentScore);
       }
+      if (from < 14) {
+        // Add abbreviation column to formation positions with a default value
+        await customStatement(
+          'ALTER TABLE formation_positions ADD COLUMN abbreviation TEXT NOT NULL DEFAULT ""',
+        );
+        // Populate existing positions with their position names as abbreviations
+        await customStatement(
+          'UPDATE formation_positions SET abbreviation = position_name',
+        );
+      }
     },
   );
 
@@ -116,8 +126,7 @@ class AppDb extends _$AppDb {
 extension TeamQueries on AppDb {
   Future<int> addTeam(TeamsCompanion t) async {
     final teamId = await into(teams).insert(t);
-    // Create a default formation to help users get started
-    await createDefaultFormation(teamId);
+    // No longer auto-create formations - let users choose templates instead
     return teamId;
   }
 
@@ -204,6 +213,7 @@ extension FormationQueries on AppDb {
     required String name,
     required int playerCount,
     required List<String> positions,
+    List<String>? abbreviations,
   }) async {
     final formationId = await into(formations).insert(
       FormationsCompanion.insert(
@@ -213,11 +223,15 @@ extension FormationQueries on AppDb {
       ),
     );
     for (var i = 0; i < positions.length; i++) {
+      final abbreviation = abbreviations != null && i < abbreviations.length
+          ? abbreviations[i]
+          : positions[i]; // Default to position name if no abbreviation provided
       await into(formationPositions).insert(
         FormationPositionsCompanion.insert(
           formationId: formationId,
           index: i,
           positionName: positions[i],
+          abbreviation: Value(abbreviation),
         ),
       );
     }
@@ -229,6 +243,7 @@ extension FormationQueries on AppDb {
     required String name,
     required int playerCount,
     required List<String> positions,
+    List<String>? abbreviations,
   }) async {
     await transaction(() async {
       await (update(formations)..where((f) => f.id.equals(id))).write(
@@ -238,11 +253,15 @@ extension FormationQueries on AppDb {
         formationPositions,
       )..where((fp) => fp.formationId.equals(id))).go();
       for (var i = 0; i < positions.length; i++) {
+        final abbreviation = abbreviations != null && i < abbreviations.length
+            ? abbreviations[i]
+            : positions[i]; // Default to position name if no abbreviation provided
         await into(formationPositions).insert(
           FormationPositionsCompanion.insert(
             formationId: id,
             index: i,
             positionName: positions[i],
+            abbreviation: Value(abbreviation),
           ),
         );
       }
@@ -294,23 +313,133 @@ extension FormationQueries on AppDb {
     }
     return bestId;
   }
+}
 
-  /// Creates a default "2-2-1" formation for new teams to help users get started
-  Future<int> createDefaultFormation(int teamId) async {
-    return createFormation(
-      teamId: teamId,
-      name: '2-2-1',
-      playerCount: 6,
-      positions: [
-        'Goalie',
-        'Left Defense',
-        'Right Defense',
-        'Left Midfield',
-        'Right Midfield',
-        'Striker',
-      ],
-    );
+/// Provider for formation templates
+class FormationTemplates {
+  /// Gets available formation templates that users can choose from
+  static List<FormationTemplate> getTemplates() {
+    return [
+      const FormationTemplate(
+        name: '4-4-2',
+        playerCount: 11,
+        positions: [
+          'Goalkeeper',
+          'Right Back',
+          'Right Center Back',
+          'Left Center Back',
+          'Left Back',
+          'Right Midfielder',
+          'Right Central Midfielder',
+          'Left Central Midfielder',
+          'Left Midfielder',
+          'Right Striker',
+          'Left Striker',
+        ],
+        abbreviations: [
+          'GK',
+          'RB',
+          'RCB',
+          'LCB',
+          'LB',
+          'RM',
+          'RCM',
+          'LCM',
+          'LM',
+          'RST',
+          'LST',
+        ],
+      ),
+      const FormationTemplate(
+        name: '4-3-3',
+        playerCount: 11,
+        positions: [
+          'Goalkeeper',
+          'Right Back',
+          'Right Center Back',
+          'Left Center Back',
+          'Left Back',
+          'Central Defensive Midfielder',
+          'Right Central Midfielder',
+          'Left Central Midfielder',
+          'Right Winger',
+          'Center Forward',
+          'Left Winger',
+        ],
+        abbreviations: [
+          'GK',
+          'RB',
+          'RCB',
+          'LCB',
+          'LB',
+          'CDM',
+          'RCM',
+          'LCM',
+          'RW',
+          'CF',
+          'LW',
+        ],
+      ),
+      const FormationTemplate(
+        name: '2-2-1',
+        playerCount: 6,
+        positions: [
+          'Goalkeeper',
+          'Left Back',
+          'Right Back',
+          'Left Midfielder',
+          'Right Midfielder',
+          'Striker',
+        ],
+        abbreviations: ['GK', 'LB', 'RB', 'LM', 'RM', 'ST'],
+      ),
+      const FormationTemplate(
+        name: '4-2-3-1',
+        playerCount: 11,
+        positions: [
+          'Goalkeeper',
+          'Right Back',
+          'Right Center Back',
+          'Left Center Back',
+          'Left Back',
+          'Right Central Defensive Midfielder',
+          'Left Central Defensive Midfielder',
+          'Right Attacking Midfielder',
+          'Central Attacking Midfielder',
+          'Left Attacking Midfielder',
+          'Striker',
+        ],
+        abbreviations: [
+          'GK',
+          'RB',
+          'RCB',
+          'LCB',
+          'LB',
+          'RCDM',
+          'LCDM',
+          'RAM',
+          'CAM',
+          'LAM',
+          'ST',
+        ],
+      ),
+    ];
   }
+}
+
+/// A template for creating formations
+class FormationTemplate {
+  final String name;
+  final int playerCount;
+  final List<String> positions;
+  final List<String> abbreviations;
+
+  const FormationTemplate({
+    required this.name,
+    required this.playerCount,
+    required this.positions,
+    required this.abbreviations,
+  });
 }
 
 extension PlayerQueries on AppDb {
@@ -542,21 +671,46 @@ extension GameQueries on AppDb {
     if (positions.isEmpty) return lineup;
 
     // Get available players for this game
-    final availablePlayers =
-        await (select(gamePlayers)..where(
-              (gp) => gp.gameId.equals(gameId) & gp.isPresent.equals(true),
-            ))
-            .get();
+    // First get explicit attendance records
+    final attendanceRecords = await (select(
+      gamePlayers,
+    )..where((gp) => gp.gameId.equals(gameId))).get();
 
-    if (availablePlayers.isEmpty) return lineup;
+    // Get all team players for the game's team
+    final game = await getGame(gameId);
+    if (game == null) return lineup;
+
+    final teamPlayers = await (select(
+      players,
+    )..where((p) => p.teamId.equals(game.teamId))).get();
+
+    // Determine which players are present
+    final availablePlayerIds = <int>[];
+    for (final player in teamPlayers) {
+      // Check if there's an explicit attendance record
+      final attendanceRecord = attendanceRecords
+          .where((ar) => ar.playerId == player.id)
+          .firstOrNull;
+
+      final isPresent = attendanceRecord?.isPresent ?? player.isPresent;
+
+      if (isPresent) {
+        availablePlayerIds.add(player.id);
+      }
+    }
+
+    if (availablePlayerIds.isEmpty) return lineup;
 
     // Shuffle players for random assignment
-    final playerIds = availablePlayers.map((gp) => gp.playerId).toList();
-    playerIds.shuffle();
+    availablePlayerIds.shuffle();
 
     // Assign players to positions
-    for (int i = 0; i < positions.length && i < playerIds.length; i++) {
-      lineup[positions[i].positionName] = playerIds[i];
+    for (
+      int i = 0;
+      i < positions.length && i < availablePlayerIds.length;
+      i++
+    ) {
+      lineup[positions[i].positionName] = availablePlayerIds[i];
     }
 
     return lineup;

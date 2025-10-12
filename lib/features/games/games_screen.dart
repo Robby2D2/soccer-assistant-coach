@@ -129,6 +129,11 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.home),
+            tooltip: 'Home',
+            onPressed: () => context.go('/'),
+          ),
+          IconButton(
             tooltip: _showArchived ? 'Hide archived' : 'Show archived',
             icon: Icon(_showArchived ? Icons.inventory_2 : Icons.archive),
             onPressed: () => setState(() => _showArchived = !_showArchived),
