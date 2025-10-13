@@ -408,7 +408,7 @@ class _LiveGameTimerState extends ConsumerState<_LiveGameTimer> {
     final timeString =
         '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
 
-    return isOvertime ? '+$timeString' : timeString;
+    return isOvertime ? '-$timeString' : timeString;
   }
 
   @override
