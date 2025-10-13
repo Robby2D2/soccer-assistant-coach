@@ -28,8 +28,8 @@ class LineupBuilderScreen extends ConsumerWidget {
               return _Formations(
                 present: present,
                 onApply: (positions) async {
-                  print('\n=== LINEUP BUILDER USING FAIR ASSIGNMENT ===');
-                  print(
+                  debugPrint('\n=== LINEUP BUILDER USING FAIR ASSIGNMENT ===');
+                  debugPrint(
                     'Creating initial shift using createAutoShift algorithm',
                   );
 
@@ -41,8 +41,10 @@ class LineupBuilderScreen extends ConsumerWidget {
                     activate: true,
                   );
 
-                  print('Initial shift created with fair assignment algorithm');
-                  print('=== LINEUP BUILDER COMPLETE ===\n');
+                  debugPrint(
+                    'Initial shift created with fair assignment algorithm',
+                  );
+                  debugPrint('=== LINEUP BUILDER COMPLETE ===\n');
                   if (context.mounted) Navigator.pop(context);
                 },
               );

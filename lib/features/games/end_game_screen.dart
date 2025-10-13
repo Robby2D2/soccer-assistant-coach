@@ -74,7 +74,7 @@ class _EndGameScreenState extends ConsumerState<EndGameScreen> {
         isGameActive: false,
       );
 
-      if (!context.mounted) return;
+      if (!mounted) return;
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
@@ -108,15 +108,19 @@ class _EndGameScreenState extends ConsumerState<EndGameScreen> {
       );
 
       // Navigate back to the game or games list
-      context.go('/game/${widget.gameId}');
+      if (mounted) {
+        context.go('/game/${widget.gameId}');
+      }
     } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error completing game: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (!mounted) return;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error completing game: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -274,7 +278,7 @@ class _EndGameScreenState extends ConsumerState<EndGameScreen> {
                 color: _getResultColor(
                   teamScore,
                   opponentScore,
-                ).withOpacity(0.1),
+                ).withValues(alpha: 0.1),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(

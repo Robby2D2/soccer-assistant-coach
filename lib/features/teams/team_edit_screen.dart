@@ -65,23 +65,31 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 8),
-                    RadioListTile<String>(
+                    ListTile(
+                      leading: Radio<String>(
+                        value: 'shift',
+                        groupValue: _teamMode,
+                        onChanged: (value) =>
+                            setState(() => _teamMode = value!),
+                      ),
                       title: const Text('Shift Mode'),
                       subtitle: const Text(
                         'Timed shifts with automatic rotations',
                       ),
-                      value: 'shift',
-                      groupValue: _teamMode,
-                      onChanged: (value) => setState(() => _teamMode = value!),
+                      onTap: () => setState(() => _teamMode = 'shift'),
                     ),
-                    RadioListTile<String>(
+                    ListTile(
+                      leading: Radio<String>(
+                        value: 'traditional',
+                        groupValue: _teamMode,
+                        onChanged: (value) =>
+                            setState(() => _teamMode = value!),
+                      ),
                       title: const Text('Traditional Mode'),
                       subtitle: const Text(
                         'Manual substitutions with playing time tracking',
                       ),
-                      value: 'traditional',
-                      groupValue: _teamMode,
-                      onChanged: (value) => setState(() => _teamMode = value!),
+                      onTap: () => setState(() => _teamMode = 'traditional'),
                     ),
                   ],
                 ),

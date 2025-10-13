@@ -86,22 +86,28 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
 
               // Team Mode Selection
               Text('Team Mode', style: Theme.of(context).textTheme.titleSmall),
-              RadioListTile<String>(
+              ListTile(
+                leading: Radio<String>(
+                  value: 'shift',
+                  groupValue: teamMode,
+                  onChanged: (value) => setState(() => teamMode = value!),
+                ),
                 title: const Text('Shift Mode'),
                 subtitle: const Text('Timed shifts with automatic rotations'),
-                value: 'shift',
-                groupValue: teamMode,
-                onChanged: (value) => setState(() => teamMode = value!),
+                onTap: () => setState(() => teamMode = 'shift'),
                 dense: true,
               ),
-              RadioListTile<String>(
+              ListTile(
+                leading: Radio<String>(
+                  value: 'traditional',
+                  groupValue: teamMode,
+                  onChanged: (value) => setState(() => teamMode = value!),
+                ),
                 title: const Text('Traditional Mode'),
                 subtitle: const Text(
                   'Manual substitutions with playing time tracking',
                 ),
-                value: 'traditional',
-                groupValue: teamMode,
-                onChanged: (value) => setState(() => teamMode = value!),
+                onTap: () => setState(() => teamMode = 'traditional'),
                 dense: true,
               ),
               const SizedBox(height: 8),
@@ -230,9 +236,8 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
                               color: archived
-                                  ? Theme.of(
-                                      context,
-                                    ).colorScheme.outline.withOpacity(0.12)
+                                  ? Theme.of(context).colorScheme.outline
+                                        .withValues(alpha: 0.12)
                                   : Theme.of(
                                       context,
                                     ).colorScheme.primaryContainer,

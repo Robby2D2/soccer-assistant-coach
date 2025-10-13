@@ -81,7 +81,7 @@ class HomeScreen extends ConsumerWidget {
                           border: Border.all(
                             color: Theme.of(
                               context,
-                            ).colorScheme.outline.withOpacity(0.2),
+                            ).colorScheme.outline.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Row(
@@ -204,11 +204,15 @@ class HomeScreen extends ConsumerWidget {
                                                       ? Theme.of(context)
                                                             .colorScheme
                                                             .errorContainer
-                                                            .withOpacity(0.5)
+                                                            .withValues(
+                                                              alpha: 0.5,
+                                                            )
                                                       : Theme.of(context)
                                                             .colorScheme
                                                             .primaryContainer
-                                                            .withOpacity(0.5),
+                                                            .withValues(
+                                                              alpha: 0.5,
+                                                            ),
                                                   borderRadius:
                                                       BorderRadius.circular(12),
                                                 ),
@@ -233,17 +237,7 @@ class HomeScreen extends ConsumerWidget {
                                                 ),
                                               ),
                                               const SizedBox(width: 8),
-                                              Text(
-                                                'Half ${game.currentHalf}',
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .bodySmall
-                                                    ?.copyWith(
-                                                      color: Theme.of(context)
-                                                          .colorScheme
-                                                          .onSurfaceVariant,
-                                                    ),
-                                              ),
+                                              _HalfOrShiftDisplay(game: game),
                                             ],
                                           ),
                                         ],
@@ -404,8 +398,8 @@ class _LiveGameTimer extends ConsumerStatefulWidget {
 class _LiveGameTimerState extends ConsumerState<_LiveGameTimer> {
   late Stream<int> _timerStream;
 
-  String _formatTimeRemaining(int gameTimeSeconds, int halfDurationSeconds) {
-    final remaining = halfDurationSeconds - gameTimeSeconds;
+  String _formatTimeRemaining(int gameTimeSeconds, int durationSeconds) {
+    final remaining = durationSeconds - gameTimeSeconds;
     final isOvertime = remaining <= 0;
 
     final displaySeconds = isOvertime ? -remaining : remaining;
@@ -437,29 +431,23 @@ class _LiveGameTimerState extends ConsumerState<_LiveGameTimer> {
   Widget build(BuildContext context) {
     final db = ref.watch(dbProvider);
 
-    return FutureBuilder<int>(
-      future: db.getTeamHalfDurationSeconds(widget.teamId),
-      builder: (context, snapshot) {
-        final halfDuration = snapshot.data ?? 1200; // 20 min default
+    // Check if this is a shift-based game or traditional game
+    final isShiftBased = widget.game.currentShiftId != null;
 
-        return StreamBuilder<int>(
-          stream: _timerStream,
-          initialData: widget.game.gameTimeSeconds,
-          builder: (context, timeSnapshot) {
-            final currentGameTime =
-                timeSnapshot.data ?? widget.game.gameTimeSeconds;
-
+    if (isShiftBased) {
+      // For shift-based games, get shift duration and watch current shift time
+      return FutureBuilder<int>(
+        future: db.getTeamShiftLengthSeconds(widget.teamId),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
             return Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  _formatTimeRemaining(currentGameTime, halfDuration),
+                  '--:--',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     fontFamily: 'monospace',
-                    color: widget.game.isGameActive
-                        ? Theme.of(context).colorScheme.error
-                        : null,
                   ),
                 ),
                 Icon(
@@ -469,9 +457,143 @@ class _LiveGameTimerState extends ConsumerState<_LiveGameTimer> {
                 ),
               ],
             );
-          },
-        );
-      },
-    );
+          }
+
+          final shiftDuration = snapshot.data!;
+
+          return StreamBuilder<Shift?>(
+            stream: db
+                .getShift(widget.game.currentShiftId!)
+                .asStream()
+                .asyncMap((shift) => shift)
+                .asyncExpand(
+                  (_) => Stream.periodic(
+                    const Duration(seconds: 1),
+                  ).asyncMap((_) => db.getShift(widget.game.currentShiftId!)),
+                )
+                .distinct(
+                  (prev, next) => prev?.actualSeconds == next?.actualSeconds,
+                ),
+            builder: (context, shiftSnapshot) {
+              final currentShift = shiftSnapshot.data;
+              final currentShiftTime = currentShift?.actualSeconds ?? 0;
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _formatTimeRemaining(currentShiftTime, shiftDuration),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                      color: widget.game.isGameActive
+                          ? Theme.of(context).colorScheme.error
+                          : null,
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    } else {
+      // For traditional games, use half duration as before
+      return FutureBuilder<int>(
+        future: db.getTeamHalfDurationSeconds(widget.teamId),
+        builder: (context, snapshot) {
+          final halfDuration = snapshot.data ?? 1200; // 20 min default
+
+          return StreamBuilder<int>(
+            stream: _timerStream,
+            initialData: widget.game.gameTimeSeconds,
+            builder: (context, timeSnapshot) {
+              final currentGameTime =
+                  timeSnapshot.data ?? widget.game.gameTimeSeconds;
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _formatTimeRemaining(currentGameTime, halfDuration),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                      color: widget.game.isGameActive
+                          ? Theme.of(context).colorScheme.error
+                          : null,
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    }
+  }
+}
+
+class _HalfOrShiftDisplay extends ConsumerWidget {
+  final Game game;
+
+  const _HalfOrShiftDisplay({required this.game});
+
+  Future<int?> _getShiftNumber(AppDb db, int shiftId, int gameId) async {
+    try {
+      final shifts = await db.watchGameShifts(gameId).first;
+      if (shifts.isEmpty) return null;
+      final sorted = [...shifts]
+        ..sort((a, b) => a.startSeconds.compareTo(b.startSeconds));
+
+      for (int i = 0; i < sorted.length; i++) {
+        if (sorted[i].id == shiftId) {
+          return i + 1; // 1-based indexing
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(dbProvider);
+
+    // Check if this is a shift-based game
+    if (game.currentShiftId != null) {
+      // Show shift number for shift-based games
+      return FutureBuilder<int?>(
+        future: _getShiftNumber(db, game.currentShiftId!, game.id),
+        builder: (context, snapshot) {
+          final shiftNumber = snapshot.data;
+          return Text(
+            shiftNumber != null ? 'Shift #$shiftNumber' : 'Shift',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          );
+        },
+      );
+    } else {
+      // Show half number for traditional games
+      return Text(
+        'Half ${game.currentHalf}',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
   }
 }

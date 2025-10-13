@@ -126,12 +126,16 @@ class StopwatchCtrl extends StateNotifier<int> {
       }();
       if (shouldNotify) {
         _lastNotifiedSecond = state;
-        NotificationService.instance.showOrUpdateStopwatch(
-          gameId: gameId,
-          remainingSeconds: remaining,
-          matchupTitle: matchup,
-          shiftNumber: _shiftNumber,
-        );
+        // Only show stopwatch notification if this isn't a shift-based game
+        // Shift-based games handle notifications directly in the game screen
+        if (_shiftNumber == null) {
+          NotificationService.instance.showOrUpdateStopwatch(
+            gameId: gameId,
+            remainingSeconds: remaining,
+            matchupTitle: matchup,
+            shiftNumber: _shiftNumber,
+          );
+        }
       }
     });
   }

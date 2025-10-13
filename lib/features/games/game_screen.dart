@@ -67,6 +67,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     _lastTickSeconds = _secondsNotifier.value;
     _checkInitialRunningState();
     _loadFormationPositions(); // Load formation abbreviations
+
+    // Check if this is a new game with no shifts and reset stopwatch if needed
+    _checkAndResetForNewGame();
     _stopwatchSubscription = ref.listenManual<int>(
       stopwatchProvider(widget.gameId),
       (previous, next) {
@@ -85,6 +88,23 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final startedAtKey = 'timer_started_at_${widget.gameId}';
     final isRunning = prefs.getInt(startedAtKey) != null;
     _isRunning = isRunning;
+  }
+
+  Future<void> _checkAndResetForNewGame() async {
+    final db = ref.read(dbProvider);
+    final shifts = await db.watchGameShifts(widget.gameId).first;
+
+    // If the game has no shifts yet, reset the stopwatch to start fresh
+    if (shifts.isEmpty && !_isRunning) {
+      final stopwatchCtrl = ref.read(stopwatchProvider(widget.gameId).notifier);
+      await stopwatchCtrl.reset();
+
+      // Update the seconds notifier to 0
+      if (mounted) {
+        _secondsNotifier.value = 0;
+        _lastTickSeconds = 0;
+      }
+    }
   }
 
   Future<void> _loadFormationPositions() async {
@@ -147,6 +167,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     _secondsNotifier.dispose();
     _isRunningNotifier.dispose();
     _alertActiveNotifier.dispose();
+    // Clean up shift countdown notifications when leaving the game screen
+    NotificationService.instance.cancelShiftCountdown(widget.gameId);
     super.dispose();
   }
 
@@ -224,11 +246,35 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       if (delta > 0) {
         await db.incrementShiftDuration(_currentShiftId!, delta);
       }
+
+      // Update shift countdown notification
+      final game = await db.getGame(widget.gameId);
+      if (game != null) {
+        final team = await db.getTeam(game.teamId);
+        final teamName = team?.name ?? 'Team';
+        final opponent = game.opponent ?? '';
+        final matchupTitle = opponent.isEmpty
+            ? teamName
+            : '$teamName vs $opponent';
+        final shiftNumber = await _shiftNumberFor(db, _currentShiftId!);
+
+        await NotificationService.instance.showOrUpdateShiftCountdown(
+          gameId: widget.gameId,
+          currentSeconds: seconds,
+          shiftLengthSeconds: _shiftLengthSeconds,
+          matchupTitle: matchupTitle,
+          shiftNumber: shiftNumber,
+        );
+      }
+
       // Alert once when countdown reaches zero
       if (!_alertedThisShift && seconds >= _shiftLengthSeconds) {
         _alertedThisShift = true;
         // Trigger enhanced shift change alert with audio and strong haptic feedback
-        AlertService.instance.triggerShiftChangeAlert(durationSeconds: 60);
+        AlertService.instance.triggerShiftChangeAlert(
+          gameId: widget.gameId,
+          durationSeconds: 60,
+        );
         _alertActiveNotifier.value = true;
 
         // Start monitoring alert status
@@ -344,6 +390,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                         widget.gameId,
                       );
                       await NotificationService.instance.cancelShiftEnd(
+                        widget.gameId,
+                      );
+                      await NotificationService.instance.cancelShiftCountdown(
                         widget.gameId,
                       );
                       break;
@@ -529,8 +578,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                               child: ValueListenableBuilder<int>(
                                 valueListenable: _secondsNotifier,
                                 builder: (context, seconds, _) {
+                                  // For shift-based timing, use the shift's actual seconds
+                                  // instead of the stopwatch elapsed time to avoid issues
+                                  // with stale stopwatch state
+                                  final shiftSeconds = _currentShiftId != null
+                                      ? seconds
+                                      : 0;
                                   final remaining =
-                                      _shiftLengthSeconds - seconds;
+                                      _shiftLengthSeconds - shiftSeconds;
                                   final over = remaining <= 0;
                                   final flashOn =
                                       over && ((-remaining) % 2 == 0);
@@ -718,6 +773,37 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                             _alertedThisShift =
                                                 startFromSeconds >=
                                                 _shiftLengthSeconds;
+
+                                            // Start shift countdown notification
+                                            final gameForNotif = await db
+                                                .getGame(widget.gameId);
+                                            if (gameForNotif != null) {
+                                              final team = await db.getTeam(
+                                                gameForNotif.teamId,
+                                              );
+                                              final teamName =
+                                                  team?.name ?? 'Team';
+                                              final opponent =
+                                                  gameForNotif.opponent ?? '';
+                                              final matchupTitle =
+                                                  opponent.isEmpty
+                                                  ? teamName
+                                                  : '$teamName vs $opponent';
+                                              final shiftNumber =
+                                                  await _shiftNumberFor(
+                                                    db,
+                                                    shiftId,
+                                                  );
+
+                                              await NotificationService.instance
+                                                  .startShiftCountdown(
+                                                    gameId: widget.gameId,
+                                                    shiftLengthSeconds:
+                                                        _shiftLengthSeconds,
+                                                    matchupTitle: matchupTitle,
+                                                    shiftNumber: shiftNumber,
+                                                  );
+                                            }
                                             final remaining =
                                                 _shiftLengthSeconds -
                                                 _secondsNotifier.value;
@@ -784,6 +870,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                                 .pause();
                                             await NotificationService.instance
                                                 .cancelShiftEnd(widget.gameId);
+                                            await NotificationService.instance
+                                                .cancelShiftCountdown(
+                                                  widget.gameId,
+                                                );
                                             // Update running state without setState to avoid scroll jump
                                             _isRunning = false;
                                           },
@@ -953,6 +1043,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         _creatingInitialShift = false;
         return;
       }
+
+      // Reset the stopwatch for a fresh start when creating the initial shift
+      final stopwatchCtrl = ref.read(stopwatchProvider(widget.gameId).notifier);
+      await stopwatchCtrl.reset();
+
+      // Update the seconds notifier to 0 to reflect the reset
+      _secondsNotifier.value = 0;
+      _lastTickSeconds = 0;
+
       // Fallback to default positions only when no initial formation was applied.
       final newShiftId = await db.createAutoShift(
         gameId: widget.gameId,
@@ -1022,6 +1121,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     if (_isRunning) {
       await ref.read(stopwatchProvider(widget.gameId).notifier).pause();
       await NotificationService.instance.cancelShiftEnd(widget.gameId);
+      await NotificationService.instance.cancelShiftCountdown(widget.gameId);
       _isRunning = false;
     }
 

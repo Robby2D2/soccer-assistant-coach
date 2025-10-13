@@ -117,7 +117,7 @@ class TeamDetailScreen extends ConsumerWidget {
                         Theme.of(context).colorScheme.primaryContainer,
                         Theme.of(
                           context,
-                        ).colorScheme.primaryContainer.withOpacity(0.7),
+                        ).colorScheme.primaryContainer.withValues(alpha: 0.7),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -132,7 +132,7 @@ class TeamDetailScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(16),
                           color: Theme.of(
                             context,
-                          ).colorScheme.primary.withOpacity(0.2),
+                          ).colorScheme.primary.withValues(alpha: 0.2),
                         ),
                         child: Icon(
                           Icons.sports_soccer,
@@ -165,7 +165,7 @@ class TeamDetailScreen extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(12),
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.primary.withOpacity(0.2),
+                                ).colorScheme.primary.withValues(alpha: 0.2),
                               ),
                               child: Text(
                                 '${team.teamMode == 'traditional' ? 'Traditional' : 'Shift'} Mode',

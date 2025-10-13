@@ -11,7 +11,11 @@ class AlertService {
 
   /// Triggers a shift change alert with audio and haptic feedback
   /// Continues to alert for [durationSeconds] until acknowledged
-  Future<void> triggerShiftChangeAlert({int durationSeconds = 60}) async {
+  /// Now also dismisses the shift alarm notification when acknowledged
+  Future<void> triggerShiftChangeAlert({
+    required int gameId,
+    int durationSeconds = 60,
+  }) async {
     if (_isAlerting) {
       return; // Don't start another alert if one is already active
     }
@@ -22,7 +26,7 @@ class AlertService {
     await _startAlertLoop(durationSeconds);
   }
 
-  /// Stops any active shift change alert
+  /// Stops any active shift change alert and dismisses notification
   Future<void> acknowledgeAlert() async {
     _isAlerting = false;
     _alertTimer?.cancel();
