@@ -9,6 +9,7 @@ import '../../core/positions.dart';
 import '../../data/services/stopwatch_service.dart';
 import '../../data/services/notification_service.dart';
 import '../../data/services/alert_service.dart';
+import '../../widgets/player_panel.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   final int gameId;
@@ -34,6 +35,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   late final ValueNotifier<bool> _alertActiveNotifier;
   final GlobalKey<_ShiftsListState> _shiftsListKey =
       GlobalKey<_ShiftsListState>();
+
+  // Formation position abbreviations mapping
+  final Map<String, String> _positionAbbreviations = <String, String>{};
+  bool _formationDataLoaded = false;
 
   // Compute shift number helper to avoid duplicating query/sort logic
   Future<int?> _shiftNumberFor(AppDb db, int shiftId) async {
@@ -61,6 +66,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     _alertActiveNotifier = ValueNotifier<bool>(false);
     _lastTickSeconds = _secondsNotifier.value;
     _checkInitialRunningState();
+    _loadFormationPositions(); // Load formation abbreviations
     _stopwatchSubscription = ref.listenManual<int>(
       stopwatchProvider(widget.gameId),
       (previous, next) {
@@ -79,6 +85,60 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final startedAtKey = 'timer_started_at_${widget.gameId}';
     final isRunning = prefs.getInt(startedAtKey) != null;
     _isRunning = isRunning;
+  }
+
+  Future<void> _loadFormationPositions() async {
+    if (_formationDataLoaded) return;
+
+    final db = ref.read(dbProvider);
+    _positionAbbreviations.clear();
+
+    try {
+      // Get the game to find its formation
+      final game = await db.getGame(widget.gameId);
+      if (game == null) return;
+
+      // Get formation for this game
+      int? formationId = game.formationId;
+      formationId ??= await db.mostUsedFormationIdForTeam(game.teamId);
+
+      if (formationId != null) {
+        final positions = await db.getFormationPositions(formationId);
+        for (final position in positions) {
+          _positionAbbreviations[position.positionName] = position.abbreviation;
+        }
+      }
+
+      // Fallback to default abbreviations if no formation found
+      if (_positionAbbreviations.isEmpty) {
+        _positionAbbreviations.addAll({
+          'GOALIE': 'GK',
+          'RIGHT_DEFENSE': 'RD',
+          'LEFT_DEFENSE': 'LD',
+          'CENTER_FORWARD': 'CF',
+          'RIGHT_FORWARD': 'RF',
+          'LEFT_FORWARD': 'LF',
+        });
+      }
+
+      _formationDataLoaded = true;
+    } catch (e) {
+      // Fallback to default abbreviations on error
+      _positionAbbreviations.addAll({
+        'GOALIE': 'GK',
+        'RIGHT_DEFENSE': 'RD',
+        'LEFT_DEFENSE': 'LD',
+        'CENTER_FORWARD': 'CF',
+        'RIGHT_FORWARD': 'RF',
+        'LEFT_FORWARD': 'LF',
+      });
+      _formationDataLoaded = true;
+    }
+  }
+
+  /// Get position abbreviation for display, fallback to full name if not found
+  String _getPositionAbbreviation(String positionName) {
+    return _positionAbbreviations[positionName] ?? positionName;
   }
 
   @override
@@ -233,84 +293,104 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           },
         ),
         actions: [
-          PopupMenuButton<_GameMenuAction>(
-            onSelected: (value) async {
-              switch (value) {
-                case _GameMenuAction.edit:
-                  if (!context.mounted) return;
-                  context.push('/game/${widget.gameId}/edit');
-                  break;
-                case _GameMenuAction.lineup:
-                  if (!context.mounted) return;
-                  context.push('/game/${widget.gameId}/formation');
-                  break;
-                case _GameMenuAction.metricsView:
-                  if (!context.mounted) return;
-                  context.push('/game/${widget.gameId}/metrics');
-                  break;
-                case _GameMenuAction.metricsInput:
-                  if (!context.mounted) return;
-                  context.push('/game/${widget.gameId}/metrics/input');
-                  break;
-                case _GameMenuAction.attendance:
-                  if (!context.mounted) return;
-                  context.push('/game/${widget.gameId}/attendance');
-                  break;
-                case _GameMenuAction.reset:
-                  // Update local state with setState to ensure UI updates for reset
-                  setState(() {
-                    _isRunning = false;
-                    _currentShiftId = null;
-                    _lastTickSeconds = 0;
-                    _currentShiftStartSeconds = 0;
-                  });
-                  final sw = ref.read(
-                    stopwatchProvider(widget.gameId).notifier,
-                  );
-                  await sw.reset();
-                  await NotificationService.instance.cancelStopwatch(
-                    widget.gameId,
-                  );
-                  await NotificationService.instance.cancelShiftEnd(
-                    widget.gameId,
-                  );
-                  break;
-                case _GameMenuAction.endGame:
-                  if (!context.mounted) return;
-                  context.push('/game/${widget.gameId}/end');
-                  break;
-              }
+          FutureBuilder<Game?>(
+            future: db.getGame(widget.gameId),
+            builder: (context, snap) {
+              final game = snap.data;
+              final isGameEnded =
+                  game?.gameStatus == 'completed' ||
+                  game?.gameStatus == 'cancelled';
+
+              return PopupMenuButton<_GameMenuAction>(
+                onSelected: (value) async {
+                  switch (value) {
+                    case _GameMenuAction.home:
+                      if (!context.mounted) return;
+                      context.go('/');
+                      break;
+                    case _GameMenuAction.edit:
+                      if (!context.mounted) return;
+                      context.push('/game/${widget.gameId}/edit');
+                      break;
+                    case _GameMenuAction.lineup:
+                      if (!context.mounted) return;
+                      context.push('/game/${widget.gameId}/formation');
+                      break;
+                    case _GameMenuAction.metricsView:
+                      if (!context.mounted) return;
+                      context.push('/game/${widget.gameId}/metrics');
+                      break;
+                    case _GameMenuAction.metricsInput:
+                      if (!context.mounted) return;
+                      context.push('/game/${widget.gameId}/metrics/input');
+                      break;
+                    case _GameMenuAction.attendance:
+                      if (!context.mounted) return;
+                      context.push('/game/${widget.gameId}/attendance');
+                      break;
+                    case _GameMenuAction.reset:
+                      // Update local state with setState to ensure UI updates for reset
+                      setState(() {
+                        _isRunning = false;
+                        _currentShiftId = null;
+                        _lastTickSeconds = 0;
+                        _currentShiftStartSeconds = 0;
+                      });
+                      final sw = ref.read(
+                        stopwatchProvider(widget.gameId).notifier,
+                      );
+                      await sw.reset();
+                      await NotificationService.instance.cancelStopwatch(
+                        widget.gameId,
+                      );
+                      await NotificationService.instance.cancelShiftEnd(
+                        widget.gameId,
+                      );
+                      break;
+                    case _GameMenuAction.endGame:
+                      if (!context.mounted) return;
+                      context.push('/game/${widget.gameId}/end');
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: _GameMenuAction.home,
+                    child: Text('Home'),
+                  ),
+                  const PopupMenuItem(
+                    value: _GameMenuAction.edit,
+                    child: Text('Edit game'),
+                  ),
+                  const PopupMenuItem(
+                    value: _GameMenuAction.lineup,
+                    child: Text('Formation'),
+                  ),
+                  const PopupMenuItem(
+                    value: _GameMenuAction.metricsView,
+                    child: Text('View Metrics'),
+                  ),
+                  const PopupMenuItem(
+                    value: _GameMenuAction.metricsInput,
+                    child: Text('Input Metrics'),
+                  ),
+                  const PopupMenuItem(
+                    value: _GameMenuAction.attendance,
+                    child: Text('Attendance'),
+                  ),
+                  const PopupMenuItem(
+                    value: _GameMenuAction.reset,
+                    child: Text('Reset stopwatch'),
+                  ),
+                  // Only show "End Game" if the game is not already ended
+                  if (!isGameEnded)
+                    const PopupMenuItem(
+                      value: _GameMenuAction.endGame,
+                      child: Text('End Game'),
+                    ),
+                ],
+              );
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: _GameMenuAction.edit,
-                child: Text('Edit game'),
-              ),
-              PopupMenuItem(
-                value: _GameMenuAction.lineup,
-                child: Text('Formation'),
-              ),
-              PopupMenuItem(
-                value: _GameMenuAction.metricsView,
-                child: Text('View Metrics'),
-              ),
-              PopupMenuItem(
-                value: _GameMenuAction.metricsInput,
-                child: Text('Input Metrics'),
-              ),
-              PopupMenuItem(
-                value: _GameMenuAction.attendance,
-                child: Text('Attendance'),
-              ),
-              PopupMenuItem(
-                value: _GameMenuAction.reset,
-                child: Text('Reset stopwatch'),
-              ),
-              PopupMenuItem(
-                value: _GameMenuAction.endGame,
-                child: Text('End Game'),
-              ),
-            ],
           ),
         ],
       ),
@@ -527,6 +607,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                             final int shiftId;
                                             final currentId =
                                                 game?.currentShiftId;
+                                            final bool isNewShift =
+                                                currentId == null;
+
                                             if (currentId != null) {
                                               shiftId = currentId;
                                             } else {
@@ -596,15 +679,44 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                                 shiftNumber: shiftNumber,
                                               );
                                             }
+
+                                            // Get the shift's current time
+                                            final shiftData = await db.getShift(
+                                              shiftId,
+                                            );
+                                            final startFromSeconds =
+                                                shiftData?.actualSeconds ?? 0;
+
+                                            // Only reset stopwatch for new shifts, not when resuming
+                                            if (isNewShift) {
+                                              await stopwatchCtrl.reset();
+
+                                              // Set the stopwatch state to match the shift's current time
+                                              // This ensures the timer starts from the correct position
+                                              if (startFromSeconds > 0) {
+                                                // Manually set the state to the shift's current time
+                                                final prefs =
+                                                    await SharedPreferences.getInstance();
+                                                await prefs.setInt(
+                                                  'timer_elapsed_${widget.gameId}',
+                                                  startFromSeconds,
+                                                );
+                                                // Update the notifier to reflect the correct starting time
+                                                _secondsNotifier.value =
+                                                    startFromSeconds;
+                                                _lastTickSeconds =
+                                                    startFromSeconds;
+                                              }
+                                            }
+
                                             await stopwatchCtrl.start();
                                             if (!context.mounted) return;
                                             // Update local state - StreamBuilder will handle most updates
                                             _currentShiftId = shiftId;
                                             _isRunning = true;
-                                            _lastTickSeconds =
-                                                _secondsNotifier.value;
+                                            _lastTickSeconds = startFromSeconds;
                                             _alertedThisShift =
-                                                _secondsNotifier.value >=
+                                                startFromSeconds >=
                                                 _shiftLengthSeconds;
                                             final remaining =
                                                 _shiftLengthSeconds -
@@ -795,6 +907,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     ),
                                 onMakeShiftCurrent: (shift) =>
                                     _handleMakeShiftCurrent(db, shift),
+                                getPositionAbbreviation:
+                                    _getPositionAbbreviation,
                               ),
                             ),
                           );
@@ -927,6 +1041,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     // Reset the stopwatch to start fresh for this shift
     await ref.read(stopwatchProvider(widget.gameId).notifier).reset();
 
+    // Set the stopwatch to the shift's actual time
+    if (shift.actualSeconds > 0) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('timer_elapsed_${widget.gameId}', shift.actualSeconds);
+    }
+
     // Update the seconds notifier to reflect the shift's current time
     _secondsNotifier.value = shift.actualSeconds;
 
@@ -952,6 +1072,7 @@ class _ShiftsList extends StatefulWidget {
     required this.db,
     this.onRemovePlayer,
     this.onMakeShiftCurrent,
+    required this.getPositionAbbreviation,
   });
 
   final List<Shift> shifts;
@@ -963,6 +1084,7 @@ class _ShiftsList extends StatefulWidget {
   final Future<void> Function(Shift shift, PlayerShift assignment)?
   onRemovePlayer;
   final Future<void> Function(Shift shift)? onMakeShiftCurrent;
+  final String Function(String) getPositionAbbreviation;
 
   @override
   State<_ShiftsList> createState() => _ShiftsListState();
@@ -980,7 +1102,7 @@ class _ShiftsListState extends State<_ShiftsList> {
         ? widget.shifts.indexWhere((shift) => shift.id == widget.currentShiftId)
         : 0;
     _pageController = PageController(
-      viewportFraction: 0.85,
+      viewportFraction: 1.0,
       initialPage: initialIndex >= 0 ? initialIndex : 0,
     );
   }
@@ -1020,7 +1142,7 @@ class _ShiftsListState extends State<_ShiftsList> {
           final order = widget.shiftNumbers[shift.id];
 
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
             child: _ShiftDetailsPage(
               key: ValueKey(shift.id),
               shift: shift,
@@ -1031,6 +1153,7 @@ class _ShiftsListState extends State<_ShiftsList> {
               db: widget.db,
               onRemovePlayer: isCurrent ? widget.onRemovePlayer : null,
               onMakeShiftCurrent: !isCurrent ? widget.onMakeShiftCurrent : null,
+              getPositionAbbreviation: widget.getPositionAbbreviation,
             ),
           );
         },
@@ -1050,6 +1173,7 @@ class _ShiftDetailsPage extends StatelessWidget {
     required this.db,
     this.onRemovePlayer,
     this.onMakeShiftCurrent,
+    required this.getPositionAbbreviation,
   });
 
   final Shift shift;
@@ -1061,6 +1185,7 @@ class _ShiftDetailsPage extends StatelessWidget {
   final Future<void> Function(Shift shift, PlayerShift assignment)?
   onRemovePlayer;
   final Future<void> Function(Shift shift)? onMakeShiftCurrent;
+  final String Function(String) getPositionAbbreviation;
 
   @override
   Widget build(BuildContext context) {
@@ -1078,6 +1203,7 @@ class _ShiftDetailsPage extends StatelessWidget {
         : theme.textTheme.bodyMedium?.color;
 
     return Card(
+      margin: EdgeInsets.zero,
       color: backgroundColor,
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -1247,6 +1373,7 @@ class _ShiftDetailsPage extends StatelessWidget {
                       child: Text('No players assigned yet.'),
                     );
                   }
+
                   // Determine a consistent order based on earliest assignment id per position.
                   final firstIdPerPosition = <String, int>{};
                   for (final a in assignments) {
@@ -1262,27 +1389,83 @@ class _ShiftDetailsPage extends StatelessWidget {
                       if (ai != bi) return ai.compareTo(bi);
                       return a.id.compareTo(b.id);
                     });
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: sorted.map((assignment) {
-                      final player = playersById[assignment.playerId];
-                      final name = player == null
-                          ? 'Player #${assignment.playerId}'
-                          : '${player.firstName} ${player.lastName}';
-                      final chip = InputChip(
-                        label: Text('${assignment.position}: $name'),
-                        onDeleted: onRemovePlayer == null
-                            ? null
-                            : () async {
-                                await onRemovePlayer!(shift, assignment);
-                              },
-                      );
-                      if (onRemovePlayer == null) {
-                        return chip;
-                      }
-                      return Tooltip(message: 'Remove from shift', child: chip);
-                    }).toList(),
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header showing player count
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Players (${assignments.length})',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: onBackgroundColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const Spacer(),
+                            Icon(
+                              Icons.people,
+                              size: 16,
+                              color: onBackgroundColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Players grid
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 3.2,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
+                        itemCount: sorted.length,
+                        itemBuilder: (context, index) {
+                          final assignment = sorted[index];
+                          final player = playersById[assignment.playerId];
+
+                          if (player == null) {
+                            // Fallback for missing player data
+                            final chip = InputChip(
+                              label: Text(
+                                '${assignment.position}: Player #${assignment.playerId}',
+                              ),
+                              onDeleted: onRemovePlayer == null
+                                  ? null
+                                  : () async {
+                                      await onRemovePlayer!(shift, assignment);
+                                    },
+                            );
+                            return onRemovePlayer == null
+                                ? chip
+                                : Tooltip(
+                                    message: 'Remove from shift',
+                                    child: chip,
+                                  );
+                          }
+
+                          return PlayerPanel(
+                            player: player,
+                            type: PlayerPanelType.shift,
+                            position: assignment.position,
+                            playingTime: shift
+                                .actualSeconds, // Use shift duration as playing time
+                            getPositionAbbreviation: getPositionAbbreviation,
+                            onTap: onRemovePlayer == null
+                                ? null
+                                : () async {
+                                    await onRemovePlayer!(shift, assignment);
+                                  },
+                          );
+                        },
+                      ),
+                    ],
                   );
                 },
               ),
@@ -1317,6 +1500,7 @@ String _formatDateTime(DateTime dt) {
 }
 
 enum _GameMenuAction {
+  home,
   edit,
   lineup,
   metricsView,

@@ -8,6 +8,7 @@ enum PlayerPanelType {
   bench, // Bench players with SUB badges
   substitute, // Players in substitution dialogs
   current, // Current player being substituted (highlighted)
+  shift, // Players in shift-based mode with position badges
 }
 
 class PlayerPanel extends StatelessWidget {
@@ -68,6 +69,7 @@ class PlayerPanel extends StatelessWidget {
     switch (type) {
       case PlayerPanelType.active:
       case PlayerPanelType.current:
+      case PlayerPanelType.shift:
         if (position != null && getPositionAbbreviation != null) {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
@@ -120,11 +122,15 @@ class PlayerPanel extends StatelessWidget {
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
         const SizedBox(width: 1),
-        Text(
-          _formatPlayingTime(playingTime!),
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-            fontSize: 9,
+        Flexible(
+          child: Text(
+            _formatPlayingTime(playingTime!),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 9,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
           ),
         ),
       ],
@@ -165,9 +171,15 @@ class PlayerPanel extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      _buildBadge(context),
-                      const Spacer(),
-                      _buildPlayingTimeInfo(context),
+                      Flexible(flex: 2, child: _buildBadge(context)),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        flex: 3,
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: _buildPlayingTimeInfo(context),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 1),

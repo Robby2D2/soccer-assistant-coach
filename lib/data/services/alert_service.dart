@@ -12,8 +12,9 @@ class AlertService {
   /// Triggers a shift change alert with audio and haptic feedback
   /// Continues to alert for [durationSeconds] until acknowledged
   Future<void> triggerShiftChangeAlert({int durationSeconds = 60}) async {
-    if (_isAlerting)
+    if (_isAlerting) {
       return; // Don't start another alert if one is already active
+    }
 
     _isAlerting = true;
 
