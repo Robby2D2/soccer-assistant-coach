@@ -185,6 +185,20 @@ class TeamDetailScreen extends ConsumerWidget {
                       team: team,
                       onTap: () => context.push('/team/$id/games'),
                     ),
+                    const SizedBox(height: 12),
+
+                    // Team Metrics card
+                    _buildManagementCard(
+                      context,
+                      icon: Icons.analytics,
+                      title: 'Team Metrics',
+                      subtitle:
+                          'View all-time player statistics and performance',
+                      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                      iconColor: Theme.of(context).colorScheme.onSurface,
+                      team: team,
+                      onTap: () => context.push('/team/$id/metrics'),
+                    ),
                   ],
                 );
               },

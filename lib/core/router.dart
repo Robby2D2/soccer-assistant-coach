@@ -18,6 +18,7 @@ import '../features/games/formation_selection_screen.dart';
 import '../features/games/attendance_screen.dart';
 import '../features/games/end_game_screen.dart';
 import '../features/debug/database_diagnostic_screen.dart';
+import '../features/teams/team_metrics_overview_screen.dart';
 
 final router = GoRouter(
   routes: [
@@ -54,6 +55,11 @@ final router = GoRouter(
         teamId: int.parse(s.pathParameters['id']!),
         formationId: int.parse(s.pathParameters['fid']!),
       ),
+    ),
+    GoRoute(
+      path: '/team/:id/metrics',
+      builder: (_, s) =>
+          TeamMetricsOverviewScreen(teamId: int.parse(s.pathParameters['id']!)),
     ),
     GoRoute(
       path: '/team/:id/players/import',

@@ -5,6 +5,7 @@ import 'package:drift_sqflite/drift_sqflite.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'schema.dart';
+import '../../features/teams/data/team_metrics_models.dart';
 
 part 'database.g.dart';
 
@@ -1334,6 +1335,156 @@ extension PlayerMetricQueries on AppDb {
       }
       return map;
     });
+  }
+}
+
+extension TeamMetricsQueries on AppDb {
+  /// Get aggregated metrics for all players in a team across all their games
+  Future<List<PlayerTeamMetrics>> getTeamPlayerMetrics(int teamId) async {
+    // First get all players for the team
+    final players = await (select(
+      this.players,
+    )..where((p) => p.teamId.equals(teamId))).get();
+
+    final teamPlayerMetrics = <PlayerTeamMetrics>[];
+
+    for (final player in players) {
+      // Get all games for this team
+      final games = await (select(
+        this.games,
+      )..where((g) => g.teamId.equals(teamId))).get();
+
+      if (games.isEmpty) continue;
+
+      final gameIds = games.map((g) => g.id).toList();
+
+      // Get player metrics across all games
+      final metrics =
+          await (select(this.playerMetrics)..where(
+                (m) => m.playerId.equals(player.id) & m.gameId.isIn(gameIds),
+              ))
+              .get();
+
+      // Aggregate metrics
+      var totalGoals = 0;
+      var totalAssists = 0;
+      var totalSaves = 0;
+      for (final metric in metrics) {
+        switch (metric.metric) {
+          case 'GOAL':
+            totalGoals += metric.value;
+            break;
+          case 'ASSIST':
+            totalAssists += metric.value;
+            break;
+          case 'SAVE':
+            totalSaves += metric.value;
+            break;
+        }
+      }
+
+      // Get total play time - check team mode to determine which metric to use
+      final team = await getTeam(teamId);
+      final isTraditionalMode = team?.teamMode == 'traditional';
+
+      var totalPlayTimeSeconds = 0;
+      var gamesPlayed = 0;
+
+      for (final gameId in gameIds) {
+        if (isTraditionalMode) {
+          // For traditional mode, use the traditional_playing_time metric
+          final playTime =
+              await (select(this.playerMetrics)..where(
+                    (m) =>
+                        m.playerId.equals(player.id) &
+                        m.gameId.equals(gameId) &
+                        m.metric.equals('traditional_playing_time'),
+                  ))
+                  .getSingleOrNull();
+          if (playTime != null) {
+            totalPlayTimeSeconds += playTime.value;
+            gamesPlayed++;
+          }
+        } else {
+          // For shift mode, sum up shift times
+          final playTime = await playedSecondsByPlayer(gameId);
+          final playerSeconds = playTime[player.id] ?? 0;
+          if (playerSeconds > 0) {
+            totalPlayTimeSeconds += playerSeconds;
+            gamesPlayed++;
+          }
+        }
+      }
+
+      teamPlayerMetrics.add(
+        PlayerTeamMetrics(
+          playerId: player.id,
+          firstName: player.firstName,
+          lastName: player.lastName,
+          jerseyNumber: player.jerseyNumber,
+          profileImagePath: player.profileImagePath,
+          totalGoals: totalGoals,
+          totalAssists: totalAssists,
+          totalSaves: totalSaves,
+          totalPlayTimeSeconds: totalPlayTimeSeconds,
+          gamesPlayed: gamesPlayed,
+        ),
+      );
+    }
+
+    return teamPlayerMetrics;
+  }
+
+  /// Get team metrics summary including totals and player breakdowns
+  Future<TeamMetricsSummary> getTeamMetricsSummary(int teamId) async {
+    final team = await getTeam(teamId);
+    if (team == null) {
+      throw StateError('Team not found: $teamId');
+    }
+
+    final teamPlayerMetrics = await getTeamPlayerMetrics(teamId);
+
+    // Get total games count for the team
+    final totalGames =
+        await (select(games)..where((g) => g.teamId.equals(teamId))).get().then(
+          (gamesList) => gamesList.length,
+        );
+
+    // Calculate team totals from player metrics
+    final totalGoals = teamPlayerMetrics.fold<int>(
+      0,
+      (sum, p) => sum + p.totalGoals,
+    );
+    final totalAssists = teamPlayerMetrics.fold<int>(
+      0,
+      (sum, p) => sum + p.totalAssists,
+    );
+    final totalSaves = teamPlayerMetrics.fold<int>(
+      0,
+      (sum, p) => sum + p.totalSaves,
+    );
+    final totalPlayTimeSeconds = teamPlayerMetrics.fold<int>(
+      0,
+      (sum, p) => sum + p.totalPlayTimeSeconds,
+    );
+
+    return TeamMetricsSummary(
+      teamId: teamId,
+      teamName: team.name,
+      totalGames: totalGames,
+      totalGoals: totalGoals,
+      totalAssists: totalAssists,
+      totalSaves: totalSaves,
+      totalPlayTimeSeconds: totalPlayTimeSeconds,
+      playerMetrics: teamPlayerMetrics,
+    );
+  }
+
+  /// Watch for changes in team metrics (simplified version for now)
+  Stream<TeamMetricsSummary> watchTeamMetricsSummary(int teamId) async* {
+    // For now, just yield current data - in a real implementation you'd want to watch
+    // for changes in games, playerMetrics, etc. and rebuild the summary
+    yield await getTeamMetricsSummary(teamId);
   }
 }
 

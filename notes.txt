@@ -1,3 +1,11 @@
+Can you update the teams list page to use the same styling as the other team panels?
+
+I think there should be 2 different reusuable components for displaying a team.  One is the bigger panel such as in the teams list page and the home page.  The other is a smaller panel that would be used on the top of the different pages in the header section.:wq
+
+
+
+
+
 I'd like to add another team mode - so a team would be able to be configured as either doing full shift-based substitutions where the stopwatch counts down (which is what we currently have), OR they could select a typical substitution model where they basically just have one "shift" (although it's not really shift) and they do one-off player substitutions where they would get to choose which player to put in for which other player.  
 
 Traditional Mode should still have stopwatch functionality.  But this time we'll need to know how long a half is.  This should be configurable similar to how shift time is configured for a team - but for the traditional mode.  Then we need a way to easily reset the timer when the second half starts.
