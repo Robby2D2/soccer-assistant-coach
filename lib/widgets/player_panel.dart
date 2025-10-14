@@ -168,33 +168,38 @@ class PlayerPanel extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Row(
-                    children: [
-                      Flexible(flex: 2, child: _buildBadge(context)),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        flex: 3,
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: _buildPlayingTimeInfo(context),
+                  Flexible(
+                    child: Row(
+                      children: [
+                        Flexible(flex: 2, child: _buildBadge(context)),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          flex: 3,
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: _buildPlayingTimeInfo(context),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 1),
                   // Player name (with jersey number if both image and number exist)
                   Flexible(
-                    child: Text(
-                      _getPlayerDisplayName(),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w500,
-                        fontSize: type == PlayerPanelType.substitute
-                            ? 10
-                            : (type == PlayerPanelType.current ? 12 : 11),
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        _getPlayerDisplayName(),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          fontSize: type == PlayerPanelType.substitute
+                              ? 10
+                              : (type == PlayerPanelType.current ? 12 : 11),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],

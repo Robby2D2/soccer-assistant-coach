@@ -75,62 +75,75 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           title: const Text('Create New Team'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Team Name'),
-                autofocus: true,
-              ),
-              const SizedBox(height: 16),
-
-              // Team Mode Selection
-              Text('Team Mode', style: Theme.of(context).textTheme.titleSmall),
-              ListTile(
-                leading: Radio<String>(
-                  value: 'shift',
-                  groupValue: teamMode,
-                  onChanged: (value) => setState(() => teamMode = value!),
-                ),
-                title: const Text('Shift Mode'),
-                subtitle: const Text('Timed shifts with automatic rotations'),
-                onTap: () => setState(() => teamMode = 'shift'),
-                dense: true,
-              ),
-              ListTile(
-                leading: Radio<String>(
-                  value: 'traditional',
-                  groupValue: teamMode,
-                  onChanged: (value) => setState(() => teamMode = value!),
-                ),
-                title: const Text('Traditional Mode'),
-                subtitle: const Text(
-                  'Manual substitutions with playing time tracking',
-                ),
-                onTap: () => setState(() => teamMode = 'traditional'),
-                dense: true,
-              ),
-              const SizedBox(height: 8),
-
-              // Mode-specific settings
-              if (teamMode == 'shift')
-                TextField(
-                  controller: shiftMinutesController,
-                  decoration: const InputDecoration(
-                    labelText: 'Default shift length (minutes)',
+          content: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.6,
+              maxWidth: MediaQuery.of(context).size.width * 0.9,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Team Name'),
+                    autofocus: true,
                   ),
-                  keyboardType: TextInputType.number,
-                )
-              else
-                TextField(
-                  controller: halfMinutesController,
-                  decoration: const InputDecoration(
-                    labelText: 'Half duration (minutes)',
+                  const SizedBox(height: 16),
+
+                  // Team Mode Selection
+                  Text(
+                    'Team Mode',
+                    style: Theme.of(context).textTheme.titleSmall,
                   ),
-                  keyboardType: TextInputType.number,
-                ),
-            ],
+                  ListTile(
+                    leading: Radio<String>(
+                      value: 'shift',
+                      groupValue: teamMode,
+                      onChanged: (value) => setState(() => teamMode = value!),
+                    ),
+                    title: const Text('Shift Mode'),
+                    subtitle: const Text(
+                      'Timed shifts with automatic rotations',
+                    ),
+                    onTap: () => setState(() => teamMode = 'shift'),
+                    dense: true,
+                  ),
+                  ListTile(
+                    leading: Radio<String>(
+                      value: 'traditional',
+                      groupValue: teamMode,
+                      onChanged: (value) => setState(() => teamMode = value!),
+                    ),
+                    title: const Text('Traditional Mode'),
+                    subtitle: const Text(
+                      'Manual substitutions with playing time tracking',
+                    ),
+                    onTap: () => setState(() => teamMode = 'traditional'),
+                    dense: true,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Mode-specific settings
+                  if (teamMode == 'shift')
+                    TextField(
+                      controller: shiftMinutesController,
+                      decoration: const InputDecoration(
+                        labelText: 'Default shift length (minutes)',
+                      ),
+                      keyboardType: TextInputType.number,
+                    )
+                  else
+                    TextField(
+                      controller: halfMinutesController,
+                      decoration: const InputDecoration(
+                        labelText: 'Half duration (minutes)',
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                ],
+              ),
+            ),
           ),
           actions: [
             TextButton(

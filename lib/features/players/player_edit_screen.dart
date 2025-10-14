@@ -151,22 +151,24 @@ class _PlayerEditScreenState extends ConsumerState<PlayerEditScreen> {
                   radius: 30,
                 ),
                 const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _showImagePickerOptions,
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Add Photo'),
-                    ),
-                    if (_profileImagePath != null)
-                      TextButton.icon(
-                        onPressed: () =>
-                            setState(() => _profileImagePath = null),
-                        icon: const Icon(Icons.delete, size: 16),
-                        label: const Text('Remove'),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _showImagePickerOptions,
+                        icon: const Icon(Icons.camera_alt),
+                        label: const Text('Add Photo'),
                       ),
-                  ],
+                      if (_profileImagePath != null)
+                        TextButton.icon(
+                          onPressed: () =>
+                              setState(() => _profileImagePath = null),
+                          icon: const Icon(Icons.delete, size: 16),
+                          label: const Text('Remove'),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -1124,77 +1124,82 @@ class _TraditionalLineupView extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Substitute $position'),
+        title: Text(
+          'Substitute $position',
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
         content: SizedBox(
           width: double.maxFinite,
-          height: 400, // Set a maximum height for the dialog content
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Current player display
-                PlayerPanel(
-                  player: currentPlayer,
-                  type: PlayerPanelType.current,
-                  position: position,
-                  playingTime: playingTimeThisGame[currentPlayer.id] ?? 0,
-                  getPositionAbbreviation: getPositionAbbreviation,
-                ),
-                const SizedBox(height: 16),
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Select replacement:'),
-                ),
-                const SizedBox(height: 8),
-                if (availablePlayers.isEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'No players available on bench.',
-                      style: TextStyle(fontStyle: FontStyle.italic),
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                else
-                  // Available players grid
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics:
-                        const NeverScrollableScrollPhysics(), // Let parent scroll
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 3.2, // Increased for proper fit
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                        ),
-                    itemCount: availablePlayers.length,
-                    itemBuilder: (context, index) {
-                      final player = availablePlayers[index];
-                      return PlayerPanel(
-                        player: player,
-                        type: PlayerPanelType.substitute,
-                        playingTime: playingTimeThisGame[player.id] ?? 0,
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          onPlayerSubstitution(
-                            currentPlayer.id,
-                            player.id,
-                            position,
-                          );
-                        },
-                      );
-                    },
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Current player display
+              PlayerPanel(
+                player: currentPlayer,
+                type: PlayerPanelType.current,
+                position: position,
+                playingTime: playingTimeThisGame[currentPlayer.id] ?? 0,
+                getPositionAbbreviation: getPositionAbbreviation,
+              ),
+              const SizedBox(height: 16),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Select replacement:'),
+              ),
+              const SizedBox(height: 8),
+              if (availablePlayers.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-              ],
-            ),
+                  child: const Text(
+                    'No players available on bench.',
+                    style: TextStyle(fontStyle: FontStyle.italic),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              else
+                // Available players grid
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 3.2,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                          ),
+                      itemCount: availablePlayers.length,
+                      itemBuilder: (context, index) {
+                        final player = availablePlayers[index];
+                        return PlayerPanel(
+                          player: player,
+                          type: PlayerPanelType.substitute,
+                          playingTime: playingTimeThisGame[player.id] ?? 0,
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            onPlayerSubstitution(
+                              currentPlayer.id,
+                              player.id,
+                              position,
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
         actions: [
@@ -1231,127 +1236,119 @@ class _TraditionalLineupView extends StatelessWidget {
         ),
         content: SizedBox(
           width: double.maxFinite,
-          height:
-              MediaQuery.of(context).size.height *
-              0.5, // Max 50% of screen height
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Empty position display
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Empty position display
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.3),
+                    style: BorderStyle.solid,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        getPositionAbbreviation(position),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Empty Position',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontStyle: FontStyle.italic,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.add_circle_outline,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Select player to assign:'),
+              ),
+              const SizedBox(height: 8),
+              if (availablePlayers.isEmpty)
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Theme.of(
                       context,
-                    ).colorScheme.outline.withValues(alpha: 0.1),
+                    ).colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outline.withValues(alpha: 0.3),
-                      style: BorderStyle.solid,
-                      width: 1,
-                    ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.outline.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          getPositionAbbreviation(position),
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Empty Position',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                fontStyle: FontStyle.italic,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
-                        ),
-                      ),
-                      Icon(
-                        Icons.add_circle_outline,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ],
+                  child: const Text(
+                    'No players available on bench.',
+                    style: TextStyle(fontStyle: FontStyle.italic),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              else
+                // Available players grid - using shrinkWrap instead of fixed height
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 3.2,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                          ),
+                      itemCount: availablePlayers.length,
+                      itemBuilder: (context, index) {
+                        final player = availablePlayers[index];
+                        return PlayerPanel(
+                          player: player,
+                          type: PlayerPanelType.substitute,
+                          playingTime: playingTimeThisGame[player.id] ?? 0,
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            onPlayerSubstitution(null, player.id, position);
+                          },
+                        );
+                      },
+                    ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Select player to assign:'),
-                ),
-                const SizedBox(height: 8),
-                if (availablePlayers.isEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'No players available on bench.',
-                      style: TextStyle(fontStyle: FontStyle.italic),
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                else
-                  // Available players grid - using shrinkWrap instead of fixed height
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics:
-                        const NeverScrollableScrollPhysics(), // Let parent scroll
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio:
-                              3.2, // Increased for more width and proper fit
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                        ),
-                    itemCount: availablePlayers.length,
-                    itemBuilder: (context, index) {
-                      final player = availablePlayers[index];
-                      return PlayerPanel(
-                        player: player,
-                        type: PlayerPanelType.substitute,
-                        playingTime: playingTimeThisGame[player.id] ?? 0,
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          onPlayerSubstitution(null, player.id, position);
-                        },
-                      );
-                    },
-                  ),
-              ],
-            ),
+            ],
           ),
         ),
         actions: [
@@ -1378,9 +1375,14 @@ class _TraditionalLineupView extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: Text(
           'Substitute with ${benchPlayer.firstName} ${benchPlayer.lastName}',
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
-        content: SizedBox(
-          width: double.maxFinite,
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+            maxWidth: MediaQuery.of(context).size.width * 0.9,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1457,7 +1459,7 @@ class _TraditionalLineupView extends StatelessWidget {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 12),
-              Expanded(
+              Flexible(
                 child: (activeLineupEntries.isEmpty && openPositions.isEmpty)
                     ? const Center(
                         child: Text(
@@ -1465,146 +1467,251 @@ class _TraditionalLineupView extends StatelessWidget {
                           style: TextStyle(fontStyle: FontStyle.italic),
                         ),
                       )
-                    : GridView.builder(
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 3.4,
-                              crossAxisSpacing: 8,
-                              mainAxisSpacing: 8,
-                            ),
-                        itemCount:
-                            activeLineupEntries.length + openPositions.length,
-                        itemBuilder: (context, index) {
-                          // First show occupied positions (for replacement)
-                          if (index < activeLineupEntries.length) {
-                            final entry = activeLineupEntries[index];
-                            final position = entry.key;
-                            final playerId = entry.value;
-                            final activePlayer = players.firstWhere(
-                              (p) => p.id == playerId,
-                              orElse: () => Player(
-                                id: playerId,
-                                teamId: 0,
-                                firstName: 'Unknown',
-                                lastName: 'Player',
-                                isPresent: false,
+                    : SingleChildScrollView(
+                        child: GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                childAspectRatio: 3.4,
+                                crossAxisSpacing: 8,
+                                mainAxisSpacing: 8,
                               ),
-                            );
+                          itemCount:
+                              activeLineupEntries.length + openPositions.length,
+                          itemBuilder: (context, index) {
+                            // First show occupied positions (for replacement)
+                            if (index < activeLineupEntries.length) {
+                              final entry = activeLineupEntries[index];
+                              final position = entry.key;
+                              final playerId = entry.value;
+                              final activePlayer = players.firstWhere(
+                                (p) => p.id == playerId,
+                                orElse: () => Player(
+                                  id: playerId,
+                                  teamId: 0,
+                                  firstName: 'Unknown',
+                                  lastName: 'Player',
+                                  isPresent: false,
+                                ),
+                              );
+
+                              return Card(
+                                margin: EdgeInsets.zero,
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: () {
+                                    Navigator.of(context).pop();
+                                    onPlayerSubstitution(
+                                      playerId,
+                                      benchPlayer.id,
+                                      position,
+                                    );
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(4),
+                                    child: Row(
+                                      children: [
+                                        // Player Avatar
+                                        PlayerAvatar(
+                                          firstName: activePlayer.firstName,
+                                          lastName: activePlayer.lastName,
+                                          jerseyNumber:
+                                              activePlayer.jerseyNumber,
+                                          profileImagePath:
+                                              activePlayer.profileImagePath,
+                                          radius: 14,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        // Player and position info
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Flexible(
+                                                    flex: 2,
+                                                    child: Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 4,
+                                                            vertical: 1,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .primaryContainer,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              3,
+                                                            ),
+                                                      ),
+                                                      child: Text(
+                                                        getPositionAbbreviation(
+                                                          position,
+                                                        ),
+                                                        style: Theme.of(context)
+                                                            .textTheme
+                                                            .labelSmall
+                                                            ?.copyWith(
+                                                              color: Theme.of(context)
+                                                                  .colorScheme
+                                                                  .onPrimaryContainer,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              fontSize: 9,
+                                                            ),
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        maxLines: 1,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const Spacer(),
+                                                  Icon(
+                                                    Icons.timer,
+                                                    size: 10,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                                  const SizedBox(width: 1),
+                                                  Text(
+                                                    _formatPlayingTime(
+                                                      playingTimeThisGame[playerId] ??
+                                                          0,
+                                                    ),
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .labelSmall
+                                                        ?.copyWith(
+                                                          color: Theme.of(context)
+                                                              .colorScheme
+                                                              .onSurfaceVariant,
+                                                          fontSize: 9,
+                                                        ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 1),
+                                              Text(
+                                                '${activePlayer.firstName} ${activePlayer.lastName}',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      fontSize: 10,
+                                                    ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            // Then show open positions (for assignment)
+                            final openIndex =
+                                index - activeLineupEntries.length;
+                            final position = openPositions[openIndex];
 
                             return Card(
                               margin: EdgeInsets.zero,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerLowest,
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(12),
                                 onTap: () {
                                   Navigator.of(context).pop();
                                   onPlayerSubstitution(
-                                    playerId,
+                                    null,
                                     benchPlayer.id,
                                     position,
                                   );
                                 },
                                 child: Padding(
                                   padding: const EdgeInsets.all(4),
-                                  child: Row(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      // Player Avatar
-                                      PlayerAvatar(
-                                        firstName: activePlayer.firstName,
-                                        lastName: activePlayer.lastName,
-                                        jerseyNumber: activePlayer.jerseyNumber,
-                                        profileImagePath:
-                                            activePlayer.profileImagePath,
-                                        radius: 14,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      // Player and position info
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Flexible(
-                                                  flex: 2,
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 4,
-                                                          vertical: 1,
-                                                        ),
-                                                    decoration: BoxDecoration(
+                                      Row(
+                                        children: [
+                                          Flexible(
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 4,
+                                                    vertical: 1,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .outline
+                                                    .withValues(alpha: 0.2),
+                                                borderRadius:
+                                                    BorderRadius.circular(3),
+                                              ),
+                                              child: Text(
+                                                getPositionAbbreviation(
+                                                  position,
+                                                ),
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .labelSmall
+                                                    ?.copyWith(
                                                       color: Theme.of(context)
                                                           .colorScheme
-                                                          .primaryContainer,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            3,
-                                                          ),
+                                                          .onSurfaceVariant,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize: 9,
                                                     ),
-                                                    child: Text(
-                                                      getPositionAbbreviation(
-                                                        position,
-                                                      ),
-                                                      style: Theme.of(context)
-                                                          .textTheme
-                                                          .labelSmall
-                                                          ?.copyWith(
-                                                            color: Theme.of(context)
-                                                                .colorScheme
-                                                                .onPrimaryContainer,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            fontSize: 9,
-                                                          ),
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      maxLines: 1,
-                                                    ),
-                                                  ),
-                                                ),
-                                                const Spacer(),
-                                                Icon(
-                                                  Icons.timer,
-                                                  size: 10,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                                ),
-                                                const SizedBox(width: 1),
-                                                Text(
-                                                  _formatPlayingTime(
-                                                    playingTimeThisGame[playerId] ??
-                                                        0,
-                                                  ),
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .labelSmall
-                                                      ?.copyWith(
-                                                        color: Theme.of(context)
-                                                            .colorScheme
-                                                            .onSurfaceVariant,
-                                                        fontSize: 9,
-                                                      ),
-                                                ),
-                                              ],
+                                                overflow: TextOverflow.ellipsis,
+                                                maxLines: 1,
+                                              ),
                                             ),
-                                            const SizedBox(height: 1),
-                                            Text(
-                                              '${activePlayer.firstName} ${activePlayer.lastName}',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodySmall
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w500,
-                                                    fontSize: 10,
-                                                  ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Icon(
+                                            Icons.add_circle_outline,
+                                            size: 14,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 1),
+                                      Flexible(
+                                        child: Text(
+                                          'Open Position',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                fontStyle: FontStyle.italic,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                                fontSize: 10,
+                                              ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                     ],
@@ -1612,100 +1719,8 @@ class _TraditionalLineupView extends StatelessWidget {
                                 ),
                               ),
                             );
-                          }
-
-                          // Then show open positions (for assignment)
-                          final openIndex = index - activeLineupEntries.length;
-                          final position = openPositions[openIndex];
-
-                          return Card(
-                            margin: EdgeInsets.zero,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerLowest,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () {
-                                Navigator.of(context).pop();
-                                onPlayerSubstitution(
-                                  null,
-                                  benchPlayer.id,
-                                  position,
-                                );
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.all(4),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Flexible(
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 4,
-                                              vertical: 1,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .outline
-                                                  .withValues(alpha: 0.2),
-                                              borderRadius:
-                                                  BorderRadius.circular(3),
-                                            ),
-                                            child: Text(
-                                              getPositionAbbreviation(position),
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .labelSmall
-                                                  ?.copyWith(
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurfaceVariant,
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 9,
-                                                  ),
-                                              overflow: TextOverflow.ellipsis,
-                                              maxLines: 1,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Icon(
-                                          Icons.add_circle_outline,
-                                          size: 14,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 1),
-                                    Flexible(
-                                      child: Text(
-                                        'Open Position',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.copyWith(
-                                              fontStyle: FontStyle.italic,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.onSurfaceVariant,
-                                              fontSize: 10,
-                                            ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
+                          },
+                        ),
                       ),
               ),
             ],

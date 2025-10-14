@@ -1,3 +1,7 @@
+
+On the home screen, under quick actions could you list any team that has had a game in the last 4 months?
+
+
 Can you update the teams list page to use the same styling as the other team panels?
 
 I think there should be 2 different reusuable components for displaying a team.  One is the bigger panel such as in the teams list page and the home page.  The other is a smaller panel that would be used on the top of the different pages in the header section.:wq

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../utils/files.dart';
+import '../../widgets/team_logo_widget.dart';
+import '../../widgets/team_color_picker.dart';
 
 class MetricsOverviewScreen extends ConsumerWidget {
   final int gameId;
@@ -101,193 +103,209 @@ class MetricsOverviewScreen extends ConsumerWidget {
           if (game == null) {
             return const Center(child: CircularProgressIndicator());
           }
-          return StreamBuilder<List<Player>>(
-            stream: db.watchPlayersByTeam(game.teamId),
-            builder: (context, snapPlayers) {
-              if (!snapPlayers.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final players = snapPlayers.data!;
-              final playersById = {for (final p in players) p.id: p};
-              return StreamBuilder<List<PlayerMetric>>(
-                stream: db.watchMetricsForGame(gameId),
-                builder: (context, snapMetrics) {
-                  final metrics = (snapMetrics.data ?? <PlayerMetric>[]);
-                  final Map<int, Map<String, int>> agg = {};
-                  for (final m in metrics) {
-                    agg.putIfAbsent(m.playerId, () => {});
-                    agg[m.playerId]![m.metric] = m.value;
-                  }
-                  // Determine which playing time data to use based on team mode
-                  return FutureBuilder<String>(
-                    future: db.getTeamMode(game.teamId),
-                    builder: (context, teamModeSnap) {
-                      if (!teamModeSnap.hasData) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+          return Column(
+            children: [
+              // Compact game header
+              _CompactGameHeader(game: game, subtitle: 'View Metrics'),
+              Expanded(
+                child: StreamBuilder<List<Player>>(
+                  stream: db.watchPlayersByTeam(game.teamId),
+                  builder: (context, snapPlayers) {
+                    if (!snapPlayers.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final players = snapPlayers.data!;
+                    final playersById = {for (final p in players) p.id: p};
+                    return StreamBuilder<List<PlayerMetric>>(
+                      stream: db.watchMetricsForGame(gameId),
+                      builder: (context, snapMetrics) {
+                        final metrics = (snapMetrics.data ?? <PlayerMetric>[]);
+                        final Map<int, Map<String, int>> agg = {};
+                        for (final m in metrics) {
+                          agg.putIfAbsent(m.playerId, () => {});
+                          agg[m.playerId]![m.metric] = m.value;
+                        }
+                        // Determine which playing time data to use based on team mode
+                        return FutureBuilder<String>(
+                          future: db.getTeamMode(game.teamId),
+                          builder: (context, teamModeSnap) {
+                            if (!teamModeSnap.hasData) {
+                              return const Center(
+                                child: CircularProgressIndicator(),
+                              );
+                            }
 
-                      final isTraditionalMode =
-                          teamModeSnap.data == 'traditional';
+                            final isTraditionalMode =
+                                teamModeSnap.data == 'traditional';
 
-                      return StreamBuilder<Map<int, int>>(
-                        stream: isTraditionalMode
-                            ? db.watchTraditionalPlayingTimeByPlayer(gameId)
-                            : db.watchPlayedSecondsByPlayer(gameId),
-                        builder: (context, playedSnap) {
-                          final playedSeconds =
-                              playedSnap.data ?? const <int, int>{};
+                            return StreamBuilder<Map<int, int>>(
+                              stream: isTraditionalMode
+                                  ? db.watchTraditionalPlayingTimeByPlayer(
+                                      gameId,
+                                    )
+                                  : db.watchPlayedSecondsByPlayer(gameId),
+                              builder: (context, playedSnap) {
+                                final playedSeconds =
+                                    playedSnap.data ?? const <int, int>{};
 
-                          // Calculate team totals for summary
-                          final totalGoals = agg.values.fold(
-                            0,
-                            (sum, player) => sum + (player['GOAL'] ?? 0),
-                          );
-                          final totalAssists = agg.values.fold(
-                            0,
-                            (sum, player) => sum + (player['ASSIST'] ?? 0),
-                          );
-                          final totalSaves = agg.values.fold(
-                            0,
-                            (sum, player) => sum + (player['SAVE'] ?? 0),
-                          );
-                          final totalPlayTime = playedSeconds.values.fold(
-                            0,
-                            (sum, seconds) => sum + seconds,
-                          );
+                                // Calculate team totals for summary
+                                final totalGoals = agg.values.fold(
+                                  0,
+                                  (sum, player) => sum + (player['GOAL'] ?? 0),
+                                );
+                                final totalAssists = agg.values.fold(
+                                  0,
+                                  (sum, player) =>
+                                      sum + (player['ASSIST'] ?? 0),
+                                );
+                                final totalSaves = agg.values.fold(
+                                  0,
+                                  (sum, player) => sum + (player['SAVE'] ?? 0),
+                                );
+                                final totalPlayTime = playedSeconds.values.fold(
+                                  0,
+                                  (sum, seconds) => sum + seconds,
+                                );
 
-                          return ListView(
-                            padding: const EdgeInsets.all(16),
-                            children: [
-                              // Team Summary Card
-                              Card(
-                                child: Padding(
+                                return ListView(
                                   padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.analytics),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            'Team Summary',
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.titleLarge,
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceAround,
-                                        children: [
-                                          _SummaryItem(
-                                            icon: Icons.sports_soccer,
-                                            label: 'Goals',
-                                            value: totalGoals.toString(),
-                                          ),
-                                          _SummaryItem(
-                                            icon: Icons.sports,
-                                            label: 'Assists',
-                                            value: totalAssists.toString(),
-                                          ),
-                                          _SummaryItem(
-                                            icon: Icons.sports_handball,
-                                            label: 'Saves',
-                                            value: totalSaves.toString(),
-                                          ),
-                                          _SummaryItem(
-                                            icon: Icons.timer,
-                                            label: 'Total Play Time',
-                                            value: _formatMinutes(
-                                              totalPlayTime / 60,
+                                  children: [
+                                    // Team Summary Card
+                                    Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                const Icon(Icons.analytics),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  'Team Summary',
+                                                  style: Theme.of(
+                                                    context,
+                                                  ).textTheme.titleLarge,
+                                                ),
+                                              ],
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Playing Time Chart
-                              if (playedSeconds.isNotEmpty) ...[
-                                Card(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        const ListTile(
-                                          contentPadding: EdgeInsets.zero,
-                                          leading: Icon(Icons.bar_chart),
-                                          title: Text('Playing Time Analysis'),
-                                          subtitle: Text(
-                                            'Total time per player in this game',
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        _PlaytimeBarChart(
-                                          entries:
-                                              playedSeconds.entries.toList()
-                                                ..sort(
-                                                  (a, b) => b.value.compareTo(
-                                                    a.value,
+                                            const SizedBox(height: 16),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.spaceAround,
+                                              children: [
+                                                _SummaryItem(
+                                                  icon: Icons.sports_soccer,
+                                                  label: 'Goals',
+                                                  value: totalGoals.toString(),
+                                                ),
+                                                _SummaryItem(
+                                                  icon: Icons.sports,
+                                                  label: 'Assists',
+                                                  value: totalAssists
+                                                      .toString(),
+                                                ),
+                                                _SummaryItem(
+                                                  icon: Icons.sports_handball,
+                                                  label: 'Saves',
+                                                  value: totalSaves.toString(),
+                                                ),
+                                                _SummaryItem(
+                                                  icon: Icons.timer,
+                                                  label: 'Total Play Time',
+                                                  value: _formatMinutes(
+                                                    totalPlayTime / 60,
                                                   ),
                                                 ),
-                                          playersById: playersById,
+                                              ],
+                                            ),
+                                          ],
                                         ),
-                                      ],
+                                      ),
                                     ),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                              ],
+                                    const SizedBox(height: 16),
 
-                              // Player Metrics Table
-                              Card(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          const Icon(Icons.table_chart),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            'Player Statistics',
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.titleLarge,
+                                    // Playing Time Chart
+                                    if (playedSeconds.isNotEmpty) ...[
+                                      Card(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(16),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                              const ListTile(
+                                                contentPadding: EdgeInsets.zero,
+                                                leading: Icon(Icons.bar_chart),
+                                                title: Text(
+                                                  'Playing Time Analysis',
+                                                ),
+                                                subtitle: Text(
+                                                  'Total time per player in this game',
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              _PlaytimeBarChart(
+                                                entries:
+                                                    playedSeconds.entries
+                                                        .toList()
+                                                      ..sort(
+                                                        (a, b) => b.value
+                                                            .compareTo(a.value),
+                                                      ),
+                                                playersById: playersById,
+                                              ),
+                                            ],
                                           ),
-                                        ],
+                                        ),
                                       ),
                                       const SizedBox(height: 16),
-                                      _PlayerMetricsTable(
-                                        players: players,
-                                        metricsAgg: agg,
-                                        playedSeconds: playedSeconds,
-                                      ),
                                     ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              );
-            },
-          );
+
+                                    // Player Metrics Table
+                                    Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                const Icon(Icons.table_chart),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  'Player Statistics',
+                                                  style: Theme.of(
+                                                    context,
+                                                  ).textTheme.titleLarge,
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 16),
+                                            _PlayerMetricsTable(
+                                              players: players,
+                                              metricsAgg: agg,
+                                              playedSeconds: playedSeconds,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        );
+                      }, // end StreamBuilder<Map<int, int>>
+                    ); // end FutureBuilder
+                  }, // end StreamBuilder<List<PlayerMetric>>
+                ), // end StreamBuilder<List<Player>>
+              ), // end Expanded
+            ], // end Column children
+          ); // end Column
         },
       ),
     );
@@ -539,4 +557,152 @@ String _formatDateTime(DateTime dt) {
   final hour = dt.hour.toString().padLeft(2, '0');
   final minute = dt.minute.toString().padLeft(2, '0');
   return '$month/$day • $hour:$minute';
+}
+
+class _CompactGameHeader extends StatelessWidget {
+  final Game game;
+  final String subtitle;
+
+  const _CompactGameHeader({required this.game, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer(
+      builder: (context, ref, _) {
+        final db = ref.watch(dbProvider);
+
+        return FutureBuilder<Team?>(
+          future: db.getTeam(game.teamId),
+          builder: (context, teamSnap) {
+            final team = teamSnap.data;
+            if (team == null) return const SizedBox.shrink();
+
+            // Use team colors if available
+            final hasTeamColors = team.primaryColor1 != null;
+            final teamPrimaryColor = hasTeamColors
+                ? (ColorHelper.hexToColor(team.primaryColor1!) ??
+                      Theme.of(context).colorScheme.primary)
+                : Theme.of(context).colorScheme.primary;
+
+            final teamSecondaryColor = team.primaryColor2 != null
+                ? (ColorHelper.hexToColor(team.primaryColor2!) ??
+                      teamPrimaryColor.withOpacity(0.7))
+                : teamPrimaryColor.withOpacity(0.7);
+
+            return Container(
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    teamPrimaryColor.withOpacity(0.9),
+                    teamSecondaryColor.withOpacity(0.8),
+                    teamPrimaryColor.withOpacity(0.7),
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: teamPrimaryColor.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    // Team logo
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: TeamLogoWidget(
+                        logoPath: team.logoImagePath,
+                        size: 28,
+                        backgroundColor: Colors.transparent,
+                        iconColor: teamPrimaryColor,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Game info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            team.name,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      offset: const Offset(0, 1),
+                                      blurRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                          ),
+                          if (game.opponent?.isNotEmpty == true) ...[
+                            Text(
+                              'vs ${game.opponent}',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: Colors.white.withOpacity(0.9),
+                                    shadows: [
+                                      Shadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        offset: const Offset(0, 1),
+                                        blurRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                            ),
+                          ],
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              subtitle,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: teamPrimaryColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 }

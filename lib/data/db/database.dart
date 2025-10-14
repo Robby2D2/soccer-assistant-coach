@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'package:drift_sqflite/drift_sqflite.dart';
 import 'package:path_provider/path_provider.dart';
@@ -48,7 +49,7 @@ class AppDb extends _$AppDb {
       await _validateDatabaseIntegrity();
     },
     onUpgrade: (m, from, to) async {
-      print('🔄 Starting database migration from version $from to $to');
+      debugPrint('🔄 Starting database migration from version $from to $to');
 
       // SAFETY CHECK: Backup critical data before migration
       await _backupCriticalDataBeforeMigration(from);
@@ -80,7 +81,7 @@ class AppDb extends _$AppDb {
             );
           } catch (e) {
             // Column might already exist, ignore the error
-            print(
+            debugPrint(
               'Migration warning: shift_length_seconds column may already exist: $e',
             );
           }
@@ -160,14 +161,14 @@ class AppDb extends _$AppDb {
                 'UPDATE teams SET shift_length_seconds = 300 WHERE shift_length_seconds IS NULL',
               );
             } catch (updateError) {
-              print(
+              debugPrint(
                 'Migration warning: Could not update shift_length_seconds defaults: $updateError',
               );
             }
           }
         }
       } catch (e) {
-        print('❌ Migration error from $from to $to: $e');
+        debugPrint('❌ Migration error from $from to $to: $e');
         // Try to restore backup if available
         await _attemptDataRestoration(from);
         // Re-throw to let Drift handle the error appropriately
@@ -176,7 +177,7 @@ class AppDb extends _$AppDb {
 
       // SAFETY CHECK: Verify data integrity after migration
       await _verifyDataIntegrityAfterMigration(from, to);
-      print('✅ Migration from $from to $to completed successfully');
+      debugPrint('✅ Migration from $from to $to completed successfully');
     },
   );
 
@@ -187,7 +188,7 @@ class AppDb extends _$AppDb {
   /// Backup critical data before potentially destructive migrations
   Future<void> _backupCriticalDataBeforeMigration(int fromVersion) async {
     try {
-      print('💾 Backing up critical data before migration...');
+      debugPrint('💾 Backing up critical data before migration...');
 
       // Store team count for verification
       final teamCount = await getTeamCount();
@@ -196,17 +197,19 @@ class AppDb extends _$AppDb {
 
       // Store these in a temporary preference or shared storage
       // For now, just log them for verification
-      print('📊 Pre-migration data counts:');
-      print('   Teams: $teamCount');
-      print('   Games: $gameCount');
-      print('   Players: $playerCount');
+      debugPrint('📊 Pre-migration data counts:');
+      debugPrint('   Teams: $teamCount');
+      debugPrint('   Games: $gameCount');
+      debugPrint('   Players: $playerCount');
 
       // Could extend this to actually create backup tables if needed
       if (teamCount > 0) {
-        print('✅ Critical team data detected - will verify after migration');
+        debugPrint(
+          '✅ Critical team data detected - will verify after migration',
+        );
       }
     } catch (e) {
-      print('⚠️ Warning: Could not backup data before migration: $e');
+      debugPrint('⚠️ Warning: Could not backup data before migration: $e');
     }
   }
 
@@ -217,7 +220,7 @@ class AppDb extends _$AppDb {
       await customSelect('PRAGMA integrity_check').get();
       await customSelect('PRAGMA foreign_key_check').get();
     } catch (e) {
-      print('⚠️ Database integrity warning: $e');
+      debugPrint('⚠️ Database integrity warning: $e');
     }
   }
 
@@ -227,7 +230,7 @@ class AppDb extends _$AppDb {
     int toVersion,
   ) async {
     try {
-      print('🔍 Verifying data integrity after migration...');
+      debugPrint('🔍 Verifying data integrity after migration...');
 
       // Check that critical tables exist and have expected structure
       final tables = await listTables();
@@ -246,9 +249,9 @@ class AppDb extends _$AppDb {
         await _verifyTeamCustomizationColumns();
       }
 
-      print('✅ Data integrity verification passed');
+      debugPrint('✅ Data integrity verification passed');
     } catch (e) {
-      print('❌ Data integrity verification failed: $e');
+      debugPrint('❌ Data integrity verification failed: $e');
       rethrow;
     }
   }
@@ -274,9 +277,9 @@ class AppDb extends _$AppDb {
         }
       }
 
-      print('✅ Team customization columns verified');
+      debugPrint('✅ Team customization columns verified');
     } catch (e) {
-      print('❌ Team customization column verification failed: $e');
+      debugPrint('❌ Team customization column verification failed: $e');
       rethrow;
     }
   }
@@ -284,14 +287,14 @@ class AppDb extends _$AppDb {
   /// Attempt to restore data if migration fails
   Future<void> _attemptDataRestoration(int fromVersion) async {
     try {
-      print('🔄 Attempting data restoration after migration failure...');
+      debugPrint('🔄 Attempting data restoration after migration failure...');
       // This is a placeholder for more sophisticated backup/restore logic
       // In a production app, you might restore from backup files or tables
-      print(
+      debugPrint(
         'ℹ️ Data restoration not implemented - manual recovery may be needed',
       );
     } catch (e) {
-      print('❌ Data restoration attempt failed: $e');
+      debugPrint('❌ Data restoration attempt failed: $e');
     }
   }
 
@@ -329,7 +332,7 @@ class AppDb extends _$AppDb {
       final teams = await select(this.teams).get();
       return teams.isNotEmpty;
     } catch (e) {
-      print('Error checking teams: $e');
+      debugPrint('Error checking teams: $e');
       return false;
     }
   }
@@ -343,7 +346,7 @@ class AppDb extends _$AppDb {
       ).getSingleOrNull();
       return result?.read<int>('count') ?? 0;
     } catch (e) {
-      print('Error getting team count: $e');
+      debugPrint('Error getting team count: $e');
       return 0;
     }
   }
@@ -356,7 +359,7 @@ class AppDb extends _$AppDb {
       ).get();
       return result.map((row) => row.read<String>('name')).toList();
     } catch (e) {
-      print('Error listing tables: $e');
+      debugPrint('Error listing tables: $e');
       return [];
     }
   }
@@ -376,7 +379,7 @@ class AppDb extends _$AppDb {
           )
           .toList();
     } catch (e) {
-      print('Error describing teams table: $e');
+      debugPrint('Error describing teams table: $e');
       return [];
     }
   }
@@ -478,11 +481,11 @@ extension TeamQueries on AppDb {
 
   // Team customization methods
   Future<void> updateTeamLogo(int teamId, String? logoPath) async {
-    print('Updating team $teamId logo to: $logoPath');
+    debugPrint('Updating team $teamId logo to: $logoPath');
     await (update(teams)..where((t) => t.id.equals(teamId))).write(
       TeamsCompanion(logoImagePath: Value(logoPath)),
     );
-    print('Team logo update completed');
+    debugPrint('Team logo update completed');
   }
 
   Future<void> updateTeamColors(
@@ -508,6 +511,25 @@ extension TeamQueries on AppDb {
       if (team.primaryColor2?.isNotEmpty == true) team.primaryColor2!,
       if (team.primaryColor3?.isNotEmpty == true) team.primaryColor3!,
     ];
+  }
+
+  /// Get teams that have had games in the last few months
+  Future<List<Team>> getTeamsWithRecentGames({int monthsBack = 4}) async {
+    final cutoffDate = DateTime.now().subtract(Duration(days: monthsBack * 30));
+
+    final query =
+        select(teams).join([innerJoin(games, games.teamId.equalsExp(teams.id))])
+          ..where(
+            teams.isArchived.equals(false) &
+                games.isArchived.equals(false) &
+                games.startTime.isNotNull() &
+                games.startTime.isBiggerOrEqualValue(cutoffDate),
+          )
+          ..groupBy([teams.id])
+          ..orderBy([OrderingTerm.desc(games.startTime)]);
+
+    final result = await query.get();
+    return result.map((row) => row.readTable(teams)).toList();
   }
 }
 
@@ -1360,7 +1382,7 @@ extension TeamMetricsQueries on AppDb {
 
       // Get player metrics across all games
       final metrics =
-          await (select(this.playerMetrics)..where(
+          await (select(playerMetrics)..where(
                 (m) => m.playerId.equals(player.id) & m.gameId.isIn(gameIds),
               ))
               .get();
@@ -1394,7 +1416,7 @@ extension TeamMetricsQueries on AppDb {
         if (isTraditionalMode) {
           // For traditional mode, use the traditional_playing_time metric
           final playTime =
-              await (select(this.playerMetrics)..where(
+              await (select(playerMetrics)..where(
                     (m) =>
                         m.playerId.equals(player.id) &
                         m.gameId.equals(gameId) &
@@ -2040,7 +2062,7 @@ extension AutoRotation on AppDb {
           )
           .toList();
     } catch (e) {
-      print('Error describing teams table: $e');
+      debugPrint('Error describing teams table: $e');
       return [];
     }
   }
@@ -2050,7 +2072,7 @@ extension AutoRotation on AppDb {
       final count = await getTeamCount();
       return count > 0;
     } catch (e) {
-      print('Error checking if teams exist: $e');
+      debugPrint('Error checking if teams exist: $e');
       return false;
     }
   }
@@ -2062,7 +2084,7 @@ extension AutoRotation on AppDb {
       ).get();
       return result.first.read<int>('count');
     } catch (e) {
-      print('Error getting team count: $e');
+      debugPrint('Error getting team count: $e');
       return 0;
     }
   }
@@ -2096,7 +2118,7 @@ extension AutoRotation on AppDb {
       ).get();
       summary['formations'] = formationsResult.first.read<int>('count');
     } catch (e) {
-      print('Error getting data summary: $e');
+      debugPrint('Error getting data summary: $e');
     }
 
     return summary;
@@ -2106,15 +2128,15 @@ extension AutoRotation on AppDb {
   /// Automatically creates a backup before resetting
   Future<Map<String, dynamic>> resetDatabaseSafely() async {
     try {
-      print('🚨 DANGER: Resetting entire database...');
+      debugPrint('🚨 DANGER: Resetting entire database...');
 
       // STEP 1: Create automatic backup first
       final backupPath = await createAutomaticBackup();
       if (backupPath != null) {
-        print('💾 Automatic backup created before reset: $backupPath');
+        debugPrint('💾 Automatic backup created before reset: $backupPath');
       }
 
-      print('🗑️ Proceeding with database reset...');
+      debugPrint('🗑️ Proceeding with database reset...');
 
       // Delete all data in correct order to respect foreign keys
       await customStatement('PRAGMA foreign_keys = OFF');
@@ -2135,9 +2157,9 @@ extension AutoRotation on AppDb {
       for (final table in tables) {
         try {
           await customStatement('DELETE FROM $table');
-          print('🗑️ Cleared $table');
+          debugPrint('🗑️ Cleared $table');
         } catch (e) {
-          print('⚠️ Warning: Could not clear $table: $e');
+          debugPrint('⚠️ Warning: Could not clear $table: $e');
         }
       }
 
@@ -2146,14 +2168,14 @@ extension AutoRotation on AppDb {
       // Reset any auto-increment counters
       await customStatement('DELETE FROM sqlite_sequence');
 
-      print('✅ Database reset completed');
+      debugPrint('✅ Database reset completed');
       return {
         'success': true,
         'backupPath': backupPath,
         'message': 'Database reset completed successfully',
       };
     } catch (e) {
-      print('❌ Database reset failed: $e');
+      debugPrint('❌ Database reset failed: $e');
       return {
         'success': false,
         'backupPath': null,
@@ -2165,7 +2187,7 @@ extension AutoRotation on AppDb {
   /// Less destructive: Reset only team data while preserving structure
   Future<bool> resetTeamData() async {
     try {
-      print('🚨 Resetting team data...');
+      debugPrint('🚨 Resetting team data...');
 
       await customStatement('PRAGMA foreign_keys = OFF');
 
@@ -2183,10 +2205,10 @@ extension AutoRotation on AppDb {
 
       await customStatement('PRAGMA foreign_keys = ON');
 
-      print('✅ Team data reset completed');
+      debugPrint('✅ Team data reset completed');
       return true;
     } catch (e) {
-      print('❌ Team data reset failed: $e');
+      debugPrint('❌ Team data reset failed: $e');
       return false;
     }
   }
@@ -2198,7 +2220,7 @@ extension AutoRotation on AppDb {
   /// Export entire database to JSON format
   Future<String> exportDatabase() async {
     try {
-      print('📤 Starting database export...');
+      debugPrint('📤 Starting database export...');
 
       final exportData = <String, dynamic>{
         'exportMetadata': {
@@ -2212,57 +2234,59 @@ extension AutoRotation on AppDb {
       // Export teams
       final teams = await select(this.teams).get();
       exportData['data']['teams'] = teams.map((t) => t.toJson()).toList();
-      print('📊 Exported ${teams.length} teams');
+      debugPrint('📊 Exported ${teams.length} teams');
 
       // Export players
       final players = await select(this.players).get();
       exportData['data']['players'] = players.map((p) => p.toJson()).toList();
-      print('📊 Exported ${players.length} players');
+      debugPrint('📊 Exported ${players.length} players');
 
       // Export games
       final games = await select(this.games).get();
       exportData['data']['games'] = games.map((g) => g.toJson()).toList();
-      print('📊 Exported ${games.length} games');
+      debugPrint('📊 Exported ${games.length} games');
 
       // Export formations
       final formations = await select(this.formations).get();
       exportData['data']['formations'] = formations
           .map((f) => f.toJson())
           .toList();
-      print('📊 Exported ${formations.length} formations');
+      debugPrint('📊 Exported ${formations.length} formations');
 
       // Export formation positions
       final formationPositions = await select(this.formationPositions).get();
       exportData['data']['formationPositions'] = formationPositions
           .map((fp) => fp.toJson())
           .toList();
-      print('📊 Exported ${formationPositions.length} formation positions');
+      debugPrint(
+        '📊 Exported ${formationPositions.length} formation positions',
+      );
 
       // Export shifts
       final shifts = await select(this.shifts).get();
       exportData['data']['shifts'] = shifts.map((s) => s.toJson()).toList();
-      print('📊 Exported ${shifts.length} shifts');
+      debugPrint('📊 Exported ${shifts.length} shifts');
 
       // Export player shifts
       final playerShifts = await select(this.playerShifts).get();
       exportData['data']['playerShifts'] = playerShifts
           .map((ps) => ps.toJson())
           .toList();
-      print('📊 Exported ${playerShifts.length} player shifts');
+      debugPrint('📊 Exported ${playerShifts.length} player shifts');
 
       // Export game players
       final gamePlayers = await select(this.gamePlayers).get();
       exportData['data']['gamePlayers'] = gamePlayers
           .map((gp) => gp.toJson())
           .toList();
-      print('📊 Exported ${gamePlayers.length} game players');
+      debugPrint('📊 Exported ${gamePlayers.length} game players');
 
       // Export player metrics
       final playerMetrics = await select(this.playerMetrics).get();
       exportData['data']['playerMetrics'] = playerMetrics
           .map((pm) => pm.toJson())
           .toList();
-      print('📊 Exported ${playerMetrics.length} player metrics');
+      debugPrint('📊 Exported ${playerMetrics.length} player metrics');
 
       // Export player position totals
       final playerPositionTotals = await select(
@@ -2271,13 +2295,13 @@ extension AutoRotation on AppDb {
       exportData['data']['playerPositionTotals'] = playerPositionTotals
           .map((ppt) => ppt.toJson())
           .toList();
-      print('📊 Exported ${playerPositionTotals.length} position totals');
+      debugPrint('📊 Exported ${playerPositionTotals.length} position totals');
 
       final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
-      print('✅ Database export completed successfully');
+      debugPrint('✅ Database export completed successfully');
       return jsonString;
     } catch (e) {
-      print('❌ Database export failed: $e');
+      debugPrint('❌ Database export failed: $e');
       rethrow;
     }
   }
@@ -2300,10 +2324,10 @@ extension AutoRotation on AppDb {
       final file = File(filePath);
       await file.writeAsString(jsonData);
 
-      print('💾 Database exported to: $filePath');
+      debugPrint('💾 Database exported to: $filePath');
       return filePath;
     } catch (e) {
-      print('❌ Failed to save database export: $e');
+      debugPrint('❌ Failed to save database export: $e');
       rethrow;
     }
   }
@@ -2311,7 +2335,7 @@ extension AutoRotation on AppDb {
   /// Import database from JSON string
   Future<bool> importDatabase(String jsonData) async {
     try {
-      print('📥 Starting database import...');
+      debugPrint('📥 Starting database import...');
 
       final data = jsonDecode(jsonData) as Map<String, dynamic>;
       final importData = data['data'] as Map<String, dynamic>;
@@ -2319,7 +2343,7 @@ extension AutoRotation on AppDb {
 
       if (metadata != null) {
         final exportVersion = metadata['version'] as int?;
-        print(
+        debugPrint(
           '📋 Import metadata: version $exportVersion, date ${metadata['exportDate']}',
         );
 
@@ -2344,7 +2368,7 @@ extension AutoRotation on AppDb {
             this.teams,
           ).insert(Team.fromJson(teamData as Map<String, dynamic>));
         }
-        print('✅ Imported ${teams.length} teams');
+        debugPrint('✅ Imported ${teams.length} teams');
       }
 
       // 2. Import players
@@ -2355,7 +2379,7 @@ extension AutoRotation on AppDb {
             this.players,
           ).insert(Player.fromJson(playerData as Map<String, dynamic>));
         }
-        print('✅ Imported ${players.length} players');
+        debugPrint('✅ Imported ${players.length} players');
       }
 
       // 3. Import formations
@@ -2366,7 +2390,7 @@ extension AutoRotation on AppDb {
             this.formations,
           ).insert(Formation.fromJson(formationData as Map<String, dynamic>));
         }
-        print('✅ Imported ${formations.length} formations');
+        debugPrint('✅ Imported ${formations.length} formations');
       }
 
       // 4. Import formation positions
@@ -2377,7 +2401,7 @@ extension AutoRotation on AppDb {
             FormationPosition.fromJson(positionData as Map<String, dynamic>),
           );
         }
-        print('✅ Imported ${positions.length} formation positions');
+        debugPrint('✅ Imported ${positions.length} formation positions');
       }
 
       // 5. Import games
@@ -2388,7 +2412,7 @@ extension AutoRotation on AppDb {
             this.games,
           ).insert(Game.fromJson(gameData as Map<String, dynamic>));
         }
-        print('✅ Imported ${games.length} games');
+        debugPrint('✅ Imported ${games.length} games');
       }
 
       // 6. Import game players
@@ -2399,7 +2423,7 @@ extension AutoRotation on AppDb {
             this.gamePlayers,
           ).insert(GamePlayer.fromJson(gamePlayerData as Map<String, dynamic>));
         }
-        print('✅ Imported ${gamePlayers.length} game players');
+        debugPrint('✅ Imported ${gamePlayers.length} game players');
       }
 
       // 7. Import shifts
@@ -2410,7 +2434,7 @@ extension AutoRotation on AppDb {
             this.shifts,
           ).insert(Shift.fromJson(shiftData as Map<String, dynamic>));
         }
-        print('✅ Imported ${shifts.length} shifts');
+        debugPrint('✅ Imported ${shifts.length} shifts');
       }
 
       // 8. Import player shifts
@@ -2421,7 +2445,7 @@ extension AutoRotation on AppDb {
             PlayerShift.fromJson(playerShiftData as Map<String, dynamic>),
           );
         }
-        print('✅ Imported ${playerShifts.length} player shifts');
+        debugPrint('✅ Imported ${playerShifts.length} player shifts');
       }
 
       // 9. Import player metrics
@@ -2432,7 +2456,7 @@ extension AutoRotation on AppDb {
             this.playerMetrics,
           ).insert(PlayerMetric.fromJson(metricData as Map<String, dynamic>));
         }
-        print('✅ Imported ${playerMetrics.length} player metrics');
+        debugPrint('✅ Imported ${playerMetrics.length} player metrics');
       }
 
       // 10. Import player position totals
@@ -2443,15 +2467,15 @@ extension AutoRotation on AppDb {
             PlayerPositionTotal.fromJson(totalData as Map<String, dynamic>),
           );
         }
-        print('✅ Imported ${totals.length} position totals');
+        debugPrint('✅ Imported ${totals.length} position totals');
       }
 
       await customStatement('PRAGMA foreign_keys = ON');
 
-      print('✅ Database import completed successfully');
+      debugPrint('✅ Database import completed successfully');
       return true;
     } catch (e) {
-      print('❌ Database import failed: $e');
+      debugPrint('❌ Database import failed: $e');
       await customStatement(
         'PRAGMA foreign_keys = ON',
       ); // Ensure foreign keys are re-enabled
@@ -2470,7 +2494,7 @@ extension AutoRotation on AppDb {
       final jsonData = await file.readAsString();
       return await importDatabase(jsonData);
     } catch (e) {
-      print('❌ Failed to import from file: $e');
+      debugPrint('❌ Failed to import from file: $e');
       return false;
     }
   }
@@ -2478,22 +2502,22 @@ extension AutoRotation on AppDb {
   /// Create automatic backup before destructive operations
   Future<String?> createAutomaticBackup() async {
     try {
-      print('🔄 Creating automatic backup...');
+      debugPrint('🔄 Creating automatic backup...');
 
       // Check if there's any data to backup
       final summary = await getDataSummaryForReset();
       final hasData = summary.values.any((count) => count > 0);
 
       if (!hasData) {
-        print('ℹ️ No data to backup - skipping automatic backup');
+        debugPrint('ℹ️ No data to backup - skipping automatic backup');
         return null;
       }
 
       final backupPath = await exportDatabaseToFile();
-      print('✅ Automatic backup created: $backupPath');
+      debugPrint('✅ Automatic backup created: $backupPath');
       return backupPath;
     } catch (e) {
-      print('⚠️ Automatic backup failed: $e');
+      debugPrint('⚠️ Automatic backup failed: $e');
       return null;
     }
   }

@@ -339,7 +339,7 @@ class _PlaytimeBarChart extends StatelessWidget {
         final seconds = entry.value;
         final minutes = seconds / 60.0;
         final percentage = seconds / maxSeconds;
-        final barMaxWidth = 200.0;
+        const barMaxWidth = 200.0;
         final barWidth = barMaxWidth * percentage;
 
         final color = colorScheme.primary;

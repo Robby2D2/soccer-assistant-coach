@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../data/services/stopwatch_service.dart';
 import '../../../widgets/team_logo_widget.dart';
-import '../../../widgets/team_panels.dart';
 import '../../widgets/team_color_picker.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -174,53 +173,78 @@ class HomeScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Quick Actions',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.dashboard_outlined,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Quick Actions',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  StreamBuilder<List<Team>>(
-                    stream: db.watchTeams(),
-                    builder: (context, snapshot) {
-                      final teams = snapshot.data ?? [];
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: FutureBuilder<List<Team>>(
+                      future: db.getTeamsWithRecentGames(),
+                      builder: (context, recentTeamsSnapshot) {
+                        final recentTeams = recentTeamsSnapshot.data ?? [];
 
-                      return Expanded(
-                        child: GridView.count(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 1.3,
-                          children: [
-                            // Manage Teams Card
-                            _QuickActionCard(
-                              icon: Icons.group,
-                              title: 'Manage Teams',
-                              subtitle:
-                                  '${teams.length} team${teams.length != 1 ? 's' : ''}',
-                              onTap: () => context.push('/teams'),
-                            ),
+                        return StreamBuilder<List<Team>>(
+                          stream: db.watchTeams(),
+                          builder: (context, allTeamsSnapshot) {
+                            final allTeams = allTeamsSnapshot.data ?? [];
 
-                            // Recent Team Card (if teams exist)
-                            if (teams.isNotEmpty)
-                              TeamBrandedPanel(
-                                teamId: teams.first.id,
-                                subtitle: 'View team details',
-                                onTap: () =>
-                                    context.push('/team/${teams.first.id}'),
-                              )
-                            else
+                            final List<Widget> cards = [];
+
+                            // Always show Manage Teams card first
+                            cards.add(
                               _QuickActionCard(
-                                icon: Icons.add,
-                                title: 'Create Team',
-                                subtitle: 'Get started',
+                                icon: Icons.groups_outlined,
+                                title: 'Manage Teams',
+                                subtitle: '${allTeams.length} teams',
                                 onTap: () => context.push('/teams'),
                               ),
-                          ],
-                        ),
-                      );
-                    },
+                            );
+
+                            // Add cards for teams with recent games
+                            for (final team in recentTeams.take(3)) {
+                              cards.add(
+                                _RecentTeamCard(
+                                  team: team,
+                                  onTap: () => context.push('/team/${team.id}'),
+                                ),
+                              );
+                            }
+
+                            // If no recent teams, show first team as fallback
+                            if (recentTeams.isEmpty && allTeams.isNotEmpty) {
+                              cards.add(
+                                _TeamBrandedCard(
+                                  team: allTeams.first,
+                                  onTap: () => context.push(
+                                    '/team/${allTeams.first.id}',
+                                  ),
+                                ),
+                              );
+                            }
+
+                            return GridView.count(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              childAspectRatio: 1.1,
+                              children: cards,
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -715,6 +739,193 @@ class _ActiveGameGradientCard extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentTeamCard extends StatelessWidget {
+  final Team team;
+  final VoidCallback onTap;
+
+  const _RecentTeamCard({required this.team, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    // Use team colors if available
+    final hasTeamColors = team.primaryColor1 != null;
+    final teamPrimaryColor = hasTeamColors
+        ? (ColorHelper.hexToColor(team.primaryColor1!) ??
+              Theme.of(context).colorScheme.primary)
+        : Theme.of(context).colorScheme.primary;
+
+    return Material(
+      elevation: 3,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                teamPrimaryColor.withOpacity(0.1),
+                Theme.of(context).colorScheme.surface,
+                teamPrimaryColor.withOpacity(0.05),
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: teamPrimaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TeamLogoWidget(
+                    logoPath: team.logoImagePath,
+                    size: 24,
+                    backgroundColor: Colors.transparent,
+                    iconColor: teamPrimaryColor,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  team.name,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: teamPrimaryColor,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: teamPrimaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Recent Games',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: teamPrimaryColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TeamBrandedCard extends StatelessWidget {
+  final Team team;
+  final VoidCallback onTap;
+
+  const _TeamBrandedCard({required this.team, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    // Use team colors if available
+    final hasTeamColors = team.primaryColor1 != null;
+    final teamPrimaryColor = hasTeamColors
+        ? (ColorHelper.hexToColor(team.primaryColor1!) ??
+              Theme.of(context).colorScheme.primary)
+        : Theme.of(context).colorScheme.primary;
+
+    return Material(
+      elevation: 3,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                teamPrimaryColor.withOpacity(0.2),
+                Theme.of(context).colorScheme.surface,
+                teamPrimaryColor.withOpacity(0.1),
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: teamPrimaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TeamLogoWidget(
+                    logoPath: team.logoImagePath,
+                    size: 28,
+                    backgroundColor: Colors.transparent,
+                    iconColor: teamPrimaryColor,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  team.name,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: teamPrimaryColor,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: teamPrimaryColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Team Details',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: teamPrimaryColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
