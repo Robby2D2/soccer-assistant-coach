@@ -9,7 +9,6 @@ import '../../core/positions.dart';
 import '../../data/services/stopwatch_service.dart';
 import '../../data/services/notification_service.dart';
 import '../../data/services/alert_service.dart';
-import '../../widgets/team_header.dart';
 import '../../widgets/player_panel.dart';
 import '../../widgets/team_logo_widget.dart';
 import '../../widgets/team_color_picker.dart';
@@ -324,39 +323,85 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               return const Text('Game');
             }
 
-            // Create enhanced game title with team branding
-            final opponent = game.opponent?.isNotEmpty == true
-                ? game.opponent!
-                : 'Opponent';
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TeamHeader(
-                  teamId: game.teamId,
-                  logoSize: 24,
-                  showName: false, // Just show logo in AppBar
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'vs $opponent',
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      if (game.startTime != null)
-                        Text(
-                          _formatDateTime(game.startTime!),
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(color: Theme.of(context).hintColor),
+            // Create compact game header with team info and opponent
+            return FutureBuilder<Team?>(
+              future: db.getTeam(game.teamId),
+              builder: (context, teamSnap) {
+                final team = teamSnap.data;
+                final opponent = game.opponent?.isNotEmpty == true
+                    ? game.opponent!
+                    : 'Bad guys';
+
+                // Format game date/time
+                String gameTimeText = '';
+                if (game.startTime != null) {
+                  final DateTime startTime = game.startTime!;
+                  final String formattedDate =
+                      '${startTime.year}-${startTime.month.toString().padLeft(2, '0')}-${startTime.day.toString().padLeft(2, '0')}';
+                  final String formattedTime =
+                      '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
+                  gameTimeText = '$formattedDate • $formattedTime';
+                }
+
+                // Use team colors if available
+                final hasTeamColors = team?.primaryColor1 != null;
+                final teamPrimaryColor = hasTeamColors
+                    ? (ColorHelper.hexToColor(team!.primaryColor1!) ??
+                          Theme.of(context).colorScheme.primary)
+                    : Theme.of(context).colorScheme.primary;
+
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Team logo with team colors
+                    if (team != null)
+                      Container(
+                        margin: const EdgeInsets.only(right: 12),
+                        child: TeamLogoWidget(
+                          logoPath: team.logoImagePath,
+                          size: 32,
+                          backgroundColor: hasTeamColors
+                              ? teamPrimaryColor.withOpacity(0.15)
+                              : Theme.of(context).colorScheme.primaryContainer,
+                          iconColor: teamPrimaryColor,
                         ),
-                    ],
-                  ),
-                ),
-              ],
+                      ),
+                    // Game info with team color accent
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'vs $opponent',
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: hasTeamColors
+                                      ? teamPrimaryColor
+                                      : null,
+                                ),
+                          ),
+                          if (gameTimeText.isNotEmpty)
+                            Text(
+                              gameTimeText,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: hasTeamColors
+                                        ? teamPrimaryColor.withOpacity(0.7)
+                                        : Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
             );
           },
         ),
@@ -468,17 +513,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Game header with team branding
-          FutureBuilder<Game?>(
-            future: db.getGame(widget.gameId),
-            builder: (context, gameSnap) {
-              final game = gameSnap.data;
-              if (game == null) return const SizedBox.shrink();
-
-              return _GameGradientHeader(game: game, teamId: game.teamId);
-            },
-          ),
-          const SizedBox(height: 12),
           Expanded(
             child: FutureBuilder<Game?>(
               future: db.getGame(widget.gameId),
@@ -1833,205 +1867,6 @@ enum _GameMenuAction {
   attendance,
   reset,
   endGame,
-}
-
-class _GameGradientHeader extends StatelessWidget {
-  final Game game;
-  final int teamId;
-
-  const _GameGradientHeader({required this.game, required this.teamId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer(
-      builder: (context, ref, _) {
-        final db = ref.watch(dbProvider);
-
-        return FutureBuilder<Team?>(
-          future: db.getTeam(teamId),
-          builder: (context, teamSnap) {
-            final team = teamSnap.data;
-            if (team == null) return const SizedBox.shrink();
-
-            // Use team colors if available
-            final hasTeamColors = team.primaryColor1 != null;
-            final teamPrimaryColor = hasTeamColors
-                ? (ColorHelper.hexToColor(team.primaryColor1!) ??
-                      Theme.of(context).colorScheme.primary)
-                : Theme.of(context).colorScheme.primary;
-
-            final teamSecondaryColor = team.primaryColor2 != null
-                ? (ColorHelper.hexToColor(team.primaryColor2!) ??
-                      teamPrimaryColor.withOpacity(0.7))
-                : teamPrimaryColor.withOpacity(0.7);
-
-            // Format game date/time
-            String gameTimeText = '';
-            if (game.startTime != null) {
-              final DateTime startTime = game.startTime!;
-              final String formattedDate =
-                  '${startTime.day}/${startTime.month}/${startTime.year}';
-              final String formattedTime =
-                  '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
-              gameTimeText = '$formattedDate at $formattedTime';
-            }
-
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    teamPrimaryColor.withOpacity(0.9),
-                    teamSecondaryColor.withOpacity(0.8),
-                    teamPrimaryColor.withOpacity(0.7),
-                  ],
-                  stops: const [0.0, 0.5, 1.0],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: teamPrimaryColor.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    // Team logo
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TeamLogoWidget(
-                        logoPath: team.logoImagePath,
-                        size: 36,
-                        backgroundColor: Colors.transparent,
-                        iconColor: teamPrimaryColor,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Game info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            team.name,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      offset: const Offset(0, 1),
-                                      blurRadius: 2,
-                                    ),
-                                  ],
-                                ),
-                          ),
-                          if (game.opponent?.isNotEmpty == true) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              'vs ${game.opponent}',
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.black.withOpacity(0.3),
-                                        offset: const Offset(0, 1),
-                                        blurRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                            ),
-                          ],
-                          if (gameTimeText.isNotEmpty) ...[
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.9),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                gameTimeText,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: teamPrimaryColor,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    // Game status indicator
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            game.isGameActive
-                                ? Icons.play_circle
-                                : Icons.pause_circle,
-                            color: game.isGameActive
-                                ? Theme.of(context).colorScheme.error
-                                : teamPrimaryColor,
-                            size: 24,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            game.isGameActive ? 'LIVE' : 'PAUSED',
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
-                                  color: game.isGameActive
-                                      ? Theme.of(context).colorScheme.error
-                                      : teamPrimaryColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 }
 
 // (Play Time chart widgets moved to Metrics screen)

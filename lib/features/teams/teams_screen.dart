@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
-import '../../widgets/team_logo_widget.dart';
+import '../../widgets/team_panels.dart';
 
 class TeamsScreen extends ConsumerStatefulWidget {
   const TeamsScreen({super.key});
@@ -217,151 +217,24 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
             itemBuilder: (_, i) {
               final team = visible[i];
               final archived = team.isArchived;
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Card(
-                  elevation: archived ? 0 : 2,
-                  color: archived
-                      ? Theme.of(context).colorScheme.surfaceContainerHighest
-                      : null,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => context.push('/team/${team.id}'),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        children: [
-                          TeamLogoWidget(
-                            logoPath: team.logoImagePath,
-                            size: 56,
-                            backgroundColor: archived
-                                ? Theme.of(
-                                    context,
-                                  ).colorScheme.outline.withValues(alpha: 0.12)
-                                : Theme.of(
-                                    context,
-                                  ).colorScheme.primaryContainer,
-                            iconColor: archived
-                                ? Theme.of(context).colorScheme.outline
-                                : Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  team.name,
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: archived
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.onSurfaceVariant
-                                            : null,
-                                      ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(12),
-                                        color: team.teamMode == 'traditional'
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.secondaryContainer
-                                            : Theme.of(
-                                                context,
-                                              ).colorScheme.tertiaryContainer,
-                                      ),
-                                      child: Text(
-                                        team.teamMode == 'traditional'
-                                            ? 'Traditional'
-                                            : 'Shift Mode',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelSmall
-                                            ?.copyWith(
-                                              color:
-                                                  team.teamMode == 'traditional'
-                                                  ? Theme.of(context)
-                                                        .colorScheme
-                                                        .onSecondaryContainer
-                                                  : Theme.of(context)
-                                                        .colorScheme
-                                                        .onTertiaryContainer,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                      ),
-                                    ),
-                                    if (archived) ...[
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.errorContainer,
-                                        ),
-                                        child: Text(
-                                          'Archived',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelSmall
-                                              ?.copyWith(
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.onErrorContainer,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          Column(
-                            children: [
-                              IconButton(
-                                icon: Icon(
-                                  archived ? Icons.unarchive : Icons.archive,
-                                ),
-                                tooltip: archived
-                                    ? 'Restore team'
-                                    : 'Archive team',
-                                onPressed: () async {
-                                  await db.setTeamArchived(
-                                    team.id,
-                                    archived: !archived,
-                                  );
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.edit_outlined),
-                                tooltip: 'Edit team',
-                                onPressed: () =>
-                                    context.push('/team/${team.id}/edit'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+              return TeamPanel(
+                teamId: team.id,
+                onTap: () => context.push('/team/${team.id}'),
+                trailing: Column(
+                  children: [
+                    IconButton(
+                      icon: Icon(archived ? Icons.unarchive : Icons.archive),
+                      tooltip: archived ? 'Restore team' : 'Archive team',
+                      onPressed: () async {
+                        await db.setTeamArchived(team.id, archived: !archived);
+                      },
                     ),
-                  ),
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'Edit team',
+                      onPressed: () => context.push('/team/${team.id}/edit'),
+                    ),
+                  ],
                 ),
               );
             },

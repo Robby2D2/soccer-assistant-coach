@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
-import '../../widgets/team_logo_widget.dart';
+import '../../data/services/stopwatch_service.dart';
+import '../../../widgets/team_logo_widget.dart';
+import '../../../widgets/team_panels.dart';
 import '../../widgets/team_color_picker.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -202,8 +204,8 @@ class HomeScreen extends ConsumerWidget {
 
                             // Recent Team Card (if teams exist)
                             if (teams.isNotEmpty)
-                              _TeamQuickActionCard(
-                                team: teams.first,
+                              TeamBrandedPanel(
+                                teamId: teams.first.id,
                                 subtitle: 'View team details',
                                 onTap: () =>
                                     context.push('/team/${teams.first.id}'),
@@ -323,136 +325,6 @@ class _QuickActionCard extends StatelessWidget {
   }
 }
 
-class _TeamQuickActionCard extends StatelessWidget {
-  final Team team;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _TeamQuickActionCard({
-    required this.team,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Use team colors if available
-    final hasTeamColors = team.primaryColor1 != null;
-    final teamPrimaryColor = hasTeamColors
-        ? (ColorHelper.hexToColor(team.primaryColor1!) ??
-              Theme.of(context).colorScheme.primary)
-        : Theme.of(context).colorScheme.primary;
-
-    final teamSecondaryColor = team.primaryColor2 != null
-        ? (ColorHelper.hexToColor(team.primaryColor2!) ??
-              teamPrimaryColor.withOpacity(0.7))
-        : teamPrimaryColor.withOpacity(0.7);
-
-    return Material(
-      elevation: 4,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: hasTeamColors
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      teamPrimaryColor.withOpacity(0.8),
-                      teamSecondaryColor.withOpacity(0.7),
-                      teamPrimaryColor.withOpacity(0.6),
-                    ],
-                    stops: const [0.0, 0.5, 1.0],
-                  )
-                : LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Theme.of(context).colorScheme.primaryContainer,
-                      Theme.of(context).colorScheme.primary.withOpacity(0.3),
-                    ],
-                  ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: TeamLogoWidget(
-                    logoPath: team.logoImagePath,
-                    size: 32,
-                    backgroundColor: Colors.transparent,
-                    iconColor: teamPrimaryColor,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Flexible(
-                  child: Text(
-                    team.name,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withOpacity(0.3),
-                          offset: const Offset(0, 1),
-                          blurRadius: 2,
-                        ),
-                      ],
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: teamPrimaryColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _LiveGameTimer extends ConsumerStatefulWidget {
   final Game game;
   final int teamId;
@@ -529,22 +401,12 @@ class _LiveGameTimerState extends ConsumerState<_LiveGameTimer> {
 
           final shiftDuration = snapshot.data!;
 
-          return StreamBuilder<Shift?>(
-            stream: db
-                .getShift(widget.game.currentShiftId!)
-                .asStream()
-                .asyncMap((shift) => shift)
-                .asyncExpand(
-                  (_) => Stream.periodic(
-                    const Duration(seconds: 1),
-                  ).asyncMap((_) => db.getShift(widget.game.currentShiftId!)),
-                )
-                .distinct(
-                  (prev, next) => prev?.actualSeconds == next?.actualSeconds,
-                ),
-            builder: (context, shiftSnapshot) {
-              final currentShift = shiftSnapshot.data;
-              final currentShiftTime = currentShift?.actualSeconds ?? 0;
+          return Consumer(
+            builder: (context, ref, child) {
+              // Use the same stopwatch provider as the game screen for consistency
+              final currentShiftTime = ref.watch(
+                stopwatchProvider(widget.game.id),
+              );
 
               return Column(
                 mainAxisSize: MainAxisSize.min,
