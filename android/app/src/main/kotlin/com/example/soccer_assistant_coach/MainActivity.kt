@@ -1,4 +1,4 @@
-package com.example.soccer_assistant_coach
+package com.useunix.soccer_assistant_coach
 
 import io.flutter.embedding.android.FlutterActivity
 
