@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../widgets/team_logo_widget.dart';
 import '../../widgets/team_color_picker.dart';
+import '../../widgets/team_header.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -153,157 +154,10 @@ class HomeScreen extends ConsumerWidget {
                         final game = gameWithTeam.game;
                         final team = gameWithTeam.team;
 
-                        // Use team colors if available
-                        final hasTeamColors = team.primaryColor1 != null;
-                        final teamPrimaryColor = hasTeamColors
-                            ? (ColorHelper.hexToColor(team.primaryColor1!) ??
-                                  Theme.of(context).colorScheme.primary)
-                            : Theme.of(context).colorScheme.primary;
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: Card(
-                            elevation: 4,
-                            color: hasTeamColors
-                                ? teamPrimaryColor.withOpacity(0.05)
-                                : null,
-                            child: InkWell(
-                              onTap: () => context.push('/game/${game.id}'),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Row(
-                                  children: [
-                                    Stack(
-                                      children: [
-                                        TeamLogoWidget(
-                                          logoPath: team.logoImagePath,
-                                          size: 40,
-                                          backgroundColor: game.isGameActive
-                                              ? teamPrimaryColor.withOpacity(
-                                                  0.2,
-                                                )
-                                              : teamPrimaryColor.withOpacity(
-                                                  0.15,
-                                                ),
-                                          iconColor: teamPrimaryColor,
-                                        ),
-                                        Positioned(
-                                          right: -2,
-                                          bottom: -2,
-                                          child: Container(
-                                            padding: const EdgeInsets.all(2),
-                                            decoration: BoxDecoration(
-                                              color: game.isGameActive
-                                                  ? Theme.of(
-                                                      context,
-                                                    ).colorScheme.error
-                                                  : Theme.of(
-                                                      context,
-                                                    ).colorScheme.primary,
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: Icon(
-                                              game.isGameActive
-                                                  ? Icons.play_arrow
-                                                  : Icons.pause,
-                                              color: game.isGameActive
-                                                  ? Theme.of(
-                                                      context,
-                                                    ).colorScheme.onError
-                                                  : Theme.of(
-                                                      context,
-                                                    ).colorScheme.onPrimary,
-                                              size: 12,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            team.name,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleMedium
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                          ),
-                                          if (game.opponent?.isNotEmpty == true)
-                                            Text(
-                                              'vs ${game.opponent}',
-                                              style: Theme.of(
-                                                context,
-                                              ).textTheme.bodyMedium,
-                                            ),
-                                          const SizedBox(height: 4),
-                                          Row(
-                                            children: [
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 2,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: game.isGameActive
-                                                      ? Theme.of(context)
-                                                            .colorScheme
-                                                            .errorContainer
-                                                            .withValues(
-                                                              alpha: 0.5,
-                                                            )
-                                                      : Theme.of(context)
-                                                            .colorScheme
-                                                            .primaryContainer
-                                                            .withValues(
-                                                              alpha: 0.5,
-                                                            ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                                child: Text(
-                                                  game.isGameActive
-                                                      ? 'LIVE'
-                                                      : 'PAUSED',
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .labelSmall
-                                                      ?.copyWith(
-                                                        color: game.isGameActive
-                                                            ? Theme.of(context)
-                                                                  .colorScheme
-                                                                  .error
-                                                            : Theme.of(context)
-                                                                  .colorScheme
-                                                                  .primary,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              _HalfOrShiftDisplay(game: game),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    // Live updating time display for active games
-                                    _LiveGameTimer(game: game, teamId: team.id),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
+                        return _ActiveGameGradientCard(
+                          game: game,
+                          team: team,
+                          onTap: () => context.push('/game/${game.id}'),
                         );
                       }).toList(),
                     );
@@ -393,39 +247,77 @@ class _QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
+    return Material(
+      elevation: 3,
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 48,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                Theme.of(context).colorScheme.surface,
+                Theme.of(context).colorScheme.primaryContainer.withOpacity(0.1),
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 32,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -453,48 +345,109 @@ class _TeamQuickActionCard extends StatelessWidget {
               Theme.of(context).colorScheme.primary)
         : Theme.of(context).colorScheme.primary;
 
-    return Card(
-      elevation: 2,
-      color: hasTeamColors ? teamPrimaryColor.withOpacity(0.05) : null,
+    final teamSecondaryColor = team.primaryColor2 != null
+        ? (ColorHelper.hexToColor(team.primaryColor2!) ??
+              teamPrimaryColor.withOpacity(0.7))
+        : teamPrimaryColor.withOpacity(0.7);
+
+    return Material(
+      elevation: 4,
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TeamLogoWidget(
-                logoPath: team.logoImagePath,
-                size: 40,
-                backgroundColor: teamPrimaryColor.withOpacity(0.15),
-                iconColor: teamPrimaryColor,
-              ),
-              const SizedBox(height: 8),
-              Flexible(
-                child: Text(
-                  team.name,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: hasTeamColors ? teamPrimaryColor : null,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: hasTeamColors
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      teamPrimaryColor.withOpacity(0.8),
+                      teamSecondaryColor.withOpacity(0.7),
+                      teamPrimaryColor.withOpacity(0.6),
+                    ],
+                    stops: const [0.0, 0.5, 1.0],
+                  )
+                : LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Theme.of(context).colorScheme.primaryContainer,
+                      Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                    ],
                   ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TeamLogoWidget(
+                    logoPath: team.logoImagePath,
+                    size: 32,
+                    backgroundColor: Colors.transparent,
+                    iconColor: teamPrimaryColor,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                const SizedBox(height: 12),
+                Flexible(
+                  child: Text(
+                    team.name,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withOpacity(0.3),
+                          offset: const Offset(0, 1),
+                          blurRadius: 2,
+                        ),
+                      ],
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: teamPrimaryColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -712,5 +665,200 @@ class _HalfOrShiftDisplay extends ConsumerWidget {
         ),
       );
     }
+  }
+}
+
+class _ActiveGameGradientCard extends StatelessWidget {
+  final Game game;
+  final Team team;
+  final VoidCallback onTap;
+
+  const _ActiveGameGradientCard({
+    required this.game,
+    required this.team,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Use team colors if available
+    final hasTeamColors = team.primaryColor1 != null;
+    final teamPrimaryColor = hasTeamColors
+        ? (ColorHelper.hexToColor(team.primaryColor1!) ??
+              Theme.of(context).colorScheme.primary)
+        : Theme.of(context).colorScheme.primary;
+
+    final teamSecondaryColor = team.primaryColor2 != null
+        ? (ColorHelper.hexToColor(team.primaryColor2!) ??
+              teamPrimaryColor.withOpacity(0.7))
+        : teamPrimaryColor.withOpacity(0.7);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        elevation: 6,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  teamPrimaryColor.withOpacity(0.9),
+                  teamSecondaryColor.withOpacity(0.8),
+                  teamPrimaryColor.withOpacity(0.7),
+                ],
+                stops: const [0.0, 0.5, 1.0],
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  // Team logo with status indicator
+                  Stack(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: TeamLogoWidget(
+                          logoPath: team.logoImagePath,
+                          size: 32,
+                          backgroundColor: Colors.transparent,
+                          iconColor: teamPrimaryColor,
+                        ),
+                      ),
+                      Positioned(
+                        right: -2,
+                        bottom: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: game.isGameActive
+                                ? Theme.of(context).colorScheme.error
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: Icon(
+                            game.isGameActive ? Icons.play_arrow : Icons.pause,
+                            color: game.isGameActive
+                                ? Colors.white
+                                : teamPrimaryColor,
+                            size: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 16),
+                  // Game info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          team.name,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(0.3),
+                                    offset: const Offset(0, 1),
+                                    blurRadius: 2,
+                                  ),
+                                ],
+                              ),
+                        ),
+                        if (game.opponent?.isNotEmpty == true) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'vs ${game.opponent}',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Colors.white.withOpacity(0.9),
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      offset: const Offset(0, 1),
+                                      blurRadius: 2,
+                                    ),
+                                  ],
+                                ),
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.9),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                game.isGameActive ? 'LIVE' : 'PAUSED',
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(
+                                      color: game.isGameActive
+                                          ? Theme.of(context).colorScheme.error
+                                          : teamPrimaryColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: _HalfOrShiftDisplay(game: game),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Live timer
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: _LiveGameTimer(game: game, teamId: team.id),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
