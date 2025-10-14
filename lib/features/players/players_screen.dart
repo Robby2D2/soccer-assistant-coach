@@ -5,6 +5,7 @@ import '../../core/providers.dart';
 import '../../utils/csv.dart';
 import '../../utils/files.dart';
 import '../../widgets/player_avatar.dart';
+import '../../widgets/team_header.dart';
 import 'package:go_router/go_router.dart';
 
 class PlayersScreen extends ConsumerWidget {
@@ -89,11 +90,7 @@ class PlayersScreen extends ConsumerWidget {
     final db = ref.watch(dbProvider);
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Team $teamId Players',
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
-        ),
+        title: TeamHeader(teamId: teamId, suffix: ' Players', logoSize: 28),
         actions: [
           IconButton(
             tooltip: 'Export CSV',

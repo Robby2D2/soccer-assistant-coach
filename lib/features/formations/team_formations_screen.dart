@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../widgets/team_header.dart';
+import '../../widgets/team_accent_widgets.dart';
 
 class TeamFormationsScreen extends ConsumerWidget {
   final int teamId;
@@ -51,8 +53,11 @@ class TeamFormationsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(dbProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Formations')),
-      floatingActionButton: FloatingActionButton(
+      appBar: AppBar(
+        title: TeamHeader(teamId: teamId, suffix: ' Formations', logoSize: 28),
+      ),
+      floatingActionButton: TeamFloatingActionButton(
+        teamId: teamId,
         tooltip: 'Create formation',
         onPressed: () => context.push('/team/$teamId/formations/new'),
         child: const Icon(Icons.add),

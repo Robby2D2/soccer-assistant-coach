@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../widgets/team_header.dart';
+import '../../widgets/team_accent_widgets.dart';
 
 class GamesScreen extends ConsumerStatefulWidget {
   final int teamId;
@@ -118,22 +120,10 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: FutureBuilder<Team?>(
-          future: db.getTeam(widget.teamId),
-          builder: (context, snapshot) {
-            if (snapshot.hasData && snapshot.data != null) {
-              return Text(
-                '${snapshot.data!.name} Games',
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              );
-            }
-            return Text(
-              'Team ${widget.teamId} Games',
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            );
-          },
+        title: TeamHeader(
+          teamId: widget.teamId,
+          suffix: ' Games',
+          logoSize: 28,
         ),
         actions: [
           IconButton(
@@ -148,7 +138,8 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: TeamFloatingActionButton(
+        teamId: widget.teamId,
         onPressed: () async {
           final gameId = await db.addGame(
             GamesCompanion.insert(

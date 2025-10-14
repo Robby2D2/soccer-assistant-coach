@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../widgets/team_logo_widget.dart';
+import '../../widgets/team_color_picker.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -152,10 +153,20 @@ class HomeScreen extends ConsumerWidget {
                         final game = gameWithTeam.game;
                         final team = gameWithTeam.team;
 
+                        // Use team colors if available
+                        final hasTeamColors = team.primaryColor1 != null;
+                        final teamPrimaryColor = hasTeamColors
+                            ? (ColorHelper.hexToColor(team.primaryColor1!) ??
+                                  Theme.of(context).colorScheme.primary)
+                            : Theme.of(context).colorScheme.primary;
+
                         return Container(
                           margin: const EdgeInsets.only(bottom: 8),
                           child: Card(
                             elevation: 4,
+                            color: hasTeamColors
+                                ? teamPrimaryColor.withOpacity(0.05)
+                                : null,
                             child: InkWell(
                               onTap: () => context.push('/game/${game.id}'),
                               borderRadius: BorderRadius.circular(12),
@@ -169,19 +180,13 @@ class HomeScreen extends ConsumerWidget {
                                           logoPath: team.logoImagePath,
                                           size: 40,
                                           backgroundColor: game.isGameActive
-                                              ? Theme.of(
-                                                  context,
-                                                ).colorScheme.errorContainer
-                                              : Theme.of(
-                                                  context,
-                                                ).colorScheme.primaryContainer,
-                                          iconColor: game.isGameActive
-                                              ? Theme.of(
-                                                  context,
-                                                ).colorScheme.error
-                                              : Theme.of(
-                                                  context,
-                                                ).colorScheme.primary,
+                                              ? teamPrimaryColor.withOpacity(
+                                                  0.2,
+                                                )
+                                              : teamPrimaryColor.withOpacity(
+                                                  0.15,
+                                                ),
+                                          iconColor: teamPrimaryColor,
                                         ),
                                         Positioned(
                                           right: -2,
@@ -345,9 +350,8 @@ class HomeScreen extends ConsumerWidget {
 
                             // Recent Team Card (if teams exist)
                             if (teams.isNotEmpty)
-                              _QuickActionCard(
-                                icon: Icons.recent_actors,
-                                title: teams.first.name,
+                              _TeamQuickActionCard(
+                                team: teams.first,
                                 subtitle: 'View team details',
                                 onTap: () =>
                                     context.push('/team/${teams.first.id}'),
@@ -402,20 +406,85 @@ class _QuickActionCard extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                size: 28,
+                size: 48,
                 color: Theme.of(context).colorScheme.primary,
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 12),
               Text(
                 title,
                 style: Theme.of(
                   context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 1),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TeamQuickActionCard extends StatelessWidget {
+  final Team team;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _TeamQuickActionCard({
+    required this.team,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Use team colors if available
+    final hasTeamColors = team.primaryColor1 != null;
+    final teamPrimaryColor = hasTeamColors
+        ? (ColorHelper.hexToColor(team.primaryColor1!) ??
+              Theme.of(context).colorScheme.primary)
+        : Theme.of(context).colorScheme.primary;
+
+    return Card(
+      elevation: 2,
+      color: hasTeamColors ? teamPrimaryColor.withOpacity(0.05) : null,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TeamLogoWidget(
+                logoPath: team.logoImagePath,
+                size: 40,
+                backgroundColor: teamPrimaryColor.withOpacity(0.15),
+                iconColor: teamPrimaryColor,
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: Text(
+                  team.name,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: hasTeamColors ? teamPrimaryColor : null,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 2),
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(

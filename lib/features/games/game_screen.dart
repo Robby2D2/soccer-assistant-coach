@@ -9,6 +9,7 @@ import '../../core/positions.dart';
 import '../../data/services/stopwatch_service.dart';
 import '../../data/services/notification_service.dart';
 import '../../data/services/alert_service.dart';
+import '../../widgets/team_header.dart';
 import '../../widgets/player_panel.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
@@ -316,24 +317,43 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 setState(() => _shiftLengthSeconds = value);
               });
             }
-            final title = (game?.opponent?.isNotEmpty == true)
-                ? game!.opponent!
-                : 'Game';
-            final subtitle = game?.startTime == null
-                ? null
-                : _formatDateTime(game!.startTime!);
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+
+            if (game == null) {
+              return const Text('Game');
+            }
+
+            // Create enhanced game title with team branding
+            final opponent = game.opponent?.isNotEmpty == true
+                ? game.opponent!
+                : 'Opponent';
+            return Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(title, overflow: TextOverflow.ellipsis),
-                if (subtitle != null)
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).hintColor,
-                    ),
+                TeamHeader(
+                  teamId: game.teamId,
+                  logoSize: 24,
+                  showName: false, // Just show logo in AppBar
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'vs $opponent',
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      if (game.startTime != null)
+                        Text(
+                          _formatDateTime(game.startTime!),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: Theme.of(context).hintColor),
+                        ),
+                    ],
                   ),
+                ),
               ],
             );
           },

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
-import '../../widgets/team_logo_widget.dart';
-import '../../utils/team_theme.dart';
+import '../../widgets/team_header.dart';
+import '../../widgets/team_color_picker.dart';
 
 class TeamDetailScreen extends ConsumerWidget {
   final int id;
@@ -17,7 +17,19 @@ class TeamDetailScreen extends ConsumerWidget {
     required Color color,
     required Color iconColor,
     required VoidCallback onTap,
+    Team? team, // Add team parameter for color theming
   }) {
+    // Use team colors if available, fallback to provided colors
+    final cardColor = team?.primaryColor1 != null
+        ? (ColorHelper.hexToColor(team!.primaryColor1!) ??
+                  Theme.of(context).colorScheme.primary)
+              .withOpacity(0.15)
+        : color;
+    final cardIconColor = team?.primaryColor1 != null
+        ? (ColorHelper.hexToColor(team!.primaryColor1!) ??
+              Theme.of(context).colorScheme.primary)
+        : iconColor;
+
     return Card(
       elevation: 2,
       child: InkWell(
@@ -32,9 +44,9 @@ class TeamDetailScreen extends ConsumerWidget {
                 height: 48,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  color: color,
+                  color: cardColor,
                 ),
-                child: Icon(icon, color: iconColor, size: 24),
+                child: Icon(icon, color: cardIconColor, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -101,87 +113,13 @@ class TeamDetailScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Team info header
-            FutureBuilder<Team?>(
-              future: db.getTeam(id),
-              builder: (context, snapshot) {
-                final team = snapshot.data;
-                if (team == null) return const SizedBox.shrink();
-
-                final teamTheme = TeamTheme.fromTeam(team);
-                return Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  margin: const EdgeInsets.only(bottom: 24),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    gradient: team.primaryColor1 != null
-                        ? teamTheme.primaryGradient
-                        : LinearGradient(
-                            colors: [
-                              Theme.of(context).colorScheme.primaryContainer,
-                              Theme.of(context).colorScheme.primaryContainer
-                                  .withValues(alpha: 0.7),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                  ),
-                  child: Row(
-                    children: [
-                      TeamLogoWidget(
-                        logoPath: team.logoImagePath,
-                        size: 64,
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.2),
-                        iconColor: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              team.name,
-                              style: Theme.of(context).textTheme.headlineSmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onPrimaryContainer,
-                                  ),
-                            ),
-                            const SizedBox(height: 4),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primary.withValues(alpha: 0.2),
-                              ),
-                              child: Text(
-                                '${team.teamMode == 'traditional' ? 'Traditional' : 'Shift'} Mode',
-                                style: Theme.of(context).textTheme.labelMedium
-                                    ?.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+            // Team info header with team branding
+            Container(
+              margin: const EdgeInsets.only(bottom: 24),
+              child: TeamBrandedHeader(
+                teamId: id,
+                subtitle: 'Team Management Hub',
+              ),
             ),
 
             // Management sections
@@ -194,48 +132,62 @@ class TeamDetailScreen extends ConsumerWidget {
             const SizedBox(height: 16),
 
             // Players card
-            _buildManagementCard(
-              context,
-              icon: Icons.people,
-              title: 'Players',
-              subtitle: 'Manage team roster and player status',
-              color: Theme.of(context).colorScheme.primaryContainer,
-              iconColor: Theme.of(context).colorScheme.primary,
-              onTap: () => context.push('/team/$id/players'),
-            ),
-            const SizedBox(height: 12),
+            FutureBuilder<Team?>(
+              future: db.getTeam(id),
+              builder: (context, snapshot) {
+                final team = snapshot.data;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildManagementCard(
+                      context,
+                      icon: Icons.people,
+                      title: 'Players',
+                      subtitle: 'Manage team roster and player status',
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      iconColor: Theme.of(context).colorScheme.primary,
+                      team: team,
+                      onTap: () => context.push('/team/$id/players'),
+                    ),
+                    const SizedBox(height: 12),
 
-            // Formations card
-            _buildManagementCard(
-              context,
-              icon: Icons.grid_view_rounded,
-              title: 'Formations',
-              subtitle: 'Set up tactical formations and positions',
-              color: Theme.of(context).colorScheme.secondaryContainer,
-              iconColor: Theme.of(context).colorScheme.secondary,
-              onTap: () => context.push('/team/$id/formations'),
-            ),
+                    // Formations card
+                    _buildManagementCard(
+                      context,
+                      icon: Icons.grid_view_rounded,
+                      title: 'Formations',
+                      subtitle: 'Set up tactical formations and positions',
+                      color: Theme.of(context).colorScheme.secondaryContainer,
+                      iconColor: Theme.of(context).colorScheme.secondary,
+                      team: team,
+                      onTap: () => context.push('/team/$id/formations'),
+                    ),
 
-            const SizedBox(height: 32),
+                    const SizedBox(height: 32),
 
-            // Game management section
-            Text(
-              'Game Management',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 16),
+                    // Game management section
+                    Text(
+                      'Game Management',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
-            // Games card
-            _buildManagementCard(
-              context,
-              icon: Icons.sports_soccer,
-              title: 'Games',
-              subtitle: 'Schedule games and track match history',
-              color: Theme.of(context).colorScheme.tertiaryContainer,
-              iconColor: Theme.of(context).colorScheme.tertiary,
-              onTap: () => context.push('/team/$id/games'),
+                    // Games card
+                    _buildManagementCard(
+                      context,
+                      icon: Icons.sports_soccer,
+                      title: 'Games',
+                      subtitle: 'Schedule games and track match history',
+                      color: Theme.of(context).colorScheme.tertiaryContainer,
+                      iconColor: Theme.of(context).colorScheme.tertiary,
+                      team: team,
+                      onTap: () => context.push('/team/$id/games'),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
         ),

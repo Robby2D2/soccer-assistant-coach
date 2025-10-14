@@ -21,5 +21,6 @@ Team details updates: team logo
 
 On the home page, I noticed that the time remaining for shift-based games is wrong.  For shift based games it should show time remaining for the shift and display the shift number instead of the half number.
 
+Similar to the game metrics page, could you create a metrics page at the team level that shows all time metrics for that team - not just at a game level?
 
 
