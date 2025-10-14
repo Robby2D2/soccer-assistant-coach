@@ -191,7 +191,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   Future<List<String>> _positionsForNextShift(AppDb db) async {
     final shifts = await db.watchGameShifts(widget.gameId).first;
-    if (shifts.isEmpty) return kPositions;
+    final game = await db.getGame(widget.gameId);
 
     // Look for formation template shifts (far future shifts used as templates)
     final formationTemplates = shifts.where((s) => s.startSeconds > 9000);
@@ -202,6 +202,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       );
       return _positionsFromShiftId(db, latest.id);
     }
+
+    // If game has a formation selected, use those positions
+    if (game?.formationId != null) {
+      final formation = await db.getFormation(game!.formationId!);
+      if (formation != null) {
+        final positions = await db.getFormationPositions(formation.id);
+        return positions.map((p) => p.positionName).toList();
+      }
+    }
+
+    if (shifts.isEmpty) return kPositions;
 
     // Sort shifts chronologically
     final chronological = [...shifts]
@@ -703,22 +714,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                         vertical: 16,
                                       ),
                                       child: Center(
-                                        child: AnimatedSwitcher(
-                                          duration: const Duration(
-                                            milliseconds: 200,
-                                          ),
-                                          child: Text(
-                                            _hhmmssSigned(remaining),
-                                            key: ValueKey(remaining),
-                                            style: theme.textTheme.displayMedium
-                                                ?.copyWith(
-                                                  fontFeatures: const [
-                                                    FontFeature.tabularFigures(),
-                                                  ],
-                                                  letterSpacing: 2.0,
-                                                  fontWeight: FontWeight.w300,
-                                                ),
-                                          ),
+                                        child: Text(
+                                          _hhmmssSigned(remaining),
+                                          style: theme.textTheme.displayMedium
+                                              ?.copyWith(
+                                                fontFeatures: const [
+                                                  FontFeature.tabularFigures(),
+                                                ],
+                                                letterSpacing: 2.0,
+                                                fontWeight: FontWeight.w300,
+                                              ),
                                         ),
                                       ),
                                     ),
@@ -1171,6 +1176,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     ),
                                 getPositionAbbreviation:
                                     _getPositionAbbreviation,
+                                getPositionsForNextShift:
+                                    _positionsForNextShift,
                               ),
                             ),
                           );
@@ -1465,6 +1472,7 @@ class _ShiftsList extends StatefulWidget {
     required this.db,
     this.onRemovePlayer,
     required this.getPositionAbbreviation,
+    required this.getPositionsForNextShift,
   });
 
   final List<Shift> shifts;
@@ -1476,6 +1484,7 @@ class _ShiftsList extends StatefulWidget {
   final Future<void> Function(Shift shift, PlayerShift assignment)?
   onRemovePlayer;
   final String Function(String) getPositionAbbreviation;
+  final Future<List<String>> Function(AppDb) getPositionsForNextShift;
 
   @override
   State<_ShiftsList> createState() => _ShiftsListState();
@@ -1544,6 +1553,7 @@ class _ShiftsListState extends State<_ShiftsList> {
               db: widget.db,
               onRemovePlayer: isCurrent ? widget.onRemovePlayer : null,
               getPositionAbbreviation: widget.getPositionAbbreviation,
+              getPositionsForNextShift: widget.getPositionsForNextShift,
             ),
           );
         },
@@ -1563,6 +1573,7 @@ class _ShiftDetailsPage extends StatelessWidget {
     required this.db,
     this.onRemovePlayer,
     required this.getPositionAbbreviation,
+    required this.getPositionsForNextShift,
   });
 
   final Shift shift;
@@ -1574,6 +1585,7 @@ class _ShiftDetailsPage extends StatelessWidget {
   final Future<void> Function(Shift shift, PlayerShift assignment)?
   onRemovePlayer;
   final String Function(String) getPositionAbbreviation;
+  final Future<List<String>> Function(AppDb) getPositionsForNextShift;
 
   @override
   Widget build(BuildContext context) {
@@ -1644,24 +1656,8 @@ class _ShiftDetailsPage extends StatelessWidget {
                           // If no present players, we can't regenerate
                           if (presentPlayers.isEmpty) return;
 
-                          // Use default positions based on number of present players
-                          const allPositions = [
-                            'GOALIE',
-                            'RIGHT_DEFENSE',
-                            'LEFT_DEFENSE',
-                            'CENTER_FORWARD',
-                            'RIGHT_FORWARD',
-                            'LEFT_FORWARD',
-                          ];
-
-                          final positions = allPositions
-                              .take(
-                                presentPlayers.length.clamp(
-                                  1,
-                                  allPositions.length,
-                                ),
-                              )
-                              .toList();
+                          // Use the same formation-aware logic as other shifts
+                          final positions = await getPositionsForNextShift(db);
 
                           await db.createAutoShift(
                             gameId: shift.gameId,

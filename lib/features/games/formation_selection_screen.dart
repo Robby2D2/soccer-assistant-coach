@@ -73,6 +73,35 @@ class FormationSelectionScreen extends ConsumerWidget {
                               .where((s) => s.id == game.currentShiftId)
                               .firstOrNull;
 
+                          // First, create or update the formation template shift
+                          // This ensures future shifts will use the new formation
+                          final formationTemplateShifts = existingShifts.where(
+                            (s) => s.startSeconds > 9000,
+                          );
+                          if (formationTemplateShifts.isNotEmpty) {
+                            // Replace existing formation template
+                            final templateShift = formationTemplateShifts.first;
+                            await db.createAutoShift(
+                              gameId: gameId,
+                              startSeconds: templateShift.startSeconds,
+                              positions: positions
+                                  .map((p) => p.positionName)
+                                  .toList(),
+                              activate: false,
+                              forceReassign: true,
+                            );
+                          } else {
+                            // Create new formation template shift
+                            await db.createAutoShift(
+                              gameId: gameId,
+                              startSeconds: 10000, // Far future template
+                              positions: positions
+                                  .map((p) => p.positionName)
+                                  .toList(),
+                              activate: false,
+                            );
+                          }
+
                           if (currentShift != null) {
                             // Look for existing shifts that come after the current shift
                             final chronological = [...existingShifts]
@@ -81,7 +110,10 @@ class FormationSelectionScreen extends ConsumerWidget {
                                     a.startSeconds.compareTo(b.startSeconds),
                               );
                             final futureShifts = chronological.where(
-                              (s) => s.startSeconds > currentShift.startSeconds,
+                              (s) =>
+                                  s.startSeconds > currentShift.startSeconds &&
+                                  s.startSeconds <=
+                                      9000, // Only real shifts, not templates
                             );
 
                             if (futureShifts.isNotEmpty) {
@@ -132,6 +164,10 @@ class FormationSelectionScreen extends ConsumerWidget {
                             activate: true,
                           );
                         }
+
+                        // Update the game's formation ID to remember the selection
+                        await db.updateGame(id: gameId, formationId: f.id);
+
                         if (context.mounted) Navigator.pop(context);
                       },
                       child: const Text('Use'),
