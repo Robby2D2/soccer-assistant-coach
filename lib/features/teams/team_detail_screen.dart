@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../widgets/team_logo_widget.dart';
+import '../../utils/team_theme.dart';
 
 class TeamDetailScreen extends ConsumerWidget {
   final int id;
@@ -106,39 +108,34 @@ class TeamDetailScreen extends ConsumerWidget {
                 final team = snapshot.data;
                 if (team == null) return const SizedBox.shrink();
 
+                final teamTheme = TeamTheme.fromTeam(team);
                 return Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   margin: const EdgeInsets.only(bottom: 24),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).colorScheme.primaryContainer,
-                        Theme.of(
-                          context,
-                        ).colorScheme.primaryContainer.withValues(alpha: 0.7),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    gradient: team.primaryColor1 != null
+                        ? teamTheme.primaryGradient
+                        : LinearGradient(
+                            colors: [
+                              Theme.of(context).colorScheme.primaryContainer,
+                              Theme.of(context).colorScheme.primaryContainer
+                                  .withValues(alpha: 0.7),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.2),
-                        ),
-                        child: Icon(
-                          Icons.sports_soccer,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 32,
-                        ),
+                      TeamLogoWidget(
+                        logoPath: team.logoImagePath,
+                        size: 64,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.2),
+                        iconColor: Theme.of(context).colorScheme.primary,
                       ),
                       const SizedBox(width: 16),
                       Expanded(

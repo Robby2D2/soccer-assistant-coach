@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
+import '../../widgets/team_logo_widget.dart';
+import '../../widgets/team_color_picker.dart';
+import '../../utils/team_image_picker.dart';
 
 class TeamEditScreen extends ConsumerStatefulWidget {
   final int teamId;
@@ -14,6 +17,8 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
   final _shiftMinutes = TextEditingController(text: '5');
   final _halfMinutes = TextEditingController(text: '20');
   String _teamMode = 'shift';
+  String? _logoImagePath;
+  List<Color> _teamColors = [];
 
   @override
   void initState() {
@@ -21,9 +26,21 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
     final db = ref.read(dbProvider);
     db.getTeam(widget.teamId).then((team) {
       if (!mounted || team == null) return;
+      debugPrint('Loaded team: ${team.name}, logo: ${team.logoImagePath}');
       setState(() {
         _name.text = team.name;
         _teamMode = team.teamMode;
+        _logoImagePath = team.logoImagePath;
+        debugPrint('Set _logoImagePath to: $_logoImagePath');
+        _teamColors = ColorHelper.hexListToColors([
+          team.primaryColor1,
+          team.primaryColor2,
+          team.primaryColor3,
+        ]);
+        // Ensure we have 3 colors
+        while (_teamColors.length < 3) {
+          _teamColors.add(Colors.grey);
+        }
       });
     });
     db.getTeamShiftLengthSeconds(widget.teamId).then((secs) {
@@ -38,20 +55,115 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
     });
   }
 
+  Future<void> _pickTeamLogo() async {
+    final logoPath = await TeamImagePicker.pickTeamLogo(context);
+    debugPrint('Team logo picked: $logoPath');
+    if (logoPath != null) {
+      setState(() {
+        _logoImagePath = logoPath;
+      });
+      debugPrint('Team logo path set to: $_logoImagePath');
+    }
+  }
+
+  Future<void> _removeTeamLogo() async {
+    if (_logoImagePath != null) {
+      await TeamImagePicker.deleteTeamLogo(_logoImagePath);
+      setState(() {
+        _logoImagePath = null;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(dbProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Team')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
               controller: _name,
               decoration: const InputDecoration(labelText: 'Team name'),
             ),
+            const SizedBox(height: 24),
+
+            // Team Customization Section
+            Text(
+              'Team Appearance',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 16),
+
+            // Team Logo
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Team Logo',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        EditableTeamLogoWidget(
+                          logoPath: _logoImagePath,
+                          onEdit: _pickTeamLogo,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Tap to change team logo'),
+                              const SizedBox(height: 8),
+                              if (_logoImagePath != null)
+                                TextButton.icon(
+                                  onPressed: _removeTeamLogo,
+                                  icon: const Icon(Icons.delete, size: 16),
+                                  label: const Text('Remove Logo'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.error,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Team Colors
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: TeamColorPicker(
+                  initialColors: _teamColors,
+                  onColorsChanged: (colors) {
+                    setState(() {
+                      _teamColors = colors;
+                    });
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
 
             // Team Mode Selection
             Card(
@@ -125,6 +237,18 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
 
                 await db.updateTeamName(widget.teamId, name);
                 await db.setTeamMode(widget.teamId, _teamMode);
+
+                // Save team customization
+                debugPrint('Saving team logo: $_logoImagePath');
+                await db.updateTeamLogo(widget.teamId, _logoImagePath);
+                final hexColors = ColorHelper.colorsToHexList(_teamColors);
+                debugPrint('Saving team colors: $hexColors');
+                await db.updateTeamColors(
+                  widget.teamId,
+                  color1: hexColors.isNotEmpty ? hexColors[0] : null,
+                  color2: hexColors.length > 1 ? hexColors[1] : null,
+                  color3: hexColors.length > 2 ? hexColors[2] : null,
+                );
 
                 if (_teamMode == 'shift') {
                   final mins = int.tryParse(_shiftMinutes.text.trim());

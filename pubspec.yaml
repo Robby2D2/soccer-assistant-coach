@@ -20,6 +20,10 @@ dependencies:
   timezone: ^0.9.4
   image_picker: ^1.1.2
   vibration: ^2.0.0
+  flex_color_picker: ^3.7.1
+  path: ^1.9.1
+  file_picker: ^8.1.2
+  share_plus: ^10.1.1
 
 dev_dependencies:
   flutter_test:

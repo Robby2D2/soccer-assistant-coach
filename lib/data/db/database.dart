@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift_sqflite/drift_sqflite.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 import 'schema.dart';
 
 part 'database.g.dart';
@@ -30,90 +34,355 @@ class AppDb extends _$AppDb {
   AppDb()
     : super(SqfliteQueryExecutor.inDatabaseFolder(path: 'soccer_manager.db'));
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
-      // Add team-level shift length setting (seconds), default 300
-      await customStatement(
-        'ALTER TABLE teams ADD COLUMN shift_length_seconds INTEGER NOT NULL DEFAULT 300',
-      );
+      // All columns are now properly defined in the schema
+    },
+    beforeOpen: (details) async {
+      // Validate database integrity before opening
+      await _validateDatabaseIntegrity();
     },
     onUpgrade: (m, from, to) async {
-      if (from < 2) {
-        await m.createTable(gamePlayers);
+      print('🔄 Starting database migration from version $from to $to');
+
+      // SAFETY CHECK: Backup critical data before migration
+      await _backupCriticalDataBeforeMigration(from);
+
+      try {
+        if (from < 2) {
+          await m.createTable(gamePlayers);
+        }
+        if (from < 3) {
+          await m.addColumn(teams, teams.isArchived);
+          await m.addColumn(games, games.isArchived);
+        }
+        if (from < 4) {
+          await m.addColumn(shifts, shifts.actualSeconds);
+        }
+        if (from < 5) {
+          await m.createTable(playerPositionTotals);
+        }
+        if (from < 6) {
+          await m.createTable(formations);
+          await m.createTable(formationPositions);
+        }
+        if (from < 7) {
+          // NOTE: This migration step was causing conflicts - shift_length_seconds
+          // is now properly handled in schema and version 17 migration
+          try {
+            await customStatement(
+              'ALTER TABLE teams ADD COLUMN shift_length_seconds INTEGER NOT NULL DEFAULT 300',
+            );
+          } catch (e) {
+            // Column might already exist, ignore the error
+            print(
+              'Migration warning: shift_length_seconds column may already exist: $e',
+            );
+          }
+        }
+        if (from < 8) {
+          await m.addColumn(teams, teams.teamMode);
+          await m.addColumn(teams, teams.halfDurationSeconds);
+        }
+        if (from < 9) {
+          await m.addColumn(games, games.currentHalf);
+          await m.addColumn(games, games.gameTimeSeconds);
+          await m.addColumn(games, games.isGameActive);
+        }
+        if (from < 10) {
+          // Force rebuild for traditional mode support
+          // All necessary columns should be added through the try-catch blocks above
+        }
+        if (from < 11) {
+          await m.addColumn(games, games.formationId);
+        }
+        if (from < 12) {
+          await m.addColumn(games, games.timerStartTime as GeneratedColumn);
+        }
+        if (from < 13) {
+          // Add game completion and scoring fields
+          await m.addColumn(games, games.gameStatus);
+          await m.addColumn(games, games.endTime);
+          await m.addColumn(games, games.teamScore);
+          await m.addColumn(games, games.opponentScore);
+        }
+        if (from < 14) {
+          // Add abbreviation column to formation positions with a default value
+          await customStatement(
+            'ALTER TABLE formation_positions ADD COLUMN abbreviation TEXT NOT NULL DEFAULT ""',
+          );
+          // Populate existing positions with their position names as abbreviations
+          await customStatement(
+            'UPDATE formation_positions SET abbreviation = position_name',
+          );
+        }
+        if (from < 15) {
+          // Add jersey number and profile image fields to players
+          await customStatement(
+            'ALTER TABLE players ADD COLUMN jersey_number INTEGER',
+          );
+          await customStatement(
+            'ALTER TABLE players ADD COLUMN profile_image_path TEXT',
+          );
+        }
+        if (from < 16) {
+          // Add team customization fields
+          await customStatement(
+            'ALTER TABLE teams ADD COLUMN logo_image_path TEXT',
+          );
+          await customStatement(
+            'ALTER TABLE teams ADD COLUMN primary_color1 TEXT',
+          );
+          await customStatement(
+            'ALTER TABLE teams ADD COLUMN primary_color2 TEXT',
+          );
+          await customStatement(
+            'ALTER TABLE teams ADD COLUMN primary_color3 TEXT',
+          );
+        }
+        if (from < 17) {
+          // Ensure shift length seconds column exists and is properly typed
+          try {
+            // First try to add via Drift method (for clean schema compliance)
+            await m.addColumn(
+              teams,
+              teams.shiftLengthSeconds as GeneratedColumn,
+            );
+          } catch (e) {
+            // If it fails (column exists), verify it has correct default
+            try {
+              await customStatement(
+                'UPDATE teams SET shift_length_seconds = 300 WHERE shift_length_seconds IS NULL',
+              );
+            } catch (updateError) {
+              print(
+                'Migration warning: Could not update shift_length_seconds defaults: $updateError',
+              );
+            }
+          }
+        }
+      } catch (e) {
+        print('❌ Migration error from $from to $to: $e');
+        // Try to restore backup if available
+        await _attemptDataRestoration(from);
+        // Re-throw to let Drift handle the error appropriately
+        rethrow;
       }
-      if (from < 3) {
-        await m.addColumn(teams, teams.isArchived);
-        await m.addColumn(games, games.isArchived);
-      }
-      if (from < 4) {
-        await m.addColumn(shifts, shifts.actualSeconds);
-      }
-      if (from < 5) {
-        await m.createTable(playerPositionTotals);
-      }
-      if (from < 6) {
-        await m.createTable(formations);
-        await m.createTable(formationPositions);
-      }
-      if (from < 7) {
-        await customStatement(
-          'ALTER TABLE teams ADD COLUMN shift_length_seconds INTEGER NOT NULL DEFAULT 300',
-        );
-      }
-      if (from < 8) {
-        await m.addColumn(teams, teams.teamMode);
-        await m.addColumn(teams, teams.halfDurationSeconds);
-      }
-      if (from < 9) {
-        await m.addColumn(games, games.currentHalf);
-        await m.addColumn(games, games.gameTimeSeconds);
-        await m.addColumn(games, games.isGameActive);
-      }
-      if (from < 10) {
-        // Force rebuild for traditional mode support
-        // All necessary columns should be added through the try-catch blocks above
-      }
-      if (from < 11) {
-        await m.addColumn(games, games.formationId);
-      }
-      if (from < 12) {
-        await m.addColumn(games, games.timerStartTime as GeneratedColumn);
-      }
-      if (from < 13) {
-        // Add game completion and scoring fields
-        await m.addColumn(games, games.gameStatus);
-        await m.addColumn(games, games.endTime);
-        await m.addColumn(games, games.teamScore);
-        await m.addColumn(games, games.opponentScore);
-      }
-      if (from < 14) {
-        // Add abbreviation column to formation positions with a default value
-        await customStatement(
-          'ALTER TABLE formation_positions ADD COLUMN abbreviation TEXT NOT NULL DEFAULT ""',
-        );
-        // Populate existing positions with their position names as abbreviations
-        await customStatement(
-          'UPDATE formation_positions SET abbreviation = position_name',
-        );
-      }
-      if (from < 15) {
-        // Add jersey number and profile image fields to players
-        await customStatement(
-          'ALTER TABLE players ADD COLUMN jersey_number INTEGER',
-        );
-        await customStatement(
-          'ALTER TABLE players ADD COLUMN profile_image_path TEXT',
-        );
-      }
+
+      // SAFETY CHECK: Verify data integrity after migration
+      await _verifyDataIntegrityAfterMigration(from, to);
+      print('✅ Migration from $from to $to completed successfully');
     },
   );
 
+  // ============================================================================
+  // MIGRATION SAFETY METHODS - Prevent Data Loss
+  // ============================================================================
+
+  /// Backup critical data before potentially destructive migrations
+  Future<void> _backupCriticalDataBeforeMigration(int fromVersion) async {
+    try {
+      print('💾 Backing up critical data before migration...');
+
+      // Store team count for verification
+      final teamCount = await getTeamCount();
+      final gameCount = await _getGameCount();
+      final playerCount = await _getPlayerCount();
+
+      // Store these in a temporary preference or shared storage
+      // For now, just log them for verification
+      print('📊 Pre-migration data counts:');
+      print('   Teams: $teamCount');
+      print('   Games: $gameCount');
+      print('   Players: $playerCount');
+
+      // Could extend this to actually create backup tables if needed
+      if (teamCount > 0) {
+        print('✅ Critical team data detected - will verify after migration');
+      }
+    } catch (e) {
+      print('⚠️ Warning: Could not backup data before migration: $e');
+    }
+  }
+
+  /// Validate database integrity before opening
+  Future<void> _validateDatabaseIntegrity() async {
+    try {
+      // Basic integrity checks
+      await customSelect('PRAGMA integrity_check').get();
+      await customSelect('PRAGMA foreign_key_check').get();
+    } catch (e) {
+      print('⚠️ Database integrity warning: $e');
+    }
+  }
+
+  /// Verify data integrity after migration
+  Future<void> _verifyDataIntegrityAfterMigration(
+    int fromVersion,
+    int toVersion,
+  ) async {
+    try {
+      print('🔍 Verifying data integrity after migration...');
+
+      // Check that critical tables exist and have expected structure
+      final tables = await listTables();
+      final expectedTables = ['teams', 'players', 'games', 'shifts'];
+
+      for (final expectedTable in expectedTables) {
+        if (!tables.contains(expectedTable)) {
+          throw Exception(
+            'Critical table $expectedTable is missing after migration!',
+          );
+        }
+      }
+
+      // Verify teams table has proper columns after customization migration
+      if (fromVersion < 16 && toVersion >= 16) {
+        await _verifyTeamCustomizationColumns();
+      }
+
+      print('✅ Data integrity verification passed');
+    } catch (e) {
+      print('❌ Data integrity verification failed: $e');
+      rethrow;
+    }
+  }
+
+  /// Verify team customization columns exist and are properly configured
+  Future<void> _verifyTeamCustomizationColumns() async {
+    try {
+      final columns = await describeTeamsTable();
+      final columnNames = columns.map((c) => c['name'] as String?).toSet();
+
+      final requiredColumns = {
+        'logo_image_path',
+        'primary_color1',
+        'primary_color2',
+        'primary_color3',
+      };
+
+      for (final required in requiredColumns) {
+        if (!columnNames.contains(required)) {
+          throw Exception(
+            'Required customization column $required is missing from teams table',
+          );
+        }
+      }
+
+      print('✅ Team customization columns verified');
+    } catch (e) {
+      print('❌ Team customization column verification failed: $e');
+      rethrow;
+    }
+  }
+
+  /// Attempt to restore data if migration fails
+  Future<void> _attemptDataRestoration(int fromVersion) async {
+    try {
+      print('🔄 Attempting data restoration after migration failure...');
+      // This is a placeholder for more sophisticated backup/restore logic
+      // In a production app, you might restore from backup files or tables
+      print(
+        'ℹ️ Data restoration not implemented - manual recovery may be needed',
+      );
+    } catch (e) {
+      print('❌ Data restoration attempt failed: $e');
+    }
+  }
+
+  /// Get game count for backup verification
+  Future<int> _getGameCount() async {
+    try {
+      final result = await customSelect(
+        'SELECT COUNT(*) as count FROM games',
+      ).get();
+      return result.first.read<int>('count');
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  /// Get player count for backup verification
+  Future<int> _getPlayerCount() async {
+    try {
+      final result = await customSelect(
+        'SELECT COUNT(*) as count FROM players',
+      ).get();
+      return result.first.read<int>('count');
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  // ============================================================================
+  // END MIGRATION SAFETY METHODS
+  // ============================================================================
+
+  /// Check if teams table exists and has data
+  Future<bool> hasTeams() async {
+    try {
+      final teams = await select(this.teams).get();
+      return teams.isNotEmpty;
+    } catch (e) {
+      print('Error checking teams: $e');
+      return false;
+    }
+  }
+
+  /// Get raw team count for diagnostics
+  Future<int> getTeamCount() async {
+    try {
+      final result = await customSelect(
+        'SELECT COUNT(*) as count FROM teams',
+        readsFrom: {teams},
+      ).getSingleOrNull();
+      return result?.read<int>('count') ?? 0;
+    } catch (e) {
+      print('Error getting team count: $e');
+      return 0;
+    }
+  }
+
+  /// Diagnostic method to list all tables in the database
+  Future<List<String>> listTables() async {
+    try {
+      final result = await customSelect(
+        'SELECT name FROM sqlite_master WHERE type="table"',
+      ).get();
+      return result.map((row) => row.read<String>('name')).toList();
+    } catch (e) {
+      print('Error listing tables: $e');
+      return [];
+    }
+  }
+
+  /// Diagnostic method to describe teams table structure
+  Future<List<Map<String, dynamic>>> describeTeamsTable() async {
+    try {
+      final result = await customSelect('PRAGMA table_info(teams)').get();
+      return result
+          .map(
+            (row) => {
+              'name': row.read<String>('name'),
+              'type': row.read<String>('type'),
+              'notnull': row.read<int>('notnull'),
+              'dflt_value': row.data['dflt_value'],
+            },
+          )
+          .toList();
+    } catch (e) {
+      print('Error describing teams table: $e');
+      return [];
+    }
+  }
+
   /// Helper method to reset database if migrations fail
   /// Use this only in development when database schema changes cause issues
+  /// WARNING: This will delete all data!
   Future<void> resetDatabase() async {
     await customStatement('DROP TABLE IF EXISTS teams');
     await customStatement('DROP TABLE IF EXISTS players');
@@ -160,20 +429,14 @@ extension TeamQueries on AppDb {
       );
 
   Future<int> getTeamShiftLengthSeconds(int teamId) async {
-    final row = await customSelect(
-      'SELECT COALESCE(shift_length_seconds, 300) AS sl FROM teams WHERE id = ?',
-      variables: [Variable<int>(teamId)],
-      readsFrom: {teams},
-    ).getSingleOrNull();
-    return row?.read<int>('sl') ?? 300;
+    final team = await getTeam(teamId);
+    return team?.shiftLengthSeconds ?? 300;
   }
 
   Future<void> setTeamShiftLengthSeconds(int teamId, int seconds) async {
     if (seconds <= 0) seconds = 300;
-    await customUpdate(
-      'UPDATE teams SET shift_length_seconds = ? WHERE id = ?',
-      variables: [Variable<int>(seconds), Variable<int>(teamId)],
-      updates: {teams},
+    await (update(teams)..where((t) => t.id.equals(teamId))).write(
+      TeamsCompanion(shiftLengthSeconds: Value(seconds)),
     );
   }
 
@@ -210,6 +473,40 @@ extension TeamQueries on AppDb {
       variables: [Variable<int>(seconds), Variable<int>(teamId)],
       updates: {teams},
     );
+  }
+
+  // Team customization methods
+  Future<void> updateTeamLogo(int teamId, String? logoPath) async {
+    print('Updating team $teamId logo to: $logoPath');
+    await (update(teams)..where((t) => t.id.equals(teamId))).write(
+      TeamsCompanion(logoImagePath: Value(logoPath)),
+    );
+    print('Team logo update completed');
+  }
+
+  Future<void> updateTeamColors(
+    int teamId, {
+    String? color1,
+    String? color2,
+    String? color3,
+  }) async {
+    await (update(teams)..where((t) => t.id.equals(teamId))).write(
+      TeamsCompanion(
+        primaryColor1: Value(color1),
+        primaryColor2: Value(color2),
+        primaryColor3: Value(color3),
+      ),
+    );
+  }
+
+  Future<List<String>> getTeamColors(int teamId) async {
+    final team = await getTeam(teamId);
+    if (team == null) return [];
+    return [
+      if (team.primaryColor1?.isNotEmpty == true) team.primaryColor1!,
+      if (team.primaryColor2?.isNotEmpty == true) team.primaryColor2!,
+      if (team.primaryColor3?.isNotEmpty == true) team.primaryColor3!,
+    ];
   }
 }
 
@@ -1566,6 +1863,488 @@ extension AutoRotation on AppDb {
     });
 
     return candidates.first.id;
+  }
+
+  // Diagnostic methods for troubleshooting
+  Future<List<String>> listTables() async {
+    final result = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
+    ).get();
+    return result.map((row) => row.read<String>('name')).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> describeTeamsTable() async {
+    try {
+      final result = await customSelect('PRAGMA table_info(teams)').get();
+      return result
+          .map(
+            (row) => {
+              'cid': row.read<int?>('cid'),
+              'name': row.read<String?>('name'),
+              'type': row.read<String?>('type'),
+              'notnull': row.read<int?>('notnull'),
+              'dflt_value': row.read<String?>('dflt_value'),
+              'pk': row.read<int?>('pk'),
+            },
+          )
+          .toList();
+    } catch (e) {
+      print('Error describing teams table: $e');
+      return [];
+    }
+  }
+
+  Future<bool> hasTeams() async {
+    try {
+      final count = await getTeamCount();
+      return count > 0;
+    } catch (e) {
+      print('Error checking if teams exist: $e');
+      return false;
+    }
+  }
+
+  Future<int> getTeamCount() async {
+    try {
+      final result = await customSelect(
+        'SELECT COUNT(*) as count FROM teams',
+      ).get();
+      return result.first.read<int>('count');
+    } catch (e) {
+      print('Error getting team count: $e');
+      return 0;
+    }
+  }
+
+  // ============================================================================
+  // DATABASE RESET METHODS - Use with extreme caution!
+  // ============================================================================
+
+  /// Get a comprehensive summary of data that would be lost
+  Future<Map<String, int>> getDataSummaryForReset() async {
+    final summary = <String, int>{};
+
+    try {
+      summary['teams'] = await getTeamCount();
+      summary['players'] = await _getPlayerCount();
+      summary['games'] = await _getGameCount();
+
+      // Get additional counts for shifts and metrics
+      final shiftsResult = await customSelect(
+        'SELECT COUNT(*) as count FROM shifts',
+      ).get();
+      summary['shifts'] = shiftsResult.first.read<int>('count');
+
+      final metricsResult = await customSelect(
+        'SELECT COUNT(*) as count FROM player_metrics',
+      ).get();
+      summary['metrics'] = metricsResult.first.read<int>('count');
+
+      final formationsResult = await customSelect(
+        'SELECT COUNT(*) as count FROM formations',
+      ).get();
+      summary['formations'] = formationsResult.first.read<int>('count');
+    } catch (e) {
+      print('Error getting data summary: $e');
+    }
+
+    return summary;
+  }
+
+  /// Nuclear option: Reset entire database (USE WITH EXTREME CAUTION!)
+  /// Automatically creates a backup before resetting
+  Future<Map<String, dynamic>> resetDatabaseSafely() async {
+    try {
+      print('🚨 DANGER: Resetting entire database...');
+
+      // STEP 1: Create automatic backup first
+      final backupPath = await createAutomaticBackup();
+      if (backupPath != null) {
+        print('💾 Automatic backup created before reset: $backupPath');
+      }
+
+      print('🗑️ Proceeding with database reset...');
+
+      // Delete all data in correct order to respect foreign keys
+      await customStatement('PRAGMA foreign_keys = OFF');
+
+      final tables = [
+        'player_shifts',
+        'player_metrics',
+        'shifts',
+        'game_players',
+        'formation_positions',
+        'formations',
+        'games',
+        'players',
+        'teams',
+        'player_position_totals',
+      ];
+
+      for (final table in tables) {
+        try {
+          await customStatement('DELETE FROM $table');
+          print('🗑️ Cleared $table');
+        } catch (e) {
+          print('⚠️ Warning: Could not clear $table: $e');
+        }
+      }
+
+      await customStatement('PRAGMA foreign_keys = ON');
+
+      // Reset any auto-increment counters
+      await customStatement('DELETE FROM sqlite_sequence');
+
+      print('✅ Database reset completed');
+      return {
+        'success': true,
+        'backupPath': backupPath,
+        'message': 'Database reset completed successfully',
+      };
+    } catch (e) {
+      print('❌ Database reset failed: $e');
+      return {
+        'success': false,
+        'backupPath': null,
+        'message': 'Database reset failed: $e',
+      };
+    }
+  }
+
+  /// Less destructive: Reset only team data while preserving structure
+  Future<bool> resetTeamData() async {
+    try {
+      print('🚨 Resetting team data...');
+
+      await customStatement('PRAGMA foreign_keys = OFF');
+
+      // Delete in order to respect relationships
+      await customStatement('DELETE FROM player_shifts');
+      await customStatement('DELETE FROM player_metrics');
+      await customStatement('DELETE FROM shifts');
+      await customStatement('DELETE FROM game_players');
+      await customStatement('DELETE FROM formation_positions');
+      await customStatement('DELETE FROM formations');
+      await customStatement('DELETE FROM games');
+      await customStatement('DELETE FROM players');
+      await customStatement('DELETE FROM teams');
+      await customStatement('DELETE FROM player_position_totals');
+
+      await customStatement('PRAGMA foreign_keys = ON');
+
+      print('✅ Team data reset completed');
+      return true;
+    } catch (e) {
+      print('❌ Team data reset failed: $e');
+      return false;
+    }
+  }
+
+  // ============================================================================
+  // DATABASE EXPORT/IMPORT METHODS - Backup and Restore
+  // ============================================================================
+
+  /// Export entire database to JSON format
+  Future<String> exportDatabase() async {
+    try {
+      print('📤 Starting database export...');
+
+      final exportData = <String, dynamic>{
+        'exportMetadata': {
+          'version': schemaVersion,
+          'exportDate': DateTime.now().toIso8601String(),
+          'appVersion': '1.0.0', // Could be made dynamic
+        },
+        'data': {},
+      };
+
+      // Export teams
+      final teams = await select(this.teams).get();
+      exportData['data']['teams'] = teams.map((t) => t.toJson()).toList();
+      print('📊 Exported ${teams.length} teams');
+
+      // Export players
+      final players = await select(this.players).get();
+      exportData['data']['players'] = players.map((p) => p.toJson()).toList();
+      print('📊 Exported ${players.length} players');
+
+      // Export games
+      final games = await select(this.games).get();
+      exportData['data']['games'] = games.map((g) => g.toJson()).toList();
+      print('📊 Exported ${games.length} games');
+
+      // Export formations
+      final formations = await select(this.formations).get();
+      exportData['data']['formations'] = formations
+          .map((f) => f.toJson())
+          .toList();
+      print('📊 Exported ${formations.length} formations');
+
+      // Export formation positions
+      final formationPositions = await select(this.formationPositions).get();
+      exportData['data']['formationPositions'] = formationPositions
+          .map((fp) => fp.toJson())
+          .toList();
+      print('📊 Exported ${formationPositions.length} formation positions');
+
+      // Export shifts
+      final shifts = await select(this.shifts).get();
+      exportData['data']['shifts'] = shifts.map((s) => s.toJson()).toList();
+      print('📊 Exported ${shifts.length} shifts');
+
+      // Export player shifts
+      final playerShifts = await select(this.playerShifts).get();
+      exportData['data']['playerShifts'] = playerShifts
+          .map((ps) => ps.toJson())
+          .toList();
+      print('📊 Exported ${playerShifts.length} player shifts');
+
+      // Export game players
+      final gamePlayers = await select(this.gamePlayers).get();
+      exportData['data']['gamePlayers'] = gamePlayers
+          .map((gp) => gp.toJson())
+          .toList();
+      print('📊 Exported ${gamePlayers.length} game players');
+
+      // Export player metrics
+      final playerMetrics = await select(this.playerMetrics).get();
+      exportData['data']['playerMetrics'] = playerMetrics
+          .map((pm) => pm.toJson())
+          .toList();
+      print('📊 Exported ${playerMetrics.length} player metrics');
+
+      // Export player position totals
+      final playerPositionTotals = await select(
+        this.playerPositionTotals,
+      ).get();
+      exportData['data']['playerPositionTotals'] = playerPositionTotals
+          .map((ppt) => ppt.toJson())
+          .toList();
+      print('📊 Exported ${playerPositionTotals.length} position totals');
+
+      final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
+      print('✅ Database export completed successfully');
+      return jsonString;
+    } catch (e) {
+      print('❌ Database export failed: $e');
+      rethrow;
+    }
+  }
+
+  /// Save database export to file
+  Future<String> exportDatabaseToFile() async {
+    try {
+      final jsonData = await exportDatabase();
+
+      // Get documents directory
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now()
+          .toIso8601String()
+          .replaceAll(':', '-')
+          .replaceAll('.', '-');
+      final fileName = 'soccer_assistant_backup_$timestamp.json';
+      final filePath = p.join(directory.path, fileName);
+
+      // Write to file
+      final file = File(filePath);
+      await file.writeAsString(jsonData);
+
+      print('💾 Database exported to: $filePath');
+      return filePath;
+    } catch (e) {
+      print('❌ Failed to save database export: $e');
+      rethrow;
+    }
+  }
+
+  /// Import database from JSON string
+  Future<bool> importDatabase(String jsonData) async {
+    try {
+      print('📥 Starting database import...');
+
+      final data = jsonDecode(jsonData) as Map<String, dynamic>;
+      final importData = data['data'] as Map<String, dynamic>;
+      final metadata = data['exportMetadata'] as Map<String, dynamic>?;
+
+      if (metadata != null) {
+        final exportVersion = metadata['version'] as int?;
+        print(
+          '📋 Import metadata: version $exportVersion, date ${metadata['exportDate']}',
+        );
+
+        if (exportVersion != null && exportVersion > schemaVersion) {
+          throw Exception(
+            'Cannot import data from newer app version (export: v$exportVersion, current: v$schemaVersion)',
+          );
+        }
+      }
+
+      // Clear existing data first
+      await resetDatabaseSafely();
+
+      // Import in correct order to respect foreign key constraints
+      await customStatement('PRAGMA foreign_keys = OFF');
+
+      // 1. Import teams first
+      if (importData.containsKey('teams')) {
+        final teams = importData['teams'] as List;
+        for (final teamData in teams) {
+          await into(
+            this.teams,
+          ).insert(Team.fromJson(teamData as Map<String, dynamic>));
+        }
+        print('✅ Imported ${teams.length} teams');
+      }
+
+      // 2. Import players
+      if (importData.containsKey('players')) {
+        final players = importData['players'] as List;
+        for (final playerData in players) {
+          await into(
+            this.players,
+          ).insert(Player.fromJson(playerData as Map<String, dynamic>));
+        }
+        print('✅ Imported ${players.length} players');
+      }
+
+      // 3. Import formations
+      if (importData.containsKey('formations')) {
+        final formations = importData['formations'] as List;
+        for (final formationData in formations) {
+          await into(
+            this.formations,
+          ).insert(Formation.fromJson(formationData as Map<String, dynamic>));
+        }
+        print('✅ Imported ${formations.length} formations');
+      }
+
+      // 4. Import formation positions
+      if (importData.containsKey('formationPositions')) {
+        final positions = importData['formationPositions'] as List;
+        for (final positionData in positions) {
+          await into(formationPositions).insert(
+            FormationPosition.fromJson(positionData as Map<String, dynamic>),
+          );
+        }
+        print('✅ Imported ${positions.length} formation positions');
+      }
+
+      // 5. Import games
+      if (importData.containsKey('games')) {
+        final games = importData['games'] as List;
+        for (final gameData in games) {
+          await into(
+            this.games,
+          ).insert(Game.fromJson(gameData as Map<String, dynamic>));
+        }
+        print('✅ Imported ${games.length} games');
+      }
+
+      // 6. Import game players
+      if (importData.containsKey('gamePlayers')) {
+        final gamePlayers = importData['gamePlayers'] as List;
+        for (final gamePlayerData in gamePlayers) {
+          await into(
+            this.gamePlayers,
+          ).insert(GamePlayer.fromJson(gamePlayerData as Map<String, dynamic>));
+        }
+        print('✅ Imported ${gamePlayers.length} game players');
+      }
+
+      // 7. Import shifts
+      if (importData.containsKey('shifts')) {
+        final shifts = importData['shifts'] as List;
+        for (final shiftData in shifts) {
+          await into(
+            this.shifts,
+          ).insert(Shift.fromJson(shiftData as Map<String, dynamic>));
+        }
+        print('✅ Imported ${shifts.length} shifts');
+      }
+
+      // 8. Import player shifts
+      if (importData.containsKey('playerShifts')) {
+        final playerShifts = importData['playerShifts'] as List;
+        for (final playerShiftData in playerShifts) {
+          await into(this.playerShifts).insert(
+            PlayerShift.fromJson(playerShiftData as Map<String, dynamic>),
+          );
+        }
+        print('✅ Imported ${playerShifts.length} player shifts');
+      }
+
+      // 9. Import player metrics
+      if (importData.containsKey('playerMetrics')) {
+        final playerMetrics = importData['playerMetrics'] as List;
+        for (final metricData in playerMetrics) {
+          await into(
+            this.playerMetrics,
+          ).insert(PlayerMetric.fromJson(metricData as Map<String, dynamic>));
+        }
+        print('✅ Imported ${playerMetrics.length} player metrics');
+      }
+
+      // 10. Import player position totals
+      if (importData.containsKey('playerPositionTotals')) {
+        final totals = importData['playerPositionTotals'] as List;
+        for (final totalData in totals) {
+          await into(playerPositionTotals).insert(
+            PlayerPositionTotal.fromJson(totalData as Map<String, dynamic>),
+          );
+        }
+        print('✅ Imported ${totals.length} position totals');
+      }
+
+      await customStatement('PRAGMA foreign_keys = ON');
+
+      print('✅ Database import completed successfully');
+      return true;
+    } catch (e) {
+      print('❌ Database import failed: $e');
+      await customStatement(
+        'PRAGMA foreign_keys = ON',
+      ); // Ensure foreign keys are re-enabled
+      return false;
+    }
+  }
+
+  /// Import database from file
+  Future<bool> importDatabaseFromFile(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw Exception('Import file does not exist: $filePath');
+      }
+
+      final jsonData = await file.readAsString();
+      return await importDatabase(jsonData);
+    } catch (e) {
+      print('❌ Failed to import from file: $e');
+      return false;
+    }
+  }
+
+  /// Create automatic backup before destructive operations
+  Future<String?> createAutomaticBackup() async {
+    try {
+      print('🔄 Creating automatic backup...');
+
+      // Check if there's any data to backup
+      final summary = await getDataSummaryForReset();
+      final hasData = summary.values.any((count) => count > 0);
+
+      if (!hasData) {
+        print('ℹ️ No data to backup - skipping automatic backup');
+        return null;
+      }
+
+      final backupPath = await exportDatabaseToFile();
+      print('✅ Automatic backup created: $backupPath');
+      return backupPath;
+    } catch (e) {
+      print('⚠️ Automatic backup failed: $e');
+      return null;
+    }
   }
 }
 

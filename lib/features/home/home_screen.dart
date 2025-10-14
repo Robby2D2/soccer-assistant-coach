@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../widgets/team_logo_widget.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -15,6 +16,26 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Soccer Assistant Coach'),
         actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'debug') {
+                context.push('/debug/database');
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'debug',
+                child: Row(
+                  children: [
+                    Icon(Icons.bug_report),
+                    SizedBox(width: 8),
+                    Expanded(child: Text('Database Diagnostics')),
+                  ],
+                ),
+              ),
+            ],
+            child: const Icon(Icons.more_vert),
+          ),
           IconButton(
             icon: const Icon(Icons.group),
             tooltip: 'Manage Teams',
@@ -142,31 +163,58 @@ class HomeScreen extends ConsumerWidget {
                                 padding: const EdgeInsets.all(16),
                                 child: Row(
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: game.isGameActive
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.errorContainer
-                                            : Theme.of(
-                                                context,
-                                              ).colorScheme.primaryContainer,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Icon(
-                                        game.isGameActive
-                                            ? Icons.timer
-                                            : Icons.pause_circle_filled,
-                                        color: game.isGameActive
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.error
-                                            : Theme.of(
-                                                context,
-                                              ).colorScheme.primary,
-                                        size: 24,
-                                      ),
+                                    Stack(
+                                      children: [
+                                        TeamLogoWidget(
+                                          logoPath: team.logoImagePath,
+                                          size: 40,
+                                          backgroundColor: game.isGameActive
+                                              ? Theme.of(
+                                                  context,
+                                                ).colorScheme.errorContainer
+                                              : Theme.of(
+                                                  context,
+                                                ).colorScheme.primaryContainer,
+                                          iconColor: game.isGameActive
+                                              ? Theme.of(
+                                                  context,
+                                                ).colorScheme.error
+                                              : Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
+                                        ),
+                                        Positioned(
+                                          right: -2,
+                                          bottom: -2,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(2),
+                                            decoration: BoxDecoration(
+                                              color: game.isGameActive
+                                                  ? Theme.of(
+                                                      context,
+                                                    ).colorScheme.error
+                                                  : Theme.of(
+                                                      context,
+                                                    ).colorScheme.primary,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Icon(
+                                              game.isGameActive
+                                                  ? Icons.play_arrow
+                                                  : Icons.pause,
+                                              color: game.isGameActive
+                                                  ? Theme.of(
+                                                      context,
+                                                    ).colorScheme.onError
+                                                  : Theme.of(
+                                                      context,
+                                                    ).colorScheme.onPrimary,
+                                              size: 12,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     const SizedBox(width: 16),
                                     Expanded(

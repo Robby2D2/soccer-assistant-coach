@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../widgets/team_logo_widget.dart';
 
 class TeamsScreen extends ConsumerStatefulWidget {
   const TeamsScreen({super.key});
@@ -230,25 +231,19 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
                       padding: const EdgeInsets.all(20),
                       child: Row(
                         children: [
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: archived
-                                  ? Theme.of(context).colorScheme.outline
-                                        .withValues(alpha: 0.12)
-                                  : Theme.of(
-                                      context,
-                                    ).colorScheme.primaryContainer,
-                            ),
-                            child: Icon(
-                              Icons.sports_soccer,
-                              color: archived
-                                  ? Theme.of(context).colorScheme.outline
-                                  : Theme.of(context).colorScheme.primary,
-                              size: 28,
-                            ),
+                          TeamLogoWidget(
+                            logoPath: team.logoImagePath,
+                            size: 56,
+                            backgroundColor: archived
+                                ? Theme.of(
+                                    context,
+                                  ).colorScheme.outline.withValues(alpha: 0.12)
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.primaryContainer,
+                            iconColor: archived
+                                ? Theme.of(context).colorScheme.outline
+                                : Theme.of(context).colorScheme.primary,
                           ),
                           const SizedBox(width: 16),
                           Expanded(

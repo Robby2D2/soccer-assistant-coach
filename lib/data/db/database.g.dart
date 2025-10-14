@@ -68,6 +68,61 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, Team> {
     requiredDuringInsert: false,
     defaultValue: const Constant(1200),
   );
+  static const VerificationMeta _shiftLengthSecondsMeta =
+      const VerificationMeta('shiftLengthSeconds');
+  @override
+  late final GeneratedColumn<int> shiftLengthSeconds = GeneratedColumn<int>(
+    'shift_length_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(300),
+  );
+  static const VerificationMeta _logoImagePathMeta = const VerificationMeta(
+    'logoImagePath',
+  );
+  @override
+  late final GeneratedColumn<String> logoImagePath = GeneratedColumn<String>(
+    'logo_image_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _primaryColor1Meta = const VerificationMeta(
+    'primaryColor1',
+  );
+  @override
+  late final GeneratedColumn<String> primaryColor1 = GeneratedColumn<String>(
+    'primary_color1',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _primaryColor2Meta = const VerificationMeta(
+    'primaryColor2',
+  );
+  @override
+  late final GeneratedColumn<String> primaryColor2 = GeneratedColumn<String>(
+    'primary_color2',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _primaryColor3Meta = const VerificationMeta(
+    'primaryColor3',
+  );
+  @override
+  late final GeneratedColumn<String> primaryColor3 = GeneratedColumn<String>(
+    'primary_color3',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -75,6 +130,11 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, Team> {
     isArchived,
     teamMode,
     halfDurationSeconds,
+    shiftLengthSeconds,
+    logoImagePath,
+    primaryColor1,
+    primaryColor2,
+    primaryColor3,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -120,6 +180,51 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, Team> {
         ),
       );
     }
+    if (data.containsKey('shift_length_seconds')) {
+      context.handle(
+        _shiftLengthSecondsMeta,
+        shiftLengthSeconds.isAcceptableOrUnknown(
+          data['shift_length_seconds']!,
+          _shiftLengthSecondsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('logo_image_path')) {
+      context.handle(
+        _logoImagePathMeta,
+        logoImagePath.isAcceptableOrUnknown(
+          data['logo_image_path']!,
+          _logoImagePathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('primary_color1')) {
+      context.handle(
+        _primaryColor1Meta,
+        primaryColor1.isAcceptableOrUnknown(
+          data['primary_color1']!,
+          _primaryColor1Meta,
+        ),
+      );
+    }
+    if (data.containsKey('primary_color2')) {
+      context.handle(
+        _primaryColor2Meta,
+        primaryColor2.isAcceptableOrUnknown(
+          data['primary_color2']!,
+          _primaryColor2Meta,
+        ),
+      );
+    }
+    if (data.containsKey('primary_color3')) {
+      context.handle(
+        _primaryColor3Meta,
+        primaryColor3.isAcceptableOrUnknown(
+          data['primary_color3']!,
+          _primaryColor3Meta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -149,6 +254,26 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, Team> {
         DriftSqlType.int,
         data['${effectivePrefix}half_duration_seconds'],
       )!,
+      shiftLengthSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}shift_length_seconds'],
+      )!,
+      logoImagePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}logo_image_path'],
+      ),
+      primaryColor1: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}primary_color1'],
+      ),
+      primaryColor2: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}primary_color2'],
+      ),
+      primaryColor3: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}primary_color3'],
+      ),
     );
   }
 
@@ -164,12 +289,22 @@ class Team extends DataClass implements Insertable<Team> {
   final bool isArchived;
   final String teamMode;
   final int halfDurationSeconds;
+  final int shiftLengthSeconds;
+  final String? logoImagePath;
+  final String? primaryColor1;
+  final String? primaryColor2;
+  final String? primaryColor3;
   const Team({
     required this.id,
     required this.name,
     required this.isArchived,
     required this.teamMode,
     required this.halfDurationSeconds,
+    required this.shiftLengthSeconds,
+    this.logoImagePath,
+    this.primaryColor1,
+    this.primaryColor2,
+    this.primaryColor3,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -179,6 +314,19 @@ class Team extends DataClass implements Insertable<Team> {
     map['is_archived'] = Variable<bool>(isArchived);
     map['team_mode'] = Variable<String>(teamMode);
     map['half_duration_seconds'] = Variable<int>(halfDurationSeconds);
+    map['shift_length_seconds'] = Variable<int>(shiftLengthSeconds);
+    if (!nullToAbsent || logoImagePath != null) {
+      map['logo_image_path'] = Variable<String>(logoImagePath);
+    }
+    if (!nullToAbsent || primaryColor1 != null) {
+      map['primary_color1'] = Variable<String>(primaryColor1);
+    }
+    if (!nullToAbsent || primaryColor2 != null) {
+      map['primary_color2'] = Variable<String>(primaryColor2);
+    }
+    if (!nullToAbsent || primaryColor3 != null) {
+      map['primary_color3'] = Variable<String>(primaryColor3);
+    }
     return map;
   }
 
@@ -189,6 +337,19 @@ class Team extends DataClass implements Insertable<Team> {
       isArchived: Value(isArchived),
       teamMode: Value(teamMode),
       halfDurationSeconds: Value(halfDurationSeconds),
+      shiftLengthSeconds: Value(shiftLengthSeconds),
+      logoImagePath: logoImagePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(logoImagePath),
+      primaryColor1: primaryColor1 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(primaryColor1),
+      primaryColor2: primaryColor2 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(primaryColor2),
+      primaryColor3: primaryColor3 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(primaryColor3),
     );
   }
 
@@ -205,6 +366,11 @@ class Team extends DataClass implements Insertable<Team> {
       halfDurationSeconds: serializer.fromJson<int>(
         json['halfDurationSeconds'],
       ),
+      shiftLengthSeconds: serializer.fromJson<int>(json['shiftLengthSeconds']),
+      logoImagePath: serializer.fromJson<String?>(json['logoImagePath']),
+      primaryColor1: serializer.fromJson<String?>(json['primaryColor1']),
+      primaryColor2: serializer.fromJson<String?>(json['primaryColor2']),
+      primaryColor3: serializer.fromJson<String?>(json['primaryColor3']),
     );
   }
   @override
@@ -216,6 +382,11 @@ class Team extends DataClass implements Insertable<Team> {
       'isArchived': serializer.toJson<bool>(isArchived),
       'teamMode': serializer.toJson<String>(teamMode),
       'halfDurationSeconds': serializer.toJson<int>(halfDurationSeconds),
+      'shiftLengthSeconds': serializer.toJson<int>(shiftLengthSeconds),
+      'logoImagePath': serializer.toJson<String?>(logoImagePath),
+      'primaryColor1': serializer.toJson<String?>(primaryColor1),
+      'primaryColor2': serializer.toJson<String?>(primaryColor2),
+      'primaryColor3': serializer.toJson<String?>(primaryColor3),
     };
   }
 
@@ -225,12 +396,30 @@ class Team extends DataClass implements Insertable<Team> {
     bool? isArchived,
     String? teamMode,
     int? halfDurationSeconds,
+    int? shiftLengthSeconds,
+    Value<String?> logoImagePath = const Value.absent(),
+    Value<String?> primaryColor1 = const Value.absent(),
+    Value<String?> primaryColor2 = const Value.absent(),
+    Value<String?> primaryColor3 = const Value.absent(),
   }) => Team(
     id: id ?? this.id,
     name: name ?? this.name,
     isArchived: isArchived ?? this.isArchived,
     teamMode: teamMode ?? this.teamMode,
     halfDurationSeconds: halfDurationSeconds ?? this.halfDurationSeconds,
+    shiftLengthSeconds: shiftLengthSeconds ?? this.shiftLengthSeconds,
+    logoImagePath: logoImagePath.present
+        ? logoImagePath.value
+        : this.logoImagePath,
+    primaryColor1: primaryColor1.present
+        ? primaryColor1.value
+        : this.primaryColor1,
+    primaryColor2: primaryColor2.present
+        ? primaryColor2.value
+        : this.primaryColor2,
+    primaryColor3: primaryColor3.present
+        ? primaryColor3.value
+        : this.primaryColor3,
   );
   Team copyWithCompanion(TeamsCompanion data) {
     return Team(
@@ -243,6 +432,21 @@ class Team extends DataClass implements Insertable<Team> {
       halfDurationSeconds: data.halfDurationSeconds.present
           ? data.halfDurationSeconds.value
           : this.halfDurationSeconds,
+      shiftLengthSeconds: data.shiftLengthSeconds.present
+          ? data.shiftLengthSeconds.value
+          : this.shiftLengthSeconds,
+      logoImagePath: data.logoImagePath.present
+          ? data.logoImagePath.value
+          : this.logoImagePath,
+      primaryColor1: data.primaryColor1.present
+          ? data.primaryColor1.value
+          : this.primaryColor1,
+      primaryColor2: data.primaryColor2.present
+          ? data.primaryColor2.value
+          : this.primaryColor2,
+      primaryColor3: data.primaryColor3.present
+          ? data.primaryColor3.value
+          : this.primaryColor3,
     );
   }
 
@@ -253,14 +457,29 @@ class Team extends DataClass implements Insertable<Team> {
           ..write('name: $name, ')
           ..write('isArchived: $isArchived, ')
           ..write('teamMode: $teamMode, ')
-          ..write('halfDurationSeconds: $halfDurationSeconds')
+          ..write('halfDurationSeconds: $halfDurationSeconds, ')
+          ..write('shiftLengthSeconds: $shiftLengthSeconds, ')
+          ..write('logoImagePath: $logoImagePath, ')
+          ..write('primaryColor1: $primaryColor1, ')
+          ..write('primaryColor2: $primaryColor2, ')
+          ..write('primaryColor3: $primaryColor3')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, isArchived, teamMode, halfDurationSeconds);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    isArchived,
+    teamMode,
+    halfDurationSeconds,
+    shiftLengthSeconds,
+    logoImagePath,
+    primaryColor1,
+    primaryColor2,
+    primaryColor3,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -269,7 +488,12 @@ class Team extends DataClass implements Insertable<Team> {
           other.name == this.name &&
           other.isArchived == this.isArchived &&
           other.teamMode == this.teamMode &&
-          other.halfDurationSeconds == this.halfDurationSeconds);
+          other.halfDurationSeconds == this.halfDurationSeconds &&
+          other.shiftLengthSeconds == this.shiftLengthSeconds &&
+          other.logoImagePath == this.logoImagePath &&
+          other.primaryColor1 == this.primaryColor1 &&
+          other.primaryColor2 == this.primaryColor2 &&
+          other.primaryColor3 == this.primaryColor3);
 }
 
 class TeamsCompanion extends UpdateCompanion<Team> {
@@ -278,12 +502,22 @@ class TeamsCompanion extends UpdateCompanion<Team> {
   final Value<bool> isArchived;
   final Value<String> teamMode;
   final Value<int> halfDurationSeconds;
+  final Value<int> shiftLengthSeconds;
+  final Value<String?> logoImagePath;
+  final Value<String?> primaryColor1;
+  final Value<String?> primaryColor2;
+  final Value<String?> primaryColor3;
   const TeamsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.isArchived = const Value.absent(),
     this.teamMode = const Value.absent(),
     this.halfDurationSeconds = const Value.absent(),
+    this.shiftLengthSeconds = const Value.absent(),
+    this.logoImagePath = const Value.absent(),
+    this.primaryColor1 = const Value.absent(),
+    this.primaryColor2 = const Value.absent(),
+    this.primaryColor3 = const Value.absent(),
   });
   TeamsCompanion.insert({
     this.id = const Value.absent(),
@@ -291,6 +525,11 @@ class TeamsCompanion extends UpdateCompanion<Team> {
     this.isArchived = const Value.absent(),
     this.teamMode = const Value.absent(),
     this.halfDurationSeconds = const Value.absent(),
+    this.shiftLengthSeconds = const Value.absent(),
+    this.logoImagePath = const Value.absent(),
+    this.primaryColor1 = const Value.absent(),
+    this.primaryColor2 = const Value.absent(),
+    this.primaryColor3 = const Value.absent(),
   }) : name = Value(name);
   static Insertable<Team> custom({
     Expression<int>? id,
@@ -298,6 +537,11 @@ class TeamsCompanion extends UpdateCompanion<Team> {
     Expression<bool>? isArchived,
     Expression<String>? teamMode,
     Expression<int>? halfDurationSeconds,
+    Expression<int>? shiftLengthSeconds,
+    Expression<String>? logoImagePath,
+    Expression<String>? primaryColor1,
+    Expression<String>? primaryColor2,
+    Expression<String>? primaryColor3,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -306,6 +550,12 @@ class TeamsCompanion extends UpdateCompanion<Team> {
       if (teamMode != null) 'team_mode': teamMode,
       if (halfDurationSeconds != null)
         'half_duration_seconds': halfDurationSeconds,
+      if (shiftLengthSeconds != null)
+        'shift_length_seconds': shiftLengthSeconds,
+      if (logoImagePath != null) 'logo_image_path': logoImagePath,
+      if (primaryColor1 != null) 'primary_color1': primaryColor1,
+      if (primaryColor2 != null) 'primary_color2': primaryColor2,
+      if (primaryColor3 != null) 'primary_color3': primaryColor3,
     });
   }
 
@@ -315,6 +565,11 @@ class TeamsCompanion extends UpdateCompanion<Team> {
     Value<bool>? isArchived,
     Value<String>? teamMode,
     Value<int>? halfDurationSeconds,
+    Value<int>? shiftLengthSeconds,
+    Value<String?>? logoImagePath,
+    Value<String?>? primaryColor1,
+    Value<String?>? primaryColor2,
+    Value<String?>? primaryColor3,
   }) {
     return TeamsCompanion(
       id: id ?? this.id,
@@ -322,6 +577,11 @@ class TeamsCompanion extends UpdateCompanion<Team> {
       isArchived: isArchived ?? this.isArchived,
       teamMode: teamMode ?? this.teamMode,
       halfDurationSeconds: halfDurationSeconds ?? this.halfDurationSeconds,
+      shiftLengthSeconds: shiftLengthSeconds ?? this.shiftLengthSeconds,
+      logoImagePath: logoImagePath ?? this.logoImagePath,
+      primaryColor1: primaryColor1 ?? this.primaryColor1,
+      primaryColor2: primaryColor2 ?? this.primaryColor2,
+      primaryColor3: primaryColor3 ?? this.primaryColor3,
     );
   }
 
@@ -343,6 +603,21 @@ class TeamsCompanion extends UpdateCompanion<Team> {
     if (halfDurationSeconds.present) {
       map['half_duration_seconds'] = Variable<int>(halfDurationSeconds.value);
     }
+    if (shiftLengthSeconds.present) {
+      map['shift_length_seconds'] = Variable<int>(shiftLengthSeconds.value);
+    }
+    if (logoImagePath.present) {
+      map['logo_image_path'] = Variable<String>(logoImagePath.value);
+    }
+    if (primaryColor1.present) {
+      map['primary_color1'] = Variable<String>(primaryColor1.value);
+    }
+    if (primaryColor2.present) {
+      map['primary_color2'] = Variable<String>(primaryColor2.value);
+    }
+    if (primaryColor3.present) {
+      map['primary_color3'] = Variable<String>(primaryColor3.value);
+    }
     return map;
   }
 
@@ -353,7 +628,12 @@ class TeamsCompanion extends UpdateCompanion<Team> {
           ..write('name: $name, ')
           ..write('isArchived: $isArchived, ')
           ..write('teamMode: $teamMode, ')
-          ..write('halfDurationSeconds: $halfDurationSeconds')
+          ..write('halfDurationSeconds: $halfDurationSeconds, ')
+          ..write('shiftLengthSeconds: $shiftLengthSeconds, ')
+          ..write('logoImagePath: $logoImagePath, ')
+          ..write('primaryColor1: $primaryColor1, ')
+          ..write('primaryColor2: $primaryColor2, ')
+          ..write('primaryColor3: $primaryColor3')
           ..write(')'))
         .toString();
   }
@@ -4088,6 +4368,11 @@ typedef $$TeamsTableCreateCompanionBuilder =
       Value<bool> isArchived,
       Value<String> teamMode,
       Value<int> halfDurationSeconds,
+      Value<int> shiftLengthSeconds,
+      Value<String?> logoImagePath,
+      Value<String?> primaryColor1,
+      Value<String?> primaryColor2,
+      Value<String?> primaryColor3,
     });
 typedef $$TeamsTableUpdateCompanionBuilder =
     TeamsCompanion Function({
@@ -4096,6 +4381,11 @@ typedef $$TeamsTableUpdateCompanionBuilder =
       Value<bool> isArchived,
       Value<String> teamMode,
       Value<int> halfDurationSeconds,
+      Value<int> shiftLengthSeconds,
+      Value<String?> logoImagePath,
+      Value<String?> primaryColor1,
+      Value<String?> primaryColor2,
+      Value<String?> primaryColor3,
     });
 
 final class $$TeamsTableReferences
@@ -4189,6 +4479,31 @@ class $$TeamsTableFilterComposer extends Composer<_$AppDb, $TeamsTable> {
 
   ColumnFilters<int> get halfDurationSeconds => $composableBuilder(
     column: $table.halfDurationSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get shiftLengthSeconds => $composableBuilder(
+    column: $table.shiftLengthSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get logoImagePath => $composableBuilder(
+    column: $table.logoImagePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get primaryColor1 => $composableBuilder(
+    column: $table.primaryColor1,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get primaryColor2 => $composableBuilder(
+    column: $table.primaryColor2,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get primaryColor3 => $composableBuilder(
+    column: $table.primaryColor3,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4300,6 +4615,31 @@ class $$TeamsTableOrderingComposer extends Composer<_$AppDb, $TeamsTable> {
     column: $table.halfDurationSeconds,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get shiftLengthSeconds => $composableBuilder(
+    column: $table.shiftLengthSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get logoImagePath => $composableBuilder(
+    column: $table.logoImagePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get primaryColor1 => $composableBuilder(
+    column: $table.primaryColor1,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get primaryColor2 => $composableBuilder(
+    column: $table.primaryColor2,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get primaryColor3 => $composableBuilder(
+    column: $table.primaryColor3,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TeamsTableAnnotationComposer extends Composer<_$AppDb, $TeamsTable> {
@@ -4326,6 +4666,31 @@ class $$TeamsTableAnnotationComposer extends Composer<_$AppDb, $TeamsTable> {
 
   GeneratedColumn<int> get halfDurationSeconds => $composableBuilder(
     column: $table.halfDurationSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get shiftLengthSeconds => $composableBuilder(
+    column: $table.shiftLengthSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get logoImagePath => $composableBuilder(
+    column: $table.logoImagePath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get primaryColor1 => $composableBuilder(
+    column: $table.primaryColor1,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get primaryColor2 => $composableBuilder(
+    column: $table.primaryColor2,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get primaryColor3 => $composableBuilder(
+    column: $table.primaryColor3,
     builder: (column) => column,
   );
 
@@ -4442,12 +4807,22 @@ class $$TeamsTableTableManager
                 Value<bool> isArchived = const Value.absent(),
                 Value<String> teamMode = const Value.absent(),
                 Value<int> halfDurationSeconds = const Value.absent(),
+                Value<int> shiftLengthSeconds = const Value.absent(),
+                Value<String?> logoImagePath = const Value.absent(),
+                Value<String?> primaryColor1 = const Value.absent(),
+                Value<String?> primaryColor2 = const Value.absent(),
+                Value<String?> primaryColor3 = const Value.absent(),
               }) => TeamsCompanion(
                 id: id,
                 name: name,
                 isArchived: isArchived,
                 teamMode: teamMode,
                 halfDurationSeconds: halfDurationSeconds,
+                shiftLengthSeconds: shiftLengthSeconds,
+                logoImagePath: logoImagePath,
+                primaryColor1: primaryColor1,
+                primaryColor2: primaryColor2,
+                primaryColor3: primaryColor3,
               ),
           createCompanionCallback:
               ({
@@ -4456,12 +4831,22 @@ class $$TeamsTableTableManager
                 Value<bool> isArchived = const Value.absent(),
                 Value<String> teamMode = const Value.absent(),
                 Value<int> halfDurationSeconds = const Value.absent(),
+                Value<int> shiftLengthSeconds = const Value.absent(),
+                Value<String?> logoImagePath = const Value.absent(),
+                Value<String?> primaryColor1 = const Value.absent(),
+                Value<String?> primaryColor2 = const Value.absent(),
+                Value<String?> primaryColor3 = const Value.absent(),
               }) => TeamsCompanion.insert(
                 id: id,
                 name: name,
                 isArchived: isArchived,
                 teamMode: teamMode,
                 halfDurationSeconds: halfDurationSeconds,
+                shiftLengthSeconds: shiftLengthSeconds,
+                logoImagePath: logoImagePath,
+                primaryColor1: primaryColor1,
+                primaryColor2: primaryColor2,
+                primaryColor3: primaryColor3,
               ),
           withReferenceMapper: (p0) => p0
               .map(

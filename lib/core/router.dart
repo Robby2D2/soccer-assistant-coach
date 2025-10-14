@@ -17,6 +17,7 @@ import '../features/formations/formation_edit_screen.dart';
 import '../features/games/formation_selection_screen.dart';
 import '../features/games/attendance_screen.dart';
 import '../features/games/end_game_screen.dart';
+import '../features/debug/database_diagnostic_screen.dart';
 
 final router = GoRouter(
   routes: [
@@ -112,6 +113,10 @@ final router = GoRouter(
       path: '/game/:id/end',
       builder: (_, s) =>
           EndGameScreen(gameId: int.parse(s.pathParameters['id']!)),
+    ),
+    GoRoute(
+      path: '/debug/database',
+      builder: (_, __) => const DatabaseDiagnosticScreen(),
     ),
   ],
 );

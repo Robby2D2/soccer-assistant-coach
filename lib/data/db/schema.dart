@@ -8,6 +8,17 @@ class Teams extends Table {
       text().withDefault(const Constant('shift'))(); // 'shift' or 'traditional'
   IntColumn get halfDurationSeconds =>
       integer().withDefault(const Constant(1200))(); // 20 minutes default
+  IntColumn get shiftLengthSeconds => integer().withDefault(
+    const Constant(300),
+  )(); // 5 minutes default for shifts
+  TextColumn get logoImagePath =>
+      text().nullable()(); // Path to team logo image
+  TextColumn get primaryColor1 =>
+      text().nullable()(); // First primary color (hex)
+  TextColumn get primaryColor2 =>
+      text().nullable()(); // Second primary color (hex)
+  TextColumn get primaryColor3 =>
+      text().nullable()(); // Third primary color (hex)
 }
 
 class Players extends Table {
