@@ -529,43 +529,75 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                         // theme reference removed (unused)
 
                         final columnChildren = <Widget>[
-                          // Current shift title
+                          // Current shift title with optional next shift link
                           Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 8,
                             ),
-                            child: GestureDetector(
-                              onTap: () {
-                                final currentShiftId =
-                                    _currentShiftId ?? game.currentShiftId;
-                                if (currentShiftId != null) {
-                                  _shiftsListKey.currentState?.scrollToShift(
-                                    currentShiftId,
-                                  );
-                                }
-                              },
-                              child: Text(
-                                () {
-                                  final id =
-                                      _currentShiftId ?? game.currentShiftId;
-                                  if (id == null) {
-                                    return 'No Current Shift';
-                                  }
-                                  final order = shiftNumbers[id];
-                                  return order == null
-                                      ? 'Current Shift'
-                                      : 'Shift #$order';
-                                }(),
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      final currentShiftId =
+                                          _currentShiftId ??
+                                          game.currentShiftId;
+                                      if (currentShiftId != null) {
+                                        _shiftsListKey.currentState
+                                            ?.scrollToShift(currentShiftId);
+                                      }
+                                    },
+                                    child: Text(
+                                      () {
+                                        final id =
+                                            _currentShiftId ??
+                                            game.currentShiftId;
+                                        if (id == null) {
+                                          return 'No Current Shift';
+                                        }
+                                        final order = shiftNumbers[id];
+                                        return order == null
+                                            ? 'Current Shift'
+                                            : 'Shift #$order';
+                                      }(),
+                                      textAlign: TextAlign.left,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                          ),
                                     ),
-                              ),
+                                  ),
+                                ),
+                                if (nextShiftId != null)
+                                  GestureDetector(
+                                    onTap: () {
+                                      _shiftsListKey.currentState
+                                          ?.scrollToShift(nextShiftId);
+                                    },
+                                    child: Text(
+                                      'See next shift',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                            decoration:
+                                                TextDecoration.underline,
+                                            decorationColor: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                          ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                           // Stopwatch card (only show for in-progress games)
