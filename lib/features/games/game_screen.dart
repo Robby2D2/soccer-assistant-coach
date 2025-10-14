@@ -713,18 +713,129 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                         horizontal: 16,
                                         vertical: 16,
                                       ),
-                                      child: Center(
-                                        child: Text(
-                                          _hhmmssSigned(remaining),
-                                          style: theme.textTheme.displayMedium
-                                              ?.copyWith(
-                                                fontFeatures: const [
-                                                  FontFeature.tabularFigures(),
-                                                ],
-                                                letterSpacing: 2.0,
-                                                fontWeight: FontWeight.w300,
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          // Timer display
+                                          Text(
+                                            _hhmmssSigned(remaining),
+                                            style: theme.textTheme.displayMedium
+                                                ?.copyWith(
+                                                  fontFeatures: const [
+                                                    FontFeature.tabularFigures(),
+                                                  ],
+                                                  letterSpacing: 2.0,
+                                                  fontWeight: FontWeight.w300,
+                                                ),
+                                          ),
+
+                                          const SizedBox(height: 12),
+
+                                          // Timeline
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Current Shift',
+                                                style:
+                                                    theme.textTheme.labelSmall,
                                               ),
-                                        ),
+                                              const SizedBox(height: 4),
+                                              ValueListenableBuilder<int>(
+                                                valueListenable:
+                                                    _secondsNotifier,
+                                                builder: (context, seconds, _) {
+                                                  final progress =
+                                                      _shiftLengthSeconds > 0
+                                                      ? (seconds /
+                                                                _shiftLengthSeconds)
+                                                            .clamp(0.0, 1.0)
+                                                      : 0.0;
+
+                                                  return Column(
+                                                    children: [
+                                                      // Progress bar
+                                                      Container(
+                                                        height: 6,
+                                                        decoration: BoxDecoration(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                3,
+                                                              ),
+                                                          color: theme
+                                                              .colorScheme
+                                                              .surfaceVariant,
+                                                        ),
+                                                        child: Stack(
+                                                          children: [
+                                                            Container(
+                                                              height: 6,
+                                                              decoration: BoxDecoration(
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      3,
+                                                                    ),
+                                                                color: theme
+                                                                    .colorScheme
+                                                                    .surfaceVariant,
+                                                              ),
+                                                            ),
+                                                            FractionallySizedBox(
+                                                              widthFactor:
+                                                                  progress,
+                                                              child: Container(
+                                                                height: 6,
+                                                                decoration: BoxDecoration(
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        3,
+                                                                      ),
+                                                                  color:
+                                                                      progress >=
+                                                                          1.0
+                                                                      ? theme
+                                                                            .colorScheme
+                                                                            .error
+                                                                      : theme
+                                                                            .colorScheme
+                                                                            .primary,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+
+                                                      const SizedBox(height: 4),
+
+                                                      // Timeline labels
+                                                      Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceBetween,
+                                                        children: [
+                                                          Text(
+                                                            "0'",
+                                                            style: theme
+                                                                .textTheme
+                                                                .bodySmall,
+                                                          ),
+                                                          Text(
+                                                            "${(_shiftLengthSeconds / 60).round()}'",
+                                                            style: theme
+                                                                .textTheme
+                                                                .bodySmall,
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   );
