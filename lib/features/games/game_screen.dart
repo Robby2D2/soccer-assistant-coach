@@ -1077,12 +1077,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                                                       style: TextButton.styleFrom(
                                                                         minimumSize:
                                                                             const Size(
-                                                                              110,
+                                                                              130,
                                                                               40,
                                                                             ),
                                                                         padding: const EdgeInsets.symmetric(
                                                                           horizontal:
-                                                                              12,
+                                                                              16,
                                                                           vertical:
                                                                               8,
                                                                         ),
@@ -1151,6 +1151,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                                             .play_arrow_rounded,
                                                       ),
                                                       label: Text(buttonText),
+                                                      style: FilledButton.styleFrom(
+                                                        minimumSize: const Size(
+                                                          120,
+                                                          40,
+                                                        ),
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 16,
+                                                              vertical: 8,
+                                                            ),
+                                                      ),
                                                       onPressed: () async {
                                                         final stopwatchCtrl =
                                                             ref.read(
