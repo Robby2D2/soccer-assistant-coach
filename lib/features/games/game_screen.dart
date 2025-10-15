@@ -1301,8 +1301,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
                                                         await stopwatchCtrl
                                                             .start();
-                                                        if (!context.mounted)
+                                                        if (!context.mounted) {
                                                           return;
+                                                        }
                                                         // Update local state - StreamBuilder will handle most updates
                                                         _currentShiftId =
                                                             shiftId;
