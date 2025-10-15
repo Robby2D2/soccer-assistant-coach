@@ -1467,251 +1467,148 @@ class _TraditionalLineupView extends StatelessWidget {
                           style: TextStyle(fontStyle: FontStyle.italic),
                         ),
                       )
-                    : SingleChildScrollView(
-                        child: GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 3.4,
-                                crossAxisSpacing: 8,
-                                mainAxisSpacing: 8,
+                    : GridView.builder(
+                        shrinkWrap: true,
+                        physics: const ClampingScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 3.4,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                            ),
+                        itemCount:
+                            activeLineupEntries.length + openPositions.length,
+                        itemBuilder: (context, index) {
+                          // First show occupied positions (for replacement)
+                          if (index < activeLineupEntries.length) {
+                            final entry = activeLineupEntries[index];
+                            final position = entry.key;
+                            final playerId = entry.value;
+                            final activePlayer = players.firstWhere(
+                              (p) => p.id == playerId,
+                              orElse: () => Player(
+                                id: playerId,
+                                teamId: 0,
+                                firstName: 'Unknown',
+                                lastName: 'Player',
+                                isPresent: false,
                               ),
-                          itemCount:
-                              activeLineupEntries.length + openPositions.length,
-                          itemBuilder: (context, index) {
-                            // First show occupied positions (for replacement)
-                            if (index < activeLineupEntries.length) {
-                              final entry = activeLineupEntries[index];
-                              final position = entry.key;
-                              final playerId = entry.value;
-                              final activePlayer = players.firstWhere(
-                                (p) => p.id == playerId,
-                                orElse: () => Player(
-                                  id: playerId,
-                                  teamId: 0,
-                                  firstName: 'Unknown',
-                                  lastName: 'Player',
-                                  isPresent: false,
-                                ),
-                              );
-
-                              return Card(
-                                margin: EdgeInsets.zero,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(12),
-                                  onTap: () {
-                                    Navigator.of(context).pop();
-                                    onPlayerSubstitution(
-                                      playerId,
-                                      benchPlayer.id,
-                                      position,
-                                    );
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(4),
-                                    child: Row(
-                                      children: [
-                                        // Player Avatar
-                                        PlayerAvatar(
-                                          firstName: activePlayer.firstName,
-                                          lastName: activePlayer.lastName,
-                                          jerseyNumber:
-                                              activePlayer.jerseyNumber,
-                                          profileImagePath:
-                                              activePlayer.profileImagePath,
-                                          radius: 14,
-                                        ),
-                                        const SizedBox(width: 6),
-                                        // Player and position info
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Flexible(
-                                                    flex: 2,
-                                                    child: Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 4,
-                                                            vertical: 1,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color: Theme.of(context)
-                                                            .colorScheme
-                                                            .primaryContainer,
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              3,
-                                                            ),
-                                                      ),
-                                                      child: Text(
-                                                        getPositionAbbreviation(
-                                                          position,
-                                                        ),
-                                                        style: Theme.of(context)
-                                                            .textTheme
-                                                            .labelSmall
-                                                            ?.copyWith(
-                                                              color: Theme.of(context)
-                                                                  .colorScheme
-                                                                  .onPrimaryContainer,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w600,
-                                                              fontSize: 9,
-                                                            ),
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                        maxLines: 1,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  const Spacer(),
-                                                  Icon(
-                                                    Icons.timer,
-                                                    size: 10,
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurfaceVariant,
-                                                  ),
-                                                  const SizedBox(width: 1),
-                                                  Text(
-                                                    _formatPlayingTime(
-                                                      playingTimeThisGame[playerId] ??
-                                                          0,
-                                                    ),
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .labelSmall
-                                                        ?.copyWith(
-                                                          color: Theme.of(context)
-                                                              .colorScheme
-                                                              .onSurfaceVariant,
-                                                          fontSize: 9,
-                                                        ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 1),
-                                              Text(
-                                                '${activePlayer.firstName} ${activePlayer.lastName}',
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .bodySmall
-                                                    ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                      fontSize: 10,
-                                                    ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }
-
-                            // Then show open positions (for assignment)
-                            final openIndex =
-                                index - activeLineupEntries.length;
-                            final position = openPositions[openIndex];
+                            );
 
                             return Card(
                               margin: EdgeInsets.zero,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerLowest,
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(12),
                                 onTap: () {
                                   Navigator.of(context).pop();
                                   onPlayerSubstitution(
-                                    null,
+                                    playerId,
                                     benchPlayer.id,
                                     position,
                                   );
                                 },
                                 child: Padding(
                                   padding: const EdgeInsets.all(4),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
+                                  child: Row(
                                     children: [
-                                      Row(
-                                        children: [
-                                          Flexible(
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 4,
-                                                    vertical: 1,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .outline
-                                                    .withValues(alpha: 0.2),
-                                                borderRadius:
-                                                    BorderRadius.circular(3),
-                                              ),
-                                              child: Text(
-                                                getPositionAbbreviation(
-                                                  position,
-                                                ),
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .labelSmall
-                                                    ?.copyWith(
+                                      // Player Avatar
+                                      PlayerAvatar(
+                                        firstName: activePlayer.firstName,
+                                        lastName: activePlayer.lastName,
+                                        jerseyNumber: activePlayer.jerseyNumber,
+                                        profileImagePath:
+                                            activePlayer.profileImagePath,
+                                        radius: 14,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      // Player and position info
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Flexible(
+                                                  flex: 2,
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 4,
+                                                          vertical: 1,
+                                                        ),
+                                                    decoration: BoxDecoration(
                                                       color: Theme.of(context)
                                                           .colorScheme
-                                                          .onSurfaceVariant,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      fontSize: 9,
+                                                          .primaryContainer,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            3,
+                                                          ),
                                                     ),
-                                                overflow: TextOverflow.ellipsis,
-                                                maxLines: 1,
-                                              ),
+                                                    child: Text(
+                                                      getPositionAbbreviation(
+                                                        position,
+                                                      ),
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .labelSmall
+                                                          ?.copyWith(
+                                                            color: Theme.of(context)
+                                                                .colorScheme
+                                                                .onPrimaryContainer,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            fontSize: 9,
+                                                          ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      maxLines: 1,
+                                                    ),
+                                                  ),
+                                                ),
+                                                const Spacer(),
+                                                Icon(
+                                                  Icons.timer,
+                                                  size: 10,
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                                ),
+                                                const SizedBox(width: 1),
+                                                Text(
+                                                  _formatPlayingTime(
+                                                    playingTimeThisGame[playerId] ??
+                                                        0,
+                                                  ),
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .labelSmall
+                                                      ?.copyWith(
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .onSurfaceVariant,
+                                                        fontSize: 9,
+                                                      ),
+                                                ),
+                                              ],
                                             ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Icon(
-                                            Icons.add_circle_outline,
-                                            size: 14,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 1),
-                                      Flexible(
-                                        child: Text(
-                                          'Open Position',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.copyWith(
-                                                fontStyle: FontStyle.italic,
-                                                color: Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurfaceVariant,
-                                                fontSize: 10,
-                                              ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                            const SizedBox(height: 1),
+                                            Text(
+                                              '${activePlayer.firstName} ${activePlayer.lastName}',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 10,
+                                                  ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ],
@@ -1719,8 +1616,100 @@ class _TraditionalLineupView extends StatelessWidget {
                                 ),
                               ),
                             );
-                          },
-                        ),
+                          }
+
+                          // Then show open positions (for assignment)
+                          final openIndex = index - activeLineupEntries.length;
+                          final position = openPositions[openIndex];
+
+                          return Card(
+                            margin: EdgeInsets.zero,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerLowest,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () {
+                                Navigator.of(context).pop();
+                                onPlayerSubstitution(
+                                  null,
+                                  benchPlayer.id,
+                                  position,
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                              vertical: 1,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .outline
+                                                  .withValues(alpha: 0.2),
+                                              borderRadius:
+                                                  BorderRadius.circular(3),
+                                            ),
+                                            child: Text(
+                                              getPositionAbbreviation(position),
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .labelSmall
+                                                  ?.copyWith(
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onSurfaceVariant,
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 9,
+                                                  ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.add_circle_outline,
+                                          size: 14,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 1),
+                                    Flexible(
+                                      child: Text(
+                                        'Open Position',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodySmall
+                                            ?.copyWith(
+                                              fontStyle: FontStyle.italic,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                              fontSize: 10,
+                                            ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
               ),
             ],
