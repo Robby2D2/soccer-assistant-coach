@@ -1372,20 +1372,23 @@ class _TraditionalLineupView extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Substitute with ${benchPlayer.firstName} ${benchPlayer.lastName}',
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
-        ),
-        content: ConstrainedBox(
+      builder: (context) => Dialog(
+        child: Container(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.7,
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
             maxWidth: MediaQuery.of(context).size.width * 0.9,
           ),
+          padding: const EdgeInsets.all(16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Text(
+                'Substitute with ${benchPlayer.firstName} ${benchPlayer.lastName}',
+                style: Theme.of(context).textTheme.titleLarge,
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+              const SizedBox(height: 16),
               // Bench player display
               Container(
                 width: double.infinity,
@@ -1459,7 +1462,8 @@ class _TraditionalLineupView extends StatelessWidget {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 12),
-              Flexible(
+              SizedBox(
+                height: MediaQuery.of(context).size.height * 0.4,
                 child: (activeLineupEntries.isEmpty && openPositions.isEmpty)
                     ? const Center(
                         child: Text(
@@ -1468,7 +1472,6 @@ class _TraditionalLineupView extends StatelessWidget {
                         ),
                       )
                     : GridView.builder(
-                        shrinkWrap: true,
                         physics: const ClampingScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
@@ -1712,15 +1715,19 @@ class _TraditionalLineupView extends StatelessWidget {
                         },
                       ),
               ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-        ],
       ),
     );
   }
