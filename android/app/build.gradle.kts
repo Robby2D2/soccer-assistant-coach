@@ -70,5 +70,5 @@ flutter {
 
 dependencies {
     // Desugar JDK libs for java.time & other newer APIs on older Android versions
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

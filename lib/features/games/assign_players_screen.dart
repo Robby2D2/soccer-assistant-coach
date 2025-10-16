@@ -100,7 +100,7 @@ class AssignPlayersScreen extends ConsumerWidget {
                       };
                       return ListView.separated(
                         itemCount: filteredPlayers.length,
-                        separatorBuilder: (_, __) => const Divider(height: 0),
+                        separatorBuilder: (_, _) => const Divider(height: 0),
                         itemBuilder: (_, i) {
                           final p = filteredPlayers[i];
                           final current = map[p.id];

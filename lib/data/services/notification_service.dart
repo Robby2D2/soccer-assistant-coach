@@ -214,8 +214,6 @@ class NotificationService {
         tzAt,
         details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
         payload: 'game:$gameId',
       );
     } catch (e) {
@@ -228,8 +226,6 @@ class NotificationService {
           tzAt,
           details,
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
           payload: 'game:$gameId',
         );
       } else {

@@ -22,8 +22,8 @@ import '../features/teams/team_metrics_overview_screen.dart';
 
 final router = GoRouter(
   routes: [
-    GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
-    GoRoute(path: '/teams', builder: (_, __) => const TeamsScreen()),
+    GoRoute(path: '/', builder: (_, _) => const HomeScreen()),
+    GoRoute(path: '/teams', builder: (_, _) => const TeamsScreen()),
     GoRoute(
       path: '/team/:id',
       builder: (_, s) =>
@@ -122,7 +122,7 @@ final router = GoRouter(
     ),
     GoRoute(
       path: '/debug/database',
-      builder: (_, __) => const DatabaseDiagnosticScreen(),
+      builder: (_, _) => const DatabaseDiagnosticScreen(),
     ),
   ],
 );

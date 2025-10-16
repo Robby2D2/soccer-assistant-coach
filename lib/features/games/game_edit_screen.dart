@@ -220,7 +220,7 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                             )
                           : ListView.separated(
                               itemCount: _players.length,
-                              separatorBuilder: (_, __) =>
+                              separatorBuilder: (_, _) =>
                                   const Divider(height: 0),
                               itemBuilder: (_, index) {
                                 final player = _players[index];

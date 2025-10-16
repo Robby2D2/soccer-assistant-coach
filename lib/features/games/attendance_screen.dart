@@ -60,7 +60,7 @@ class AttendanceScreen extends ConsumerWidget {
                         };
                         return ListView.separated(
                           itemCount: players.length,
-                          separatorBuilder: (_, __) => const Divider(height: 0),
+                          separatorBuilder: (_, _) => const Divider(height: 0),
                           itemBuilder: (_, i) {
                             final p = players[i];
                             final present = att[p.id] ?? false;
