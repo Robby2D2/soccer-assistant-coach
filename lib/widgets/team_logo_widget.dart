@@ -53,7 +53,6 @@ class TeamLogoWidget extends StatelessWidget {
     if (logoPath?.isNotEmpty == true) {
       final file = File(logoPath!);
       final exists = file.existsSync();
-      debugPrint('TeamLogoWidget: path=$logoPath, exists=$exists');
 
       if (exists) {
         return ClipRRect(
@@ -64,16 +63,11 @@ class TeamLogoWidget extends StatelessWidget {
             height: size,
             fit: BoxFit.cover,
             errorBuilder: (context, error, stackTrace) {
-              debugPrint('TeamLogoWidget: Image loading error: $error');
               return _buildFallbackIcon(context);
             },
           ),
         );
-      } else {
-        debugPrint('TeamLogoWidget: File does not exist: $logoPath');
       }
-    } else {
-      debugPrint('TeamLogoWidget: No logo path provided');
     }
 
     return _buildFallbackIcon(context);

@@ -843,265 +843,248 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                             valueListenable: _isRunningNotifier,
                                             builder: (context, isRunning, _) => Row(
                                               children: [
-                                                // Left side - Start/Pause button (always on left)
-                                                Expanded(
-                                                  child: isRunning
-                                                      ? Tooltip(
-                                                          message:
-                                                              'Pause timer',
-                                                          child: FilledButton.icon(
-                                                            icon: const Icon(
-                                                              Icons
-                                                                  .pause_rounded,
+                                                // Start / Pause button (intrinsic width, single line)
+                                                if (isRunning)
+                                                  Tooltip(
+                                                    message: 'Pause timer',
+                                                    child: FilledButton.icon(
+                                                      icon: const Icon(
+                                                        Icons.pause_rounded,
+                                                      ),
+                                                      label: const Text(
+                                                        'Pause',
+                                                        maxLines: 1,
+                                                        softWrap: false,
+                                                      ),
+                                                      style: FilledButton.styleFrom(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 12,
+                                                              vertical: 8,
                                                             ),
-                                                            label: const Text(
-                                                              'Pause',
-                                                            ),
-                                                            style: FilledButton.styleFrom(
-                                                              minimumSize:
-                                                                  const Size(
-                                                                    80,
-                                                                    40,
-                                                                  ),
-                                                              padding:
-                                                                  const EdgeInsets.symmetric(
-                                                                    horizontal:
-                                                                        12,
-                                                                    vertical: 8,
-                                                                  ),
-                                                            ),
-                                                            onPressed: () async {
-                                                              await ref
-                                                                  .read(
-                                                                    stopwatchProvider(
-                                                                      widget
-                                                                          .gameId,
-                                                                    ).notifier,
-                                                                  )
-                                                                  .pause();
-                                                              await NotificationService
-                                                                  .instance
-                                                                  .cancelShiftEnd(
+                                                        minimumSize: const Size(
+                                                          0,
+                                                          40,
+                                                        ),
+                                                        tapTargetSize:
+                                                            MaterialTapTargetSize
+                                                                .shrinkWrap,
+                                                      ),
+                                                      onPressed: () async {
+                                                        await ref
+                                                            .read(
+                                                              stopwatchProvider(
+                                                                widget.gameId,
+                                                              ).notifier,
+                                                            )
+                                                            .pause();
+                                                        await NotificationService
+                                                            .instance
+                                                            .cancelShiftEnd(
+                                                              widget.gameId,
+                                                            );
+                                                        await NotificationService
+                                                            .instance
+                                                            .cancelShiftCountdown(
+                                                              widget.gameId,
+                                                            );
+                                                        _isRunning = false;
+                                                      },
+                                                    ),
+                                                  )
+                                                else
+                                                  FutureBuilder<Game?>(
+                                                    future: db.getGame(
+                                                      widget.gameId,
+                                                    ),
+                                                    builder: (context, gameSnap) {
+                                                      final game =
+                                                          gameSnap.data;
+                                                      final hasCurrentShift =
+                                                          game?.currentShiftId !=
+                                                          null;
+                                                      final buttonText =
+                                                          hasCurrentShift
+                                                          ? 'Resume'
+                                                          : 'Start';
+                                                      final tooltipText =
+                                                          hasCurrentShift
+                                                          ? 'Resume current shift timer'
+                                                          : 'Start timer';
+                                                      return Tooltip(
+                                                        message: tooltipText,
+                                                        child: FilledButton.icon(
+                                                          icon: const Icon(
+                                                            Icons
+                                                                .play_arrow_rounded,
+                                                          ),
+                                                          label: Text(
+                                                            buttonText,
+                                                            maxLines: 1,
+                                                            softWrap: false,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .visible,
+                                                          ),
+                                                          style: FilledButton.styleFrom(
+                                                            padding:
+                                                                const EdgeInsets.symmetric(
+                                                                  horizontal:
+                                                                      12,
+                                                                  vertical: 8,
+                                                                ),
+                                                            minimumSize:
+                                                                const Size(
+                                                                  0,
+                                                                  40,
+                                                                ),
+                                                            tapTargetSize:
+                                                                MaterialTapTargetSize
+                                                                    .shrinkWrap,
+                                                          ),
+                                                          onPressed: () async {
+                                                            final stopwatchCtrl =
+                                                                ref.read(
+                                                                  stopwatchProvider(
                                                                     widget
                                                                         .gameId,
+                                                                  ).notifier,
+                                                                );
+                                                            final game = await db
+                                                                .getGame(
+                                                                  widget.gameId,
+                                                                );
+                                                            final int shiftId;
+                                                            final currentId = game
+                                                                ?.currentShiftId;
+                                                            if (currentId !=
+                                                                null) {
+                                                              shiftId =
+                                                                  currentId;
+                                                            } else {
+                                                              final positions =
+                                                                  await _positionsForNextShift(
+                                                                    db,
                                                                   );
-                                                              await NotificationService
-                                                                  .instance
-                                                                  .cancelShiftCountdown(
-                                                                    widget
+                                                              shiftId = await db
+                                                                  .createAutoShift(
+                                                                    gameId: widget
                                                                         .gameId,
-                                                                  );
-                                                              _isRunning =
-                                                                  false;
-                                                            },
-                                                          ),
-                                                        )
-                                                      : FutureBuilder<Game?>(
-                                                          future: db.getGame(
-                                                            widget.gameId,
-                                                          ),
-                                                          builder: (context, gameSnap) {
-                                                            final game =
-                                                                gameSnap.data;
-                                                            final hasCurrentShift =
-                                                                game?.currentShiftId !=
-                                                                null;
-                                                            final buttonText =
-                                                                hasCurrentShift
-                                                                ? 'Resume'
-                                                                : 'Start';
-                                                            final tooltipText =
-                                                                hasCurrentShift
-                                                                ? 'Resume current shift timer'
-                                                                : 'Start timer';
-
-                                                            return Tooltip(
-                                                              message:
-                                                                  tooltipText,
-                                                              child: FilledButton.icon(
-                                                                icon: const Icon(
-                                                                  Icons
-                                                                      .play_arrow_rounded,
-                                                                ),
-                                                                label: Text(
-                                                                  buttonText,
-                                                                ),
-                                                                style: FilledButton.styleFrom(
-                                                                  minimumSize:
-                                                                      const Size(
-                                                                        80,
-                                                                        40,
-                                                                      ),
-                                                                  padding:
-                                                                      const EdgeInsets.symmetric(
-                                                                        horizontal:
-                                                                            12,
-                                                                        vertical:
-                                                                            8,
-                                                                      ),
-                                                                ),
-                                                                onPressed: () async {
-                                                                  final stopwatchCtrl = ref.read(
-                                                                    stopwatchProvider(
-                                                                      widget
-                                                                          .gameId,
-                                                                    ).notifier,
-                                                                  );
-                                                                  final game = await db
-                                                                      .getGame(
-                                                                        widget
-                                                                            .gameId,
-                                                                      );
-                                                                  final int
-                                                                  shiftId;
-                                                                  final currentId =
-                                                                      game?.currentShiftId;
-
-                                                                  if (currentId !=
-                                                                      null) {
-                                                                    shiftId =
-                                                                        currentId;
-                                                                  } else {
-                                                                    final positions =
-                                                                        await _positionsForNextShift(
-                                                                          db,
-                                                                        );
-                                                                    shiftId = await db.createAutoShift(
-                                                                      gameId: widget
-                                                                          .gameId,
-                                                                      startSeconds:
-                                                                          _currentShiftStartSeconds,
-                                                                      positions:
-                                                                          positions,
-                                                                    );
-                                                                  }
-
-                                                                  final shift = await db
-                                                                      .getShift(
-                                                                        shiftId,
-                                                                      );
-                                                                  if (shift !=
-                                                                      null) {
-                                                                    _currentShiftStartSeconds =
-                                                                        shift
-                                                                            .startSeconds;
-                                                                  }
-
-                                                                  // Pre-create the upcoming shift
-                                                                  final upcomingStart =
-                                                                      _currentShiftStartSeconds +
-                                                                      _shiftLengthSeconds;
-                                                                  final hasPrepared =
-                                                                      await db.nextShiftAfter(
-                                                                        widget
-                                                                            .gameId,
+                                                                    startSeconds:
                                                                         _currentShiftStartSeconds,
-                                                                      ) !=
-                                                                      null;
-                                                                  if (!hasPrepared) {
-                                                                    final nextPositions =
-                                                                        await _positionsForNextShift(
-                                                                          db,
-                                                                        );
-                                                                    await db.createAutoShift(
-                                                                      gameId: widget
-                                                                          .gameId,
-                                                                      startSeconds:
-                                                                          upcomingStart,
-                                                                      positions:
-                                                                          nextPositions,
-                                                                      activate:
-                                                                          false,
+                                                                    positions:
+                                                                        positions,
+                                                                  );
+                                                            }
+                                                            final shift =
+                                                                await db
+                                                                    .getShift(
+                                                                      shiftId,
                                                                     );
-                                                                  }
-
-                                                                  await stopwatchCtrl
-                                                                      .start();
-                                                                  if (!context
-                                                                      .mounted) {
-                                                                    return;
-                                                                  }
-                                                                  _currentShiftId =
-                                                                      shiftId;
-                                                                  _isRunning =
-                                                                      true;
-                                                                },
-                                                              ),
+                                                            if (shift != null) {
+                                                              _currentShiftStartSeconds =
+                                                                  shift
+                                                                      .startSeconds;
+                                                            }
+                                                            final upcomingStart =
+                                                                _currentShiftStartSeconds +
+                                                                _shiftLengthSeconds;
+                                                            final hasPrepared =
+                                                                await db.nextShiftAfter(
+                                                                  widget.gameId,
+                                                                  _currentShiftStartSeconds,
+                                                                ) !=
+                                                                null;
+                                                            if (!hasPrepared) {
+                                                              final nextPositions =
+                                                                  await _positionsForNextShift(
+                                                                    db,
+                                                                  );
+                                                              await db.createAutoShift(
+                                                                gameId: widget
+                                                                    .gameId,
+                                                                startSeconds:
+                                                                    upcomingStart,
+                                                                positions:
+                                                                    nextPositions,
+                                                                activate: false,
+                                                              );
+                                                            }
+                                                            await stopwatchCtrl
+                                                                .start();
+                                                            if (!context
+                                                                .mounted)
+                                                              return;
+                                                            _currentShiftId =
+                                                                shiftId;
+                                                            _isRunning = true;
+                                                          },
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                const Spacer(),
+                                                if (!isRunning)
+                                                  FutureBuilder<Shift?>(
+                                                    future: db.nextShiftAfter(
+                                                      widget.gameId,
+                                                      _currentShiftStartSeconds,
+                                                    ),
+                                                    builder: (context, nextShiftSnap) {
+                                                      final nextShift =
+                                                          nextShiftSnap.data;
+                                                      if (nextShift == null)
+                                                        return const SizedBox.shrink();
+                                                      final isCompact =
+                                                          MediaQuery.of(
+                                                            context,
+                                                          ).size.width <
+                                                          360;
+                                                      return Tooltip(
+                                                        message:
+                                                            'Start next shift immediately',
+                                                        child: TextButton.icon(
+                                                          icon: const Icon(
+                                                            Icons
+                                                                .skip_next_rounded,
+                                                            size: 16,
+                                                          ),
+                                                          label: Text(
+                                                            isCompact
+                                                                ? 'Next'
+                                                                : 'Next Shift',
+                                                            maxLines: 1,
+                                                            softWrap: false,
+                                                          ),
+                                                          style: TextButton.styleFrom(
+                                                            padding:
+                                                                EdgeInsets.symmetric(
+                                                                  horizontal:
+                                                                      isCompact
+                                                                      ? 8
+                                                                      : 12,
+                                                                  vertical: 6,
+                                                                ),
+                                                            minimumSize:
+                                                                const Size(
+                                                                  0,
+                                                                  40,
+                                                                ),
+                                                            tapTargetSize:
+                                                                MaterialTapTargetSize
+                                                                    .shrinkWrap,
+                                                          ),
+                                                          onPressed: () async {
+                                                            await _handleStartNextShift(
+                                                              context,
+                                                              db,
+                                                              nextShift.id,
                                                             );
                                                           },
                                                         ),
-                                                ),
-
-                                                // Center - Empty space
-                                                const Expanded(
-                                                  child: SizedBox.shrink(),
-                                                ),
-
-                                                // Right side - Next Shift button (when not running)
-                                                Expanded(
-                                                  child: !isRunning
-                                                      ? FutureBuilder<Shift?>(
-                                                          future: db.nextShiftAfter(
-                                                            widget.gameId,
-                                                            _currentShiftStartSeconds,
-                                                          ),
-                                                          builder:
-                                                              (
-                                                                context,
-                                                                nextShiftSnap,
-                                                              ) {
-                                                                final nextShift =
-                                                                    nextShiftSnap
-                                                                        .data;
-                                                                if (nextShift ==
-                                                                    null) {
-                                                                  return const SizedBox.shrink();
-                                                                }
-                                                                return Align(
-                                                                  alignment:
-                                                                      Alignment
-                                                                          .centerRight,
-                                                                  child: Tooltip(
-                                                                    message:
-                                                                        'Start next shift immediately',
-                                                                    child: TextButton.icon(
-                                                                      icon: const Icon(
-                                                                        Icons
-                                                                            .skip_next_rounded,
-                                                                        size:
-                                                                            16,
-                                                                      ),
-                                                                      label: const Text(
-                                                                        'Next Shift',
-                                                                      ),
-                                                                      style: TextButton.styleFrom(
-                                                                        minimumSize:
-                                                                            const Size(
-                                                                              130,
-                                                                              40,
-                                                                            ),
-                                                                        padding: const EdgeInsets.symmetric(
-                                                                          horizontal:
-                                                                              16,
-                                                                          vertical:
-                                                                              8,
-                                                                        ),
-                                                                      ),
-                                                                      onPressed: () async {
-                                                                        await _handleStartNextShift(
-                                                                          context,
-                                                                          db,
-                                                                          nextShift
-                                                                              .id,
-                                                                        );
-                                                                      },
-                                                                    ),
-                                                                  ),
-                                                                );
-                                                              },
-                                                        )
-                                                      : const SizedBox.shrink(),
-                                                ),
+                                                      );
+                                                    },
+                                                  ),
                                               ],
                                             ),
                                           ),
@@ -1123,431 +1106,417 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                   builder: (context, isRunning, _) => Row(
                                     children: [
                                       // Left side - Start/Resume button
-                                      Expanded(
-                                        child: !isRunning
-                                            ? FutureBuilder<Game?>(
-                                                future: db.getGame(
-                                                  widget.gameId,
+                                      // Compact Start/Resume button
+                                      if (!isRunning) ...[
+                                        FutureBuilder<Game?>(
+                                          future: db.getGame(widget.gameId),
+                                          builder: (context, gameSnap) {
+                                            final game = gameSnap.data;
+                                            final hasCurrentShift =
+                                                game?.currentShiftId != null;
+                                            final buttonText = hasCurrentShift
+                                                ? 'Resume'
+                                                : 'Start';
+                                            final tooltipText = hasCurrentShift
+                                                ? 'Resume current shift timer'
+                                                : 'Start timer';
+                                            final width = MediaQuery.of(
+                                              context,
+                                            ).size.width;
+                                            final compact = width < 360;
+                                            final displayText =
+                                                compact &&
+                                                    buttonText == 'Resume'
+                                                ? 'Res'
+                                                : buttonText;
+                                            return Tooltip(
+                                              message: tooltipText,
+                                              child: FilledButton.icon(
+                                                icon: const Icon(
+                                                  Icons.play_arrow_rounded,
+                                                  size: 18,
                                                 ),
-                                                builder: (context, gameSnap) {
-                                                  final game = gameSnap.data;
-                                                  final hasCurrentShift =
-                                                      game?.currentShiftId !=
-                                                      null;
-                                                  final buttonText =
-                                                      hasCurrentShift
-                                                      ? 'Resume'
-                                                      : 'Start';
-                                                  final tooltipText =
-                                                      hasCurrentShift
-                                                      ? 'Resume current shift timer'
-                                                      : 'Start timer';
-
-                                                  return Tooltip(
-                                                    message: tooltipText,
-                                                    child: FilledButton.icon(
-                                                      icon: const Icon(
-                                                        Icons
-                                                            .play_arrow_rounded,
-                                                      ),
-                                                      label: Text(buttonText),
-                                                      style: FilledButton.styleFrom(
-                                                        minimumSize: const Size(
-                                                          120,
-                                                          40,
-                                                        ),
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                              horizontal: 16,
-                                                              vertical: 8,
-                                                            ),
-                                                      ),
-                                                      onPressed: () async {
-                                                        final stopwatchCtrl =
-                                                            ref.read(
-                                                              stopwatchProvider(
-                                                                widget.gameId,
-                                                              ).notifier,
-                                                            );
-                                                        final game = await db
-                                                            .getGame(
-                                                              widget.gameId,
-                                                            );
-                                                        final int shiftId;
-                                                        final currentId = game
-                                                            ?.currentShiftId;
-                                                        final bool isNewShift =
-                                                            currentId == null;
-
-                                                        if (currentId != null) {
-                                                          shiftId = currentId;
-                                                        } else {
-                                                          final positions =
-                                                              await _positionsForNextShift(
-                                                                db,
-                                                              );
-                                                          shiftId = await db
-                                                              .createAutoShift(
-                                                                gameId: widget
-                                                                    .gameId,
-                                                                startSeconds:
-                                                                    _currentShiftStartSeconds,
-                                                                positions:
-                                                                    positions,
-                                                              );
-                                                        }
-
-                                                        final shift = await db
-                                                            .getShift(shiftId);
-                                                        if (shift != null) {
-                                                          _currentShiftStartSeconds =
-                                                              shift
-                                                                  .startSeconds;
-                                                        }
-
-                                                        // Pre-create the upcoming shift
-                                                        final upcomingStart =
-                                                            _currentShiftStartSeconds +
-                                                            _shiftLengthSeconds;
-                                                        final hasPrepared =
-                                                            await db.nextShiftAfter(
-                                                              widget.gameId,
-                                                              _currentShiftStartSeconds,
-                                                            ) !=
-                                                            null;
-                                                        if (!hasPrepared) {
-                                                          final nextPositions =
-                                                              await _positionsForNextShift(
-                                                                db,
-                                                              );
-                                                          await db.createAutoShift(
-                                                            gameId:
-                                                                widget.gameId,
-                                                            startSeconds:
-                                                                upcomingStart,
-                                                            positions:
-                                                                nextPositions,
-                                                            activate: false,
-                                                          );
-                                                        }
-                                                        // Set metadata for notification (team vs opponent, shift length)
-                                                        final gameForMeta =
-                                                            await db.getGame(
-                                                              widget.gameId,
-                                                            );
-                                                        if (gameForMeta !=
-                                                            null) {
-                                                          final team = await db
-                                                              .getTeam(
-                                                                gameForMeta
-                                                                    .teamId,
-                                                              );
-                                                          final teamName =
-                                                              team?.name ??
-                                                              'Team';
-                                                          final opponent =
-                                                              gameForMeta
-                                                                  .opponent ??
-                                                              '';
-                                                          final shiftNumber =
-                                                              await _shiftNumberFor(
-                                                                db,
-                                                                shiftId,
-                                                              );
-                                                          await stopwatchCtrl.setMeta(
-                                                            teamName: teamName,
-                                                            opponent: opponent,
-                                                            shiftLengthSeconds:
-                                                                _shiftLengthSeconds,
-                                                            shiftNumber:
-                                                                shiftNumber,
-                                                          );
-                                                        }
-
-                                                        // Get the shift's current time
-                                                        final shiftData =
-                                                            await db.getShift(
-                                                              shiftId,
-                                                            );
-                                                        final startFromSeconds =
-                                                            shiftData
-                                                                ?.actualSeconds ??
-                                                            0;
-
-                                                        // Only reset stopwatch for new shifts, not when resuming
-                                                        if (isNewShift) {
-                                                          await stopwatchCtrl
-                                                              .reset();
-
-                                                          // Set the stopwatch state to match the shift's current time
-                                                          // This ensures the timer starts from the correct position
-                                                          if (startFromSeconds >
-                                                              0) {
-                                                            // Manually set the state to the shift's current time
-                                                            final prefs =
-                                                                await SharedPreferences.getInstance();
-                                                            await prefs.setInt(
-                                                              'timer_elapsed_${widget.gameId}',
-                                                              startFromSeconds,
-                                                            );
-                                                            // Update the notifier to reflect the correct starting time
-                                                            _secondsNotifier
-                                                                    .value =
-                                                                startFromSeconds;
-                                                            _lastTickSeconds =
-                                                                startFromSeconds;
-                                                          }
-                                                        }
-
-                                                        await stopwatchCtrl
-                                                            .start();
-                                                        if (!context.mounted) {
-                                                          return;
-                                                        }
-                                                        // Update local state - StreamBuilder will handle most updates
-                                                        _currentShiftId =
-                                                            shiftId;
-                                                        _isRunning = true;
-                                                        _lastTickSeconds =
-                                                            startFromSeconds;
-                                                        _alertedThisShift =
-                                                            startFromSeconds >=
-                                                            _shiftLengthSeconds;
-
-                                                        // Start shift countdown notification
-                                                        final gameForNotif =
-                                                            await db.getGame(
-                                                              widget.gameId,
-                                                            );
-                                                        if (gameForNotif !=
-                                                            null) {
-                                                          final team = await db
-                                                              .getTeam(
-                                                                gameForNotif
-                                                                    .teamId,
-                                                              );
-                                                          final teamName =
-                                                              team?.name ??
-                                                              'Team';
-                                                          final opponent =
-                                                              gameForNotif
-                                                                  .opponent ??
-                                                              '';
-                                                          final matchupTitle =
-                                                              opponent.isEmpty
-                                                              ? teamName
-                                                              : '$teamName vs $opponent';
-                                                          final shiftNumber =
-                                                              await _shiftNumberFor(
-                                                                db,
-                                                                shiftId,
-                                                              );
-
-                                                          await NotificationService
-                                                              .instance
-                                                              .startShiftCountdown(
-                                                                gameId: widget
-                                                                    .gameId,
-                                                                shiftLengthSeconds:
-                                                                    _shiftLengthSeconds,
-                                                                matchupTitle:
-                                                                    matchupTitle,
-                                                                shiftNumber:
-                                                                    shiftNumber,
-                                                              );
-                                                        }
-                                                        final remaining =
-                                                            _shiftLengthSeconds -
-                                                            _secondsNotifier
-                                                                .value;
-                                                        if (remaining > 0) {
-                                                          final when =
-                                                              DateTime.now().add(
-                                                                Duration(
-                                                                  seconds:
-                                                                      remaining,
-                                                                ),
-                                                              );
-                                                          await NotificationService
-                                                              .instance
-                                                              .cancelShiftEnd(
-                                                                widget.gameId,
-                                                              );
-                                                          try {
-                                                            await NotificationService
-                                                                .instance
-                                                                .scheduleShiftEnd(
-                                                                  gameId: widget
-                                                                      .gameId,
-                                                                  at: when,
-                                                                );
-                                                          } catch (e) {
-                                                            // Show user-friendly message if notification scheduling fails
-                                                            if (mounted &&
-                                                                e
-                                                                    .toString()
-                                                                    .contains(
-                                                                      'exact_alarms_not_permitted',
-                                                                    )) {
-                                                              if (context
-                                                                  .mounted) {
-                                                                ScaffoldMessenger.of(
-                                                                  context,
-                                                                ).showSnackBar(
-                                                                  const SnackBar(
-                                                                    content: Text(
-                                                                      'Shift notifications may be less accurate. Enable exact alarms in Android settings for better timing.',
-                                                                    ),
-                                                                    duration:
-                                                                        Duration(
-                                                                          seconds:
-                                                                              4,
-                                                                        ),
-                                                                  ),
-                                                                );
-                                                              }
-                                                            }
-                                                          }
-                                                        } else {
-                                                          // No future shift-end notification if already at/over time
-                                                          await NotificationService
-                                                              .instance
-                                                              .cancelShiftEnd(
-                                                                widget.gameId,
-                                                              );
-                                                        }
-                                                      },
-                                                    ),
+                                                label: Text(
+                                                  displayText,
+                                                  softWrap: false,
+                                                ),
+                                                style: FilledButton.styleFrom(
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: compact
+                                                        ? 8
+                                                        : 10,
+                                                    vertical: 6,
+                                                  ),
+                                                  minimumSize: const Size(
+                                                    0,
+                                                    40,
+                                                  ),
+                                                  tapTargetSize:
+                                                      MaterialTapTargetSize
+                                                          .shrinkWrap,
+                                                ),
+                                                onPressed: () async {
+                                                  final stopwatchCtrl = ref
+                                                      .read(
+                                                        stopwatchProvider(
+                                                          widget.gameId,
+                                                        ).notifier,
+                                                      );
+                                                  final game = await db.getGame(
+                                                    widget.gameId,
                                                   );
-                                                },
-                                              )
-                                            : const SizedBox.shrink(),
-                                      ),
+                                                  final int shiftId;
+                                                  final currentId =
+                                                      game?.currentShiftId;
+                                                  final bool isNewShift =
+                                                      currentId == null;
 
-                                      // Center - Empty space
-                                      const Expanded(child: SizedBox.shrink()),
+                                                  if (currentId != null) {
+                                                    shiftId = currentId;
+                                                  } else {
+                                                    final positions =
+                                                        await _positionsForNextShift(
+                                                          db,
+                                                        );
+                                                    shiftId = await db
+                                                        .createAutoShift(
+                                                          gameId: widget.gameId,
+                                                          startSeconds:
+                                                              _currentShiftStartSeconds,
+                                                          positions: positions,
+                                                        );
+                                                  }
 
-                                      // Right side - Pause button (when running) or Next Shift button (when not running)
-                                      Expanded(
-                                        child: isRunning
-                                            ? Tooltip(
-                                                message: 'Pause timer',
-                                                child: FilledButton.icon(
-                                                  icon: const Icon(
-                                                    Icons.pause_rounded,
-                                                  ),
-                                                  label: const Text('Pause'),
-                                                  style: FilledButton.styleFrom(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 8,
-                                                          vertical: 6,
-                                                        ),
-                                                    minimumSize: Size.zero,
-                                                    tapTargetSize:
-                                                        MaterialTapTargetSize
-                                                            .shrinkWrap,
-                                                  ),
-                                                  onPressed: () async {
-                                                    await ref
-                                                        .read(
-                                                          stopwatchProvider(
-                                                            widget.gameId,
-                                                          ).notifier,
-                                                        )
-                                                        .pause();
+                                                  final shift = await db
+                                                      .getShift(shiftId);
+                                                  if (shift != null) {
+                                                    _currentShiftStartSeconds =
+                                                        shift.startSeconds;
+                                                  }
+
+                                                  // Pre-create the upcoming shift
+                                                  final upcomingStart =
+                                                      _currentShiftStartSeconds +
+                                                      _shiftLengthSeconds;
+                                                  final hasPrepared =
+                                                      await db.nextShiftAfter(
+                                                        widget.gameId,
+                                                        _currentShiftStartSeconds,
+                                                      ) !=
+                                                      null;
+                                                  if (!hasPrepared) {
+                                                    final nextPositions =
+                                                        await _positionsForNextShift(
+                                                          db,
+                                                        );
+                                                    await db.createAutoShift(
+                                                      gameId: widget.gameId,
+                                                      startSeconds:
+                                                          upcomingStart,
+                                                      positions: nextPositions,
+                                                      activate: false,
+                                                    );
+                                                  }
+                                                  // Set metadata for notification (team vs opponent, shift length)
+                                                  final gameForMeta = await db
+                                                      .getGame(widget.gameId);
+                                                  if (gameForMeta != null) {
+                                                    final team = await db
+                                                        .getTeam(
+                                                          gameForMeta.teamId,
+                                                        );
+                                                    final teamName =
+                                                        team?.name ?? 'Team';
+                                                    final opponent =
+                                                        gameForMeta.opponent ??
+                                                        '';
+                                                    final shiftNumber =
+                                                        await _shiftNumberFor(
+                                                          db,
+                                                          shiftId,
+                                                        );
+                                                    await stopwatchCtrl.setMeta(
+                                                      teamName: teamName,
+                                                      opponent: opponent,
+                                                      shiftLengthSeconds:
+                                                          _shiftLengthSeconds,
+                                                      shiftNumber: shiftNumber,
+                                                    );
+                                                  }
+
+                                                  // Get the shift's current time
+                                                  final shiftData = await db
+                                                      .getShift(shiftId);
+                                                  final startFromSeconds =
+                                                      shiftData
+                                                          ?.actualSeconds ??
+                                                      0;
+
+                                                  // Only reset stopwatch for new shifts, not when resuming
+                                                  if (isNewShift) {
+                                                    await stopwatchCtrl.reset();
+
+                                                    // Set the stopwatch state to match the shift's current time
+                                                    // This ensures the timer starts from the correct position
+                                                    if (startFromSeconds > 0) {
+                                                      // Manually set the state to the shift's current time
+                                                      final prefs =
+                                                          await SharedPreferences.getInstance();
+                                                      await prefs.setInt(
+                                                        'timer_elapsed_${widget.gameId}',
+                                                        startFromSeconds,
+                                                      );
+                                                      // Update the notifier to reflect the correct starting time
+                                                      _secondsNotifier.value =
+                                                          startFromSeconds;
+                                                      _lastTickSeconds =
+                                                          startFromSeconds;
+                                                    }
+                                                  }
+
+                                                  await stopwatchCtrl.start();
+                                                  if (!context.mounted) {
+                                                    return;
+                                                  }
+                                                  // Update local state - StreamBuilder will handle most updates
+                                                  _currentShiftId = shiftId;
+                                                  _isRunning = true;
+                                                  _lastTickSeconds =
+                                                      startFromSeconds;
+                                                  _alertedThisShift =
+                                                      startFromSeconds >=
+                                                      _shiftLengthSeconds;
+
+                                                  // Start shift countdown notification
+                                                  final gameForNotif = await db
+                                                      .getGame(widget.gameId);
+                                                  if (gameForNotif != null) {
+                                                    final team = await db
+                                                        .getTeam(
+                                                          gameForNotif.teamId,
+                                                        );
+                                                    final teamName =
+                                                        team?.name ?? 'Team';
+                                                    final opponent =
+                                                        gameForNotif.opponent ??
+                                                        '';
+                                                    final matchupTitle =
+                                                        opponent.isEmpty
+                                                        ? teamName
+                                                        : '$teamName vs $opponent';
+                                                    final shiftNumber =
+                                                        await _shiftNumberFor(
+                                                          db,
+                                                          shiftId,
+                                                        );
+
+                                                    await NotificationService
+                                                        .instance
+                                                        .startShiftCountdown(
+                                                          gameId: widget.gameId,
+                                                          shiftLengthSeconds:
+                                                              _shiftLengthSeconds,
+                                                          matchupTitle:
+                                                              matchupTitle,
+                                                          shiftNumber:
+                                                              shiftNumber,
+                                                        );
+                                                  }
+                                                  final remaining =
+                                                      _shiftLengthSeconds -
+                                                      _secondsNotifier.value;
+                                                  if (remaining > 0) {
+                                                    final when = DateTime.now()
+                                                        .add(
+                                                          Duration(
+                                                            seconds: remaining,
+                                                          ),
+                                                        );
                                                     await NotificationService
                                                         .instance
                                                         .cancelShiftEnd(
                                                           widget.gameId,
                                                         );
+                                                    try {
+                                                      await NotificationService
+                                                          .instance
+                                                          .scheduleShiftEnd(
+                                                            gameId:
+                                                                widget.gameId,
+                                                            at: when,
+                                                          );
+                                                    } catch (e) {
+                                                      // Show user-friendly message if notification scheduling fails
+                                                      if (mounted &&
+                                                          e.toString().contains(
+                                                            'exact_alarms_not_permitted',
+                                                          )) {
+                                                        if (context.mounted) {
+                                                          ScaffoldMessenger.of(
+                                                            context,
+                                                          ).showSnackBar(
+                                                            const SnackBar(
+                                                              content: Text(
+                                                                'Shift notifications may be less accurate. Enable exact alarms in Android settings for better timing.',
+                                                              ),
+                                                              duration:
+                                                                  Duration(
+                                                                    seconds: 4,
+                                                                  ),
+                                                            ),
+                                                          );
+                                                        }
+                                                      }
+                                                    }
+                                                  } else {
+                                                    // No future shift-end notification if already at/over time
                                                     await NotificationService
                                                         .instance
-                                                        .cancelShiftCountdown(
+                                                        .cancelShiftEnd(
                                                           widget.gameId,
                                                         );
-                                                    _isRunning = false;
-                                                  },
-                                                ),
-                                              )
-                                            : FutureBuilder<Shift?>(
-                                                future: db.nextShiftAfter(
-                                                  widget.gameId,
-                                                  _currentShiftStartSeconds,
-                                                ),
-                                                builder: (context, nextShiftSnap) {
-                                                  final nextShift =
-                                                      nextShiftSnap.data;
-                                                  if (nextShift == null) {
-                                                    return const SizedBox.shrink();
                                                   }
-                                                  return Align(
-                                                    alignment:
-                                                        Alignment.centerRight,
-                                                    child: Tooltip(
-                                                      message:
-                                                          'Start next shift immediately',
-                                                      child: TextButton.icon(
-                                                        icon: const Icon(
-                                                          Icons
-                                                              .skip_next_rounded,
-                                                          size: 16,
-                                                        ),
-                                                        label: const Text(
-                                                          'Next Shift',
-                                                        ),
-                                                        style: TextButton.styleFrom(
-                                                          padding:
-                                                              const EdgeInsets.symmetric(
-                                                                horizontal: 8,
-                                                                vertical: 6,
-                                                              ),
-                                                          minimumSize:
-                                                              Size.zero,
-                                                          tapTargetSize:
-                                                              MaterialTapTargetSize
-                                                                  .shrinkWrap,
-                                                        ),
-                                                        onPressed: () async {
-                                                          await _handleStartNextShift(
-                                                            context,
-                                                            db,
-                                                            nextShift.id,
-                                                          );
-                                                        },
-                                                      ),
-                                                    ),
+                                                },
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ] else ...[
+                                        const SizedBox.shrink(),
+                                      ],
+
+                                      // Center - Empty space
+                                      const Expanded(child: SizedBox.shrink()),
+
+                                      // Right side - Pause button (when running) or Next Shift button (when not running)
+                                      if (isRunning)
+                                        Tooltip(
+                                          message: 'Pause timer',
+                                          child: FilledButton.icon(
+                                            icon: const Icon(
+                                              Icons.pause_rounded,
+                                              size: 18,
+                                            ),
+                                            label: const Text('Pause'),
+                                            style: FilledButton.styleFrom(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 6,
+                                                  ),
+                                              minimumSize: const Size(0, 40),
+                                              tapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                            ),
+                                            onPressed: () async {
+                                              await ref
+                                                  .read(
+                                                    stopwatchProvider(
+                                                      widget.gameId,
+                                                    ).notifier,
+                                                  )
+                                                  .pause();
+                                              await NotificationService.instance
+                                                  .cancelShiftEnd(
+                                                    widget.gameId,
+                                                  );
+                                              await NotificationService.instance
+                                                  .cancelShiftCountdown(
+                                                    widget.gameId,
+                                                  );
+                                              _isRunning = false;
+                                            },
+                                          ),
+                                        )
+                                      else
+                                        FutureBuilder<Shift?>(
+                                          future: db.nextShiftAfter(
+                                            widget.gameId,
+                                            _currentShiftStartSeconds,
+                                          ),
+                                          builder: (context, nextShiftSnap) {
+                                            final nextShift =
+                                                nextShiftSnap.data;
+                                            if (nextShift == null) {
+                                              return const SizedBox.shrink();
+                                            }
+                                            final isCompact =
+                                                MediaQuery.of(
+                                                  context,
+                                                ).size.width <
+                                                360;
+                                            return Tooltip(
+                                              message:
+                                                  'Start next shift immediately',
+                                              child: TextButton.icon(
+                                                icon: const Icon(
+                                                  Icons.skip_next_rounded,
+                                                  size: 16,
+                                                ),
+                                                label: Text(
+                                                  isCompact
+                                                      ? 'Next'
+                                                      : 'Next Shift',
+                                                ),
+                                                style: TextButton.styleFrom(
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: isCompact
+                                                        ? 8
+                                                        : 10,
+                                                    vertical: 6,
+                                                  ),
+                                                  minimumSize: const Size(
+                                                    0,
+                                                    40,
+                                                  ),
+                                                  tapTargetSize:
+                                                      MaterialTapTargetSize
+                                                          .shrinkWrap,
+                                                ),
+                                                onPressed: () async {
+                                                  await _handleStartNextShift(
+                                                    context,
+                                                    db,
+                                                    nextShift.id,
                                                   );
                                                 },
                                               ),
-                                      ),
+                                            );
+                                          },
+                                        ),
                                     ],
                                   ),
                                 ),
                               ),
                             ),
-                            // Stop Alert button - show when alert is active
+                            // Stop Alert button - show when alert is active (no space when hidden)
                             ValueListenableBuilder<bool>(
                               valueListenable: _alertActiveNotifier,
                               builder: (context, isAlerting, child) {
-                                if (!isAlerting) return const SizedBox.shrink();
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                  ),
-                                  child: Center(
-                                    child: FilledButton.icon(
-                                      onPressed: _acknowledgeAlert,
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: Theme.of(
-                                          context,
-                                        ).colorScheme.error,
-                                        foregroundColor: Theme.of(
-                                          context,
-                                        ).colorScheme.onError,
+                                return Visibility(
+                                  visible: isAlerting,
+                                  maintainSize: false,
+                                  maintainAnimation: false,
+                                  maintainState: false,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                    child: Center(
+                                      child: FilledButton.icon(
+                                        onPressed: _acknowledgeAlert,
+                                        style: FilledButton.styleFrom(
+                                          backgroundColor: Theme.of(
+                                            context,
+                                          ).colorScheme.error,
+                                          foregroundColor: Theme.of(
+                                            context,
+                                          ).colorScheme.onError,
+                                        ),
+                                        icon: const Icon(Icons.alarm_off),
+                                        label: const Text('Stop Alert'),
                                       ),
-                                      icon: const Icon(Icons.alarm_off),
-                                      label: const Text('Stop Alert'),
                                     ),
                                   ),
                                 );

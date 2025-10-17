@@ -1,3 +1,6 @@
+Now that we have custom team colors applying to styling themes, it looks like there may be places having contrast issues making it very difficult to read.  For example, on the home page, the remaining time in an active game looks very close to white text on a white background.  Can you fix all areas that have contrast issues due to team colors so everything is easy to read.  Also, I noticed on the team edit page that these team primary colors are not showing the saved values.  
+
+
 
 On the home screen, under quick actions could you list any team that has had a game in the last 4 months?
 
