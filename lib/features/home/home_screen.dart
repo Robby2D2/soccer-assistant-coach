@@ -353,12 +353,14 @@ class _QuickActionCard extends StatelessWidget {
 class _LiveGameTimer extends ConsumerStatefulWidget {
   final Game game;
   final int teamId;
+  final bool isShiftMode; // Derived from team.teamMode == 'shift'
   final Color?
   fallbackTextColor; // Provided by parent when overlaying on gradient
 
   const _LiveGameTimer({
     required this.game,
     required this.teamId,
+    required this.isShiftMode,
     this.fallbackTextColor,
   });
 
@@ -367,8 +369,6 @@ class _LiveGameTimer extends ConsumerStatefulWidget {
 }
 
 class _LiveGameTimerState extends ConsumerState<_LiveGameTimer> {
-  late Stream<int> _timerStream;
-
   String _formatTimeRemaining(int gameTimeSeconds, int durationSeconds) {
     final remaining = durationSeconds - gameTimeSeconds;
     final isOvertime = remaining <= 0;
@@ -385,27 +385,14 @@ class _LiveGameTimerState extends ConsumerState<_LiveGameTimer> {
   @override
   void initState() {
     super.initState();
-    // Create a stream that emits current game time every second for active games
-    _timerStream = Stream.periodic(const Duration(seconds: 1), (_) {
-      if (widget.game.isGameActive && widget.game.timerStartTime != null) {
-        // Calculate current elapsed time for active games
-        return widget.game.gameTimeSeconds +
-            DateTime.now().difference(widget.game.timerStartTime!).inSeconds;
-      } else {
-        // For paused games, just return the stored game time
-        return widget.game.gameTimeSeconds;
-      }
-    }).distinct(); // Only emit when the time actually changes
+    // No longer using local periodic stream; authoritative time fetched inside build via DB helper.
   }
 
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(dbProvider);
 
-    // Check if this is a shift-based game or traditional game
-    final isShiftBased = widget.game.currentShiftId != null;
-
-    if (isShiftBased) {
+    if (widget.isShiftMode) {
       // For shift-based games, get shift duration and watch current shift time
       return FutureBuilder<int>(
         future: db.getTeamShiftLengthSeconds(widget.teamId),
@@ -469,19 +456,24 @@ class _LiveGameTimerState extends ConsumerState<_LiveGameTimer> {
         future: db.getTeamHalfDurationSeconds(widget.teamId),
         builder: (context, snapshot) {
           final halfDuration = snapshot.data ?? 1200; // 20 min default
-
+          // Recalculate current game time each second using DB helper to stay consistent with TraditionalGameScreen
           return StreamBuilder<int>(
-            stream: _timerStream,
+            stream: Stream.periodic(
+              const Duration(seconds: 1),
+            ).asyncMap((_) => db.calculateCurrentGameTime(widget.game.id)),
             initialData: widget.game.gameTimeSeconds,
             builder: (context, timeSnapshot) {
-              final currentGameTime =
+              final authoritativeTime =
                   timeSnapshot.data ?? widget.game.gameTimeSeconds;
-
+              final remainingDisplay = _formatTimeRemaining(
+                authoritativeTime,
+                halfDuration,
+              );
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _formatTimeRemaining(currentGameTime, halfDuration),
+                    remainingDisplay,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       fontFamily: 'monospace',
@@ -507,8 +499,9 @@ class _LiveGameTimerState extends ConsumerState<_LiveGameTimer> {
 
 class _HalfOrShiftDisplay extends ConsumerWidget {
   final Game game;
+  final bool isShiftMode;
 
-  const _HalfOrShiftDisplay({required this.game});
+  const _HalfOrShiftDisplay({required this.game, required this.isShiftMode});
 
   Future<int?> _getShiftNumber(AppDb db, int shiftId, int gameId) async {
     try {
@@ -532,8 +525,8 @@ class _HalfOrShiftDisplay extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(dbProvider);
 
-    // Check if this is a shift-based game
-    if (game.currentShiftId != null) {
+    // Display depends on team mode, not presence of shifts (traditional games may still accumulate shifts for stats)
+    if (isShiftMode) {
       // Show shift number for shift-based games
       return FutureBuilder<int?>(
         future: _getShiftNumber(db, game.currentShiftId!, game.id),
@@ -591,6 +584,7 @@ class _ActiveGameGradientCard extends StatelessWidget {
         onPrimary.computeLuminance() > onSecondary.computeLuminance()
         ? onSecondary
         : onPrimary;
+    final isShiftMode = team.teamMode == 'shift';
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Material(
@@ -743,7 +737,10 @@ class _ActiveGameGradientCard extends StatelessWidget {
                               child: DefaultTextStyle(
                                 style: Theme.of(context).textTheme.bodySmall!
                                     .copyWith(color: onGradient),
-                                child: _HalfOrShiftDisplay(game: game),
+                                child: _HalfOrShiftDisplay(
+                                  game: game,
+                                  isShiftMode: isShiftMode,
+                                ),
                               ),
                             ),
                           ],
@@ -763,6 +760,7 @@ class _ActiveGameGradientCard extends StatelessWidget {
                     child: _LiveGameTimer(
                       game: game,
                       teamId: team.id,
+                      isShiftMode: isShiftMode,
                       fallbackTextColor: onGradient,
                     ),
                   ),
