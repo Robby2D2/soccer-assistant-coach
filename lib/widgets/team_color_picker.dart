@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flex_color_picker/flex_color_picker.dart';
+import '../utils/team_theme.dart'; // TeamColorContrast for contrast-aware icon
 
 class TeamColorPicker extends StatefulWidget {
   final List<Color> initialColors;
@@ -28,6 +29,25 @@ class _TeamColorPickerState extends State<TeamColorPicker> {
     }
     if (_colors.length > 3) {
       _colors = _colors.take(3).toList();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant TeamColorPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If parent provides new initial colors (e.g., when editing an existing team),
+    // update internal state to reflect saved values once.
+    if (oldWidget.initialColors != widget.initialColors &&
+        widget.initialColors.isNotEmpty) {
+      setState(() {
+        _colors = List.from(widget.initialColors);
+        while (_colors.length < 3) {
+          _colors.add(Colors.grey);
+        }
+        if (_colors.length > 3) {
+          _colors = _colors.take(3).toList();
+        }
+      });
     }
   }
 
@@ -103,7 +123,7 @@ class _TeamColorPickerState extends State<TeamColorPicker> {
               child: Center(
                 child: Icon(
                   Icons.edit,
-                  color: _getContrastColor(color),
+                  color: TeamColorContrast.onColorFor(color),
                   size: 20,
                 ),
               ),
@@ -112,10 +132,6 @@ class _TeamColorPickerState extends State<TeamColorPicker> {
         ],
       ),
     );
-  }
-
-  Color _getContrastColor(Color color) {
-    return color.computeLuminance() > 0.5 ? Colors.black : Colors.white;
   }
 
   void _pickSingleColor(int index) async {

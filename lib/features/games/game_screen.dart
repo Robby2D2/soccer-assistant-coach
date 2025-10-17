@@ -12,6 +12,7 @@ import '../../data/services/alert_service.dart';
 import '../../widgets/player_panel.dart';
 import '../../widgets/team_logo_widget.dart';
 import '../../widgets/team_color_picker.dart';
+import '../../utils/team_theme.dart'; // for TeamColorContrast
 
 class GameScreen extends ConsumerStatefulWidget {
   final int gameId;
@@ -360,6 +361,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     ? (ColorHelper.hexToColor(team!.primaryColor1!) ??
                           Theme.of(context).colorScheme.primary)
                     : Theme.of(context).colorScheme.primary;
+                final onPrimary = TeamColorContrast.onColorFor(
+                  teamPrimaryColor,
+                );
 
                 return Row(
                   mainAxisSize: MainAxisSize.min,
@@ -392,6 +396,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                   color: hasTeamColors
                                       ? teamPrimaryColor
                                       : null,
+                                  shadows: hasTeamColors
+                                      ? [
+                                          Shadow(
+                                            color: onPrimary == Colors.white
+                                                ? Colors.black.withOpacity(0.3)
+                                                : Colors.white.withOpacity(0.3),
+                                            offset: const Offset(0, 1),
+                                            blurRadius: 2,
+                                          ),
+                                        ]
+                                      : null,
                                 ),
                           ),
                           if (gameTimeText.isNotEmpty)
@@ -401,7 +416,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                               style: Theme.of(context).textTheme.labelSmall
                                   ?.copyWith(
                                     color: hasTeamColors
-                                        ? teamPrimaryColor.withOpacity(0.7)
+                                        ? TeamColorContrast.onColorFor(
+                                            teamPrimaryColor.withOpacity(0.85),
+                                          )
                                         : Theme.of(
                                             context,
                                           ).colorScheme.onSurfaceVariant,

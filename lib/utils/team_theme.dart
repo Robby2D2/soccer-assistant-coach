@@ -1,5 +1,36 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import '../widgets/team_color_picker.dart';
+
+/// Utility functions related to color contrast and accessibility.
+class TeamColorContrast {
+  TeamColorContrast._();
+
+  /// Returns a text/icon color (black or white) that has adequate contrast
+  /// with the provided [background]. Uses luminance heuristic plus a fallback
+  /// contrast ratio calculation to guard against mid-tone edge cases.
+  static Color onColorFor(Color background) {
+    // First pass luminance threshold
+    final luminance = background.computeLuminance();
+    final candidate = luminance > 0.5 ? Colors.black : Colors.white;
+
+    // Verify contrast ratio ~ WCAG AA for normal text (4.5:1). If it fails,
+    // fall back to the opposite color even if luminance suggested otherwise.
+    if (_contrastRatio(background, candidate) < 4.5) {
+      return candidate == Colors.black ? Colors.white : Colors.black;
+    }
+    return candidate;
+  }
+
+  /// Calculate contrast ratio between two colors per WCAG definition.
+  static double _contrastRatio(Color a, Color b) {
+    final l1 = a.computeLuminance();
+    final l2 = b.computeLuminance();
+    final brightest = math.max(l1, l2);
+    final darkest = math.min(l1, l2);
+    return (brightest + 0.05) / (darkest + 0.05);
+  }
+}
 
 class TeamTheme {
   final Color primaryColor;
@@ -98,11 +129,8 @@ class TeamTheme {
   );
 
   /// Get contrast color for text readability
-  Color _getContrastColor(Color backgroundColor) {
-    return backgroundColor.computeLuminance() > 0.5
-        ? Colors.black
-        : Colors.white;
-  }
+  Color _getContrastColor(Color backgroundColor) =>
+      TeamColorContrast.onColorFor(backgroundColor);
 
   /// Apply team theme to specific widgets
   BoxDecoration get primaryContainerDecoration => BoxDecoration(

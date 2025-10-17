@@ -5,6 +5,7 @@ import '../../core/providers.dart';
 import '../../data/services/stopwatch_service.dart';
 import '../../../widgets/team_logo_widget.dart';
 import '../../widgets/team_color_picker.dart';
+import '../../utils/team_theme.dart'; // For TeamColorContrast
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -352,8 +353,14 @@ class _QuickActionCard extends StatelessWidget {
 class _LiveGameTimer extends ConsumerStatefulWidget {
   final Game game;
   final int teamId;
+  final Color?
+  fallbackTextColor; // Provided by parent when overlaying on gradient
 
-  const _LiveGameTimer({required this.game, required this.teamId});
+  const _LiveGameTimer({
+    required this.game,
+    required this.teamId,
+    this.fallbackTextColor,
+  });
 
   @override
   ConsumerState<_LiveGameTimer> createState() => _LiveGameTimerState();
@@ -442,7 +449,7 @@ class _LiveGameTimerState extends ConsumerState<_LiveGameTimer> {
                       fontFamily: 'monospace',
                       color: widget.game.isGameActive
                           ? Theme.of(context).colorScheme.error
-                          : null,
+                          : widget.fallbackTextColor,
                     ),
                   ),
                   Icon(
@@ -480,7 +487,7 @@ class _LiveGameTimerState extends ConsumerState<_LiveGameTimer> {
                       fontFamily: 'monospace',
                       color: widget.game.isGameActive
                           ? Theme.of(context).colorScheme.error
-                          : null,
+                          : widget.fallbackTextColor,
                     ),
                   ),
                   Icon(
@@ -577,6 +584,13 @@ class _ActiveGameGradientCard extends StatelessWidget {
               teamPrimaryColor.withOpacity(0.7))
         : teamPrimaryColor.withOpacity(0.7);
 
+    // Determine on-colors for gradient
+    final onPrimary = TeamColorContrast.onColorFor(teamPrimaryColor);
+    final onSecondary = TeamColorContrast.onColorFor(teamSecondaryColor);
+    final onGradient =
+        onPrimary.computeLuminance() > onSecondary.computeLuminance()
+        ? onSecondary
+        : onPrimary;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Material(
@@ -660,10 +674,10 @@ class _ActiveGameGradientCard extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: onGradient,
                                 shadows: [
                                   Shadow(
-                                    color: Colors.black.withOpacity(0.3),
+                                    color: Colors.black.withOpacity(0.25),
                                     offset: const Offset(0, 1),
                                     blurRadius: 2,
                                   ),
@@ -676,10 +690,10 @@ class _ActiveGameGradientCard extends StatelessWidget {
                             'vs ${game.opponent}',
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: onGradient.withOpacity(0.85),
                                   shadows: [
                                     Shadow(
-                                      color: Colors.black.withOpacity(0.3),
+                                      color: Colors.black.withOpacity(0.25),
                                       offset: const Offset(0, 1),
                                       blurRadius: 2,
                                     ),
@@ -696,8 +710,11 @@ class _ActiveGameGradientCard extends StatelessWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.9),
+                                color: onGradient.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: onGradient.withOpacity(0.3),
+                                ),
                               ),
                               child: Text(
                                 game.isGameActive ? 'LIVE' : 'PAUSED',
@@ -705,7 +722,7 @@ class _ActiveGameGradientCard extends StatelessWidget {
                                     ?.copyWith(
                                       color: game.isGameActive
                                           ? Theme.of(context).colorScheme.error
-                                          : teamPrimaryColor,
+                                          : onGradient,
                                       fontWeight: FontWeight.bold,
                                     ),
                               ),
@@ -717,10 +734,17 @@ class _ActiveGameGradientCard extends StatelessWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: onGradient.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: onGradient.withOpacity(0.25),
+                                ),
                               ),
-                              child: _HalfOrShiftDisplay(game: game),
+                              child: DefaultTextStyle(
+                                style: Theme.of(context).textTheme.bodySmall!
+                                    .copyWith(color: onGradient),
+                                child: _HalfOrShiftDisplay(game: game),
+                              ),
                             ),
                           ],
                         ),
@@ -732,10 +756,15 @@ class _ActiveGameGradientCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
+                      color: onGradient.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: onGradient.withOpacity(0.25)),
                     ),
-                    child: _LiveGameTimer(game: game, teamId: team.id),
+                    child: _LiveGameTimer(
+                      game: game,
+                      teamId: team.id,
+                      fallbackTextColor: onGradient,
+                    ),
                   ),
                 ],
               ),
