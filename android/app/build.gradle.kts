@@ -20,16 +20,15 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-        // Needed for some libraries (e.g., flutter_local_notifications) that rely on newer
-        // Java time APIs on older Android API levels.
+        // Revert to Java 1.8 for widest plugin compatibility (suppresses mismatches); desugaring still enables newer APIs.
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
         isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
-        // Align Kotlin JVM target with Java 17
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        // Keep Kotlin bytecode at 1.8 to match Java compile target.
+        jvmTarget = JavaVersion.VERSION_1_8.toString()
     }
 
 

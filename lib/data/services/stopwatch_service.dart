@@ -5,14 +5,9 @@ import 'package:flutter/foundation.dart'
 import 'package:shared_preferences/shared_preferences.dart';
 import 'notification_service.dart';
 
-final stopwatchProvider = StateNotifierProvider.autoDispose
-    .family<StopwatchCtrl, int, int>((_, gameId) => StopwatchCtrl(gameId));
-
-class StopwatchCtrl extends StateNotifier<int> {
-  StopwatchCtrl(this.gameId) : super(0) {
-    _restore();
-  }
-  final int gameId;
+// Riverpod v3: Use NotifierProvider.family with autoDispose
+class StopwatchCtrl extends Notifier<int> {
+  late int gameId;
   Timer? _t;
   DateTime? _startedAt;
   int _shiftLengthSeconds = 300;
@@ -76,6 +71,14 @@ class StopwatchCtrl extends StateNotifier<int> {
     if (elapsed != null) {
       state = elapsed;
     }
+  }
+
+  @override
+  int build() => 0; // Will be initialized via init() post-creation
+
+  void init(int id) {
+    gameId = id;
+    Future.microtask(_restore);
   }
 
   Future<void> start() async {
@@ -166,9 +169,10 @@ class StopwatchCtrl extends StateNotifier<int> {
     await NotificationService.instance.cancelStopwatch(gameId);
   }
 
-  @override
-  void dispose() {
+  void disposeTimer() {
     _t?.cancel();
-    super.dispose();
   }
 }
+
+final stopwatchProvider = NotifierProvider.autoDispose
+    .family<StopwatchCtrl, int, int>((gameId) => StopwatchCtrl()..init(gameId));
