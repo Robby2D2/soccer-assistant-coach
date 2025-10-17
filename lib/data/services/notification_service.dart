@@ -24,7 +24,48 @@ class NotificationService {
     // Debug: Print response details
     debugPrint('Notification response: payload=$payload, actionId=$actionId');
 
-    // Handle shift alarm notifications (both tap and action button)
+    // Legacy Android action id support (dismiss_*)
+    if (actionId != null && actionId.startsWith('dismiss_')) {
+      final idStr = actionId.replaceFirst('dismiss_', '');
+      final id = int.tryParse(idStr);
+      if (id != null) {
+        debugPrint('Dismissing (legacy) shift alarm for game $id via action');
+        dismissShiftAlarm(id);
+        AlertService.instance.acknowledgeAlert();
+        _showDismissConfirmation(id);
+        return;
+      }
+    }
+    // iOS category action (no gameId encoded in actionId) -> parse from payload
+    if (actionId == 'stop_alarm' &&
+        payload?.startsWith('shift_alarm:') == true) {
+      final idStr = payload!.replaceFirst('shift_alarm:', '');
+      final id = int.tryParse(idStr);
+      if (id != null) {
+        debugPrint('Stopping shift alarm for game $id via iOS category action');
+        dismissShiftAlarm(id);
+        AlertService.instance.acknowledgeAlert();
+        return;
+      }
+    }
+    // Handle action button dismiss/stop for shift alarm (supports legacy 'dismiss_' and new 'stop_alarm_' prefixes)
+    if (actionId != null &&
+        (actionId.startsWith('dismiss_') ||
+            actionId.startsWith('stop_alarm_'))) {
+      final idStr = actionId
+          .replaceFirst('dismiss_', '')
+          .replaceFirst('stop_alarm_', '');
+      final id = int.tryParse(idStr);
+      if (id != null) {
+        debugPrint('Stopping shift alarm for game $id via action button');
+        dismissShiftAlarm(id);
+        AlertService.instance.acknowledgeAlert();
+        // Optionally show a brief passive confirmation (Android only)
+        _showDismissConfirmation(id);
+        return;
+      }
+    }
+    // Handle shift alarm notifications (notification tap)
     if (payload?.startsWith('shift_alarm:') == true) {
       // Extract game ID from the payload
       final gameIdStr = payload?.replaceFirst('shift_alarm:', '');
@@ -45,11 +86,48 @@ class NotificationService {
     }
   }
 
+  /// Shows a quick passive confirmation that the alarm was stopped
+  void _showDismissConfirmation(int gameId) {
+    // Only Android (for now) and only if initialized
+    if (!_initialized) return;
+    const android = AndroidNotificationDetails(
+      'shift_countdown', // reuse low-importance channel
+      'Shift Countdown',
+      channelDescription: 'Shows remaining time in current shift',
+      importance: Importance.min,
+      priority: Priority.min,
+      playSound: false,
+      ongoing: false,
+      autoCancel: true,
+      showWhen: false,
+    );
+    _plugin.show(
+      _shiftCountdownNotifId + gameId + 1, // ephemeral id offset
+      'Alarm dismissed',
+      'Countdown continuing…',
+      const NotificationDetails(android: android),
+      payload: 'shift_dismissed:$gameId',
+    );
+  }
+
   Future<void> init() async {
     if (_initialized) return;
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosInit = DarwinInitializationSettings();
-    const initSettings = InitializationSettings(
+    final iosCategory = DarwinNotificationCategory(
+      'shift_alarm_category',
+      actions: [
+        DarwinNotificationAction.plain(
+          'stop_alarm',
+          'Stop Alarm',
+          options: {DarwinNotificationActionOption.destructive},
+        ),
+      ],
+      options: {DarwinNotificationCategoryOption.customDismissAction},
+    );
+    final iosInit = DarwinInitializationSettings(
+      notificationCategories: [iosCategory],
+    );
+    final initSettings = InitializationSettings(
       android: androidInit,
       iOS: iosInit,
     );
@@ -420,9 +498,9 @@ class NotificationService {
       autoCancel: true,
       actions: [
         AndroidNotificationAction(
-          'dismiss_$gameId',
-          'Dismiss',
-          cancelNotification: false, // We'll handle dismissal ourselves
+          'stop_alarm_$gameId',
+          'Stop Alarm',
+          cancelNotification: false, // We'll handle cancellation explicitly
           showsUserInterface: false,
         ),
       ],
@@ -434,6 +512,7 @@ class NotificationService {
       presentSound: true,
       interruptionLevel: InterruptionLevel.critical,
       threadIdentifier: 'shift_alarm_thread',
+      categoryIdentifier: 'shift_alarm_category',
     );
 
     await _plugin.show(
