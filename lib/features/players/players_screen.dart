@@ -5,7 +5,7 @@ import '../../core/providers.dart';
 import '../../utils/csv.dart';
 import '../../utils/files.dart';
 import '../../widgets/player_avatar.dart';
-import '../../widgets/team_header.dart';
+import '../../core/team_theme_manager.dart';
 import 'package:go_router/go_router.dart';
 
 class PlayersScreen extends ConsumerWidget {
@@ -88,9 +88,11 @@ class PlayersScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(dbProvider);
-    return Scaffold(
-      appBar: AppBar(
-        title: TeamHeader(teamId: teamId, suffix: ' Players', logoSize: 28),
+    return TeamScaffold(
+      teamId: teamId,
+      appBar: TeamAppBar(
+        teamId: teamId,
+        titleText: 'Players',
         actions: [
           IconButton(
             tooltip: 'Export CSV',

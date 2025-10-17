@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../core/game_scaffold.dart';
+import '../../core/team_theme_manager.dart';
+import '../../widgets/team_header.dart';
 
 class EndGameScreen extends ConsumerStatefulWidget {
   final int gameId;
@@ -143,14 +146,13 @@ class _EndGameScreenState extends ConsumerState<EndGameScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    if (_game == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('End Game')),
-        body: const Center(child: Text('Game not found')),
+      return const GameScaffold(
+        gameId: -1,
+        body: Center(child: CircularProgressIndicator()),
       );
+    }
+    if (_game == null) {
+      return const Scaffold(body: Center(child: Text('Game not found')));
     }
 
     final teamName = _team?.name ?? 'Your Team';
@@ -162,16 +164,24 @@ class _EndGameScreenState extends ConsumerState<EndGameScreen> {
     final teamScore = int.tryParse(_teamScoreController.text) ?? 0;
     final opponentScore = int.tryParse(_opponentScoreController.text) ?? 0;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('End Game'),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-      ),
+    return GameScaffold(
+      gameId: _game!.id,
+      appBar: const TeamAppBar(titleText: 'End Game'),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: TeamBrandedHeader(
+                teamId: _game!.teamId,
+                subtitle: 'Finalize match & scores',
+                title: _game!.opponent?.isNotEmpty == true
+                    ? 'vs ${_game!.opponent}'
+                    : 'Finalize Game',
+              ),
+            ),
             // Game info header
             Card(
               child: Padding(

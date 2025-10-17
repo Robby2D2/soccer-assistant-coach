@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
+import '../../core/team_theme_manager.dart';
 import 'game_screen.dart';
 import 'traditional_game_screen.dart';
 
@@ -33,11 +34,10 @@ class SmartGameScreen extends ConsumerWidget {
             }
 
             final teamMode = modeSnap.data!;
-            if (teamMode == 'traditional') {
-              return TraditionalGameScreen(gameId: gameId);
-            } else {
-              return GameScreen(gameId: gameId);
-            }
+            final inner = teamMode == 'traditional'
+                ? TraditionalGameScreen(gameId: gameId)
+                : GameScreen(gameId: gameId);
+            return TeamThemeScope(teamId: game.teamId, child: inner);
           },
         );
       },

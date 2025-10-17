@@ -12,7 +12,9 @@ import '../../data/services/alert_service.dart';
 import '../../widgets/player_panel.dart';
 import '../../widgets/team_logo_widget.dart';
 import '../../widgets/team_color_picker.dart';
-import '../../utils/team_theme.dart'; // for TeamColorContrast
+// Minimal theming refactor (Option A): use GameScaffold + TeamAppBar
+import '../../core/game_scaffold.dart';
+import '../../core/team_theme_manager.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   final int gameId;
@@ -316,8 +318,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   Widget build(BuildContext context) {
     final db = ref.watch(dbProvider);
 
-    return Scaffold(
-      appBar: AppBar(
+    return GameScaffold(
+      gameId: widget.gameId,
+      appBar: TeamAppBar(
+        teamId: null, // resolved via GameScaffold; title still handles colors
         title: FutureBuilder<Game?>(
           future: db.getGame(widget.gameId),
           builder: (context, snap) {
@@ -361,9 +365,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     ? (ColorHelper.hexToColor(team!.primaryColor1!) ??
                           Theme.of(context).colorScheme.primary)
                     : Theme.of(context).colorScheme.primary;
-                final onPrimary = TeamColorContrast.onColorFor(
-                  teamPrimaryColor,
-                );
 
                 return Row(
                   mainAxisSize: MainAxisSize.min,
@@ -371,14 +372,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     // Team logo with team colors
                     if (team != null)
                       Container(
-                        margin: const EdgeInsets.only(right: 12),
+                        margin: const EdgeInsets.only(right: 8),
                         child: TeamLogoWidget(
                           logoPath: team.logoImagePath,
-                          size: 32,
-                          backgroundColor: hasTeamColors
-                              ? teamPrimaryColor.withOpacity(0.15)
-                              : Theme.of(context).colorScheme.primaryContainer,
-                          iconColor: teamPrimaryColor,
+                          size: 24,
+                          backgroundColor: Colors.transparent,
+                          iconColor: hasTeamColors ? teamPrimaryColor : null,
                         ),
                       ),
                     // Game info with team color accent
@@ -396,17 +395,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                   color: hasTeamColors
                                       ? teamPrimaryColor
                                       : null,
-                                  shadows: hasTeamColors
-                                      ? [
-                                          Shadow(
-                                            color: onPrimary == Colors.white
-                                                ? Colors.black.withOpacity(0.3)
-                                                : Colors.white.withOpacity(0.3),
-                                            offset: const Offset(0, 1),
-                                            blurRadius: 2,
-                                          ),
-                                        ]
-                                      : null,
                                 ),
                           ),
                           if (gameTimeText.isNotEmpty)
@@ -415,13 +403,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.labelSmall
                                   ?.copyWith(
-                                    color: hasTeamColors
-                                        ? TeamColorContrast.onColorFor(
-                                            teamPrimaryColor.withOpacity(0.85),
-                                          )
-                                        : Theme.of(
-                                            context,
-                                          ).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                             ),
                         ],
@@ -1030,8 +1014,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                                             await stopwatchCtrl
                                                                 .start();
                                                             if (!context
-                                                                .mounted)
+                                                                .mounted) {
                                                               return;
+                                                            }
                                                             _currentShiftId =
                                                                 shiftId;
                                                             _isRunning = true;
@@ -1050,8 +1035,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                                     builder: (context, nextShiftSnap) {
                                                       final nextShift =
                                                           nextShiftSnap.data;
-                                                      if (nextShift == null)
+                                                      if (nextShift == null) {
                                                         return const SizedBox.shrink();
+                                                      }
                                                       final isCompact =
                                                           MediaQuery.of(
                                                             context,

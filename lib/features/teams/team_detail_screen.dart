@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../widgets/team_header.dart';
+import '../../core/team_theme_manager.dart';
 import '../../widgets/team_color_picker.dart';
 
 class TeamDetailScreen extends ConsumerWidget {
@@ -85,17 +86,11 @@ class TeamDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(dbProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: FutureBuilder<Team?>(
-          future: db.getTeam(id),
-          builder: (context, snapshot) {
-            if (snapshot.hasData && snapshot.data != null) {
-              return Text(snapshot.data!.name);
-            }
-            return Text('Team #$id');
-          },
-        ),
+    return TeamScaffold(
+      teamId: id,
+      appBar: TeamAppBar(
+        teamId: id,
+        titleText: 'Team',
         actions: [
           IconButton(
             icon: const Icon(Icons.home),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
+import '../../core/team_theme_manager.dart';
+import '../../widgets/team_header.dart';
 import '../../widgets/team_logo_widget.dart';
 import '../../widgets/team_color_picker.dart';
 import '../../utils/team_image_picker.dart';
@@ -78,13 +80,23 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(dbProvider);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Edit Team')),
+    return TeamScaffold(
+      teamId: widget.teamId,
+      appBar: const TeamAppBar(titleText: 'Edit Team'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: TeamBrandedHeader(
+                teamId: widget.teamId,
+                title: _name.text.isEmpty ? 'Edit Team' : _name.text,
+                subtitle: 'Customize appearance & settings',
+                padding: const EdgeInsets.all(20),
+              ),
+            ),
             TextField(
               controller: _name,
               decoration: const InputDecoration(labelText: 'Team name'),

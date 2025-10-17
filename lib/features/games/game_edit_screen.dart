@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../core/game_scaffold.dart';
+import '../../core/team_theme_manager.dart';
 
 class GameEditScreen extends ConsumerStatefulWidget {
   final int gameId;
@@ -89,8 +91,12 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
   Widget build(BuildContext context) {
     final db = ref.watch(dbProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Edit Game')),
+    if (_teamId == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    return GameScaffold(
+      gameId: widget.gameId,
+      appBar: TeamAppBar(title: GameCompactTitle(gameId: widget.gameId)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Padding(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
+import '../../core/team_theme_manager.dart';
+import '../../widgets/team_header.dart';
 import '../../utils/files.dart';
 import '../../widgets/player_avatar.dart';
 import '../teams/data/team_metrics_models.dart';
@@ -12,19 +14,11 @@ class TeamMetricsOverviewScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(dbProvider);
-    return Scaffold(
-      appBar: AppBar(
-        title: FutureBuilder<Team?>(
-          future: db.getTeam(teamId),
-          builder: (context, teamSnap) {
-            final team = teamSnap.data;
-            final teamName = team?.name ?? 'Team';
-            return Text(
-              'Team Metrics: $teamName',
-              overflow: TextOverflow.ellipsis,
-            );
-          },
-        ),
+    return TeamScaffold(
+      teamId: teamId,
+      appBar: TeamAppBar(
+        teamId: teamId,
+        titleText: 'Team Metrics',
         actions: [
           IconButton(
             tooltip: 'Export CSV',
@@ -115,6 +109,14 @@ class TeamMetricsOverviewScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: TeamBrandedHeader(
+                    teamId: teamId,
+                    subtitle: 'Season Performance Summary',
+                    title: 'Team Metrics',
+                  ),
+                ),
                 // Team Summary Card
                 Card(
                   child: Padding(

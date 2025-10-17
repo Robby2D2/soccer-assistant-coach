@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../widgets/team_panels.dart';
+import '../../core/team_theme_manager.dart';
 
 class TeamsScreen extends ConsumerStatefulWidget {
   const TeamsScreen({super.key});
@@ -190,9 +191,9 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
         ? db.watchTeams(includeArchived: true)
         : db.watchTeams();
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Teams'),
+    return TeamScaffold(
+      appBar: TeamAppBar(
+        titleText: 'Teams',
         actions: [
           IconButton(
             tooltip: _showArchived ? 'Hide archived' : 'Show archived',

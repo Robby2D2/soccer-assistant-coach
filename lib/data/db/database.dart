@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 import 'package:drift_sqflite/drift_sqflite.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'schema.dart';
 import '../../features/teams/data/team_metrics_models.dart';
@@ -35,6 +36,8 @@ class GameWithTeam {
 class AppDb extends _$AppDb {
   AppDb()
     : super(SqfliteQueryExecutor.inDatabaseFolder(path: 'soccer_manager.db'));
+  // In-memory constructor for tests (avoids sqflite platform dependency)
+  AppDb.test() : super(NativeDatabase.memory());
   @override
   int get schemaVersion => 17;
 
