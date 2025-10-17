@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:vibration/vibration.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AlertService {
   AlertService._();
@@ -79,6 +80,14 @@ class AlertService {
 
   /// Plays haptic feedback with strong vibration
   Future<void> _playHapticFeedback() async {
+    // Check vibration preference
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final enabled = prefs.getBool('alarm_vibration_enabled') ?? true;
+      if (!enabled) {
+        return; // Skip vibration entirely
+      }
+    } catch (_) {}
     try {
       // Use the vibration package for more control
       final hasVibrator = await Vibration.hasVibrator();

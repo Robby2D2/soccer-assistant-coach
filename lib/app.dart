@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'core/router.dart';
 import 'core/theme.dart';
+import 'l10n/app_localizations.dart';
 
 class SoccerApp extends StatelessWidget {
   const SoccerApp({super.key});
@@ -12,6 +13,9 @@ class SoccerApp extends StatelessWidget {
       darkTheme: appDarkTheme,
       themeMode: ThemeMode.system,
       routerConfig: router,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      onGenerateTitle: (ctx) => AppLocalizations.of(ctx).appTitle,
     );
   }
 }

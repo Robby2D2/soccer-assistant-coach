@@ -18,6 +18,11 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Soccer Assistant Coach'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Settings',
+            onPressed: () => context.push('/settings'),
+          ),
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'debug') {

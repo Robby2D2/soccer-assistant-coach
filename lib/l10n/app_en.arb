@@ -1,0 +1,19 @@
+{
+  "appTitle": "Soccer Assistant Coach",
+  "settingsTitle": "Settings",
+  "settingsVibration": "Alarm Vibration",
+  "settingsVibrationDescription": "Vibrate device when shift alarm triggers",
+  "settingsNotifications": "Notifications & Alarms",
+  "permissionNotificationsTitle": "Allow Notifications",
+  "permissionNotificationsDescription": "Enable shift alarms and game timers to alert you even when the app is closed.",
+  "permissionExactAlarmTitle": "Exact Alarms",
+  "permissionExactAlarmDescription": "Grant exact alarm permission so shift alarms fire at the precise second (Android 12+).",
+  "permissionRequestButton": "Request Permissions",
+  "permissionGranted": "Permission Granted",
+  "permissionDenied": "Permission Denied",
+  "vibrationEnabledStatus": "Vibration enabled",
+  "vibrationDisabledStatus": "Vibration disabled",
+  "stopAlarmAction": "Stop Alarm",
+  "alarmDismissed": "Alarm dismissed",
+  "alarmDismissedBody": "Countdown continuing…"
+}

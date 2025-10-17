@@ -19,6 +19,7 @@ import '../features/games/attendance_screen.dart';
 import '../features/games/end_game_screen.dart';
 import '../features/debug/database_diagnostic_screen.dart';
 import '../features/teams/team_metrics_overview_screen.dart';
+import '../features/settings/settings_screen.dart';
 
 final router = GoRouter(
   routes: [
@@ -124,5 +125,6 @@ final router = GoRouter(
       path: '/debug/database',
       builder: (_, _) => const DatabaseDiagnosticScreen(),
     ),
+    GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
   ],
 );

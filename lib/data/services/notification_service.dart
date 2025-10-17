@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'alert_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationService {
   NotificationService._();
@@ -134,6 +135,8 @@ class NotificationService {
     await _plugin.initialize(
       initSettings,
       onDidReceiveNotificationResponse: _onNotificationResponse,
+      onDidReceiveBackgroundNotificationResponse:
+          _onBackgroundNotificationResponse,
     );
 
     // Create default Android channel for shift alerts
@@ -481,6 +484,15 @@ class NotificationService {
 
     final shiftText = shiftNumber == null ? 'Shift' : 'Shift #$shiftNumber';
 
+    // Load vibration preference synchronously fallback to true
+    bool vibrationEnabled = true;
+    try {
+      // SharedPreferences is synchronous after first load
+      // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
+      final prefs = await SharedPreferences.getInstance();
+      vibrationEnabled = prefs.getBool('alarm_vibration_enabled') ?? true;
+    } catch (_) {}
+
     final android = AndroidNotificationDetails(
       'shift_alarm',
       'Shift Alarm',
@@ -489,7 +501,7 @@ class NotificationService {
       importance: Importance.max,
       priority: Priority.max,
       playSound: true,
-      enableVibration: true,
+      enableVibration: vibrationEnabled,
       category: AndroidNotificationCategory.alarm,
       icon: '@mipmap/ic_launcher',
       colorized: true,
@@ -554,5 +566,35 @@ class NotificationService {
   /// Checks if a shift alarm is currently active for the game
   bool isShiftAlarmActive(int gameId) {
     return _shiftAlarmsActive[gameId] ?? false;
+  }
+}
+
+/// Background notification tap/action handler (app terminated)
+/// Must be a top-level / static with VM entry point annotation.
+@pragma('vm:entry-point')
+void _onBackgroundNotificationResponse(NotificationResponse response) {
+  // We cannot access Riverpod context here; use singleton services only.
+  final payload = response.payload;
+  final actionId = response.actionId;
+  debugPrint('[BG] Notification response payload=$payload actionId=$actionId');
+
+  // Mirror logic from _onNotificationResponse for alarm dismissal
+  int? gameId;
+  if (actionId != null && actionId.startsWith('dismiss_')) {
+    gameId = int.tryParse(actionId.replaceFirst('dismiss_', ''));
+  } else if (actionId != null && actionId.startsWith('stop_alarm_')) {
+    gameId = int.tryParse(actionId.replaceFirst('stop_alarm_', ''));
+  } else if (actionId == 'stop_alarm' &&
+      payload?.startsWith('shift_alarm:') == true) {
+    gameId = int.tryParse(payload!.replaceFirst('shift_alarm:', ''));
+  } else if (payload?.startsWith('shift_alarm:') == true) {
+    gameId = int.tryParse(payload!.replaceFirst('shift_alarm:', ''));
+  }
+
+  if (gameId != null) {
+    // Dismiss alarm & acknowledge alert service
+    NotificationService.instance.dismissShiftAlarm(gameId);
+    AlertService.instance.acknowledgeAlert();
+    debugPrint('[BG] Dismissed shift alarm for game $gameId');
   }
 }
