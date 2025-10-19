@@ -51,9 +51,10 @@ flutter:
     - assets/sounds/
   generate: true
 
-flutter_icons:
+flutter_launcher_icons:
   android: true
   ios: true
   image_path: "soccer-assistant-coach.png"
-  adaptive_icon_background: "#0A0A0A"
+  adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "soccer-assistant-coach.png"
+  remove_alpha_ios: true
