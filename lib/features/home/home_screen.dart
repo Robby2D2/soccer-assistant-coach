@@ -43,11 +43,6 @@ class HomeScreen extends ConsumerWidget {
             ],
             child: const Icon(Icons.more_vert),
           ),
-          IconButton(
-            icon: const Icon(Icons.group),
-            tooltip: 'Manage Teams',
-            onPressed: () => context.push('/teams'),
-          ),
         ],
       ),
       body: Column(

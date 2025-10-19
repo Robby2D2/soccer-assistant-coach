@@ -463,7 +463,7 @@ class _DatabaseDiagnosticScreenState
       // Pick file
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['json'],
+        allowedExtensions: ['json', 'txt'],
         dialogTitle: 'Select Database Backup File',
       );
 
