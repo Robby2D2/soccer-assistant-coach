@@ -137,6 +137,51 @@ class _FormationEditScreenState extends ConsumerState<FormationEditScreen> {
     final isEdit = widget.formationId != null;
     return Scaffold(
       appBar: AppBar(title: Text(isEdit ? 'Edit Formation' : 'New Formation')),
+      floatingActionButton: _loading || _notFound
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () async {
+                if (!_formKey.currentState!.validate()) return;
+                final count = int.parse(_playerCountCtrl.text);
+                final positions = _positionCtrls
+                    .take(count)
+                    .map((c) => c.text.trim())
+                    .toList();
+                final abbreviations = _abbreviationCtrls
+                    .take(count)
+                    .map((c) => c.text.trim())
+                    .toList();
+                if (isEdit) {
+                  await db.updateFormation(
+                    id: widget.formationId!,
+                    name: _nameCtrl.text.trim(),
+                    playerCount: count,
+                    positions: positions,
+                    abbreviations: abbreviations,
+                  );
+                } else {
+                  await db.createFormation(
+                    teamId: widget.teamId,
+                    name: _nameCtrl.text.trim(),
+                    playerCount: count,
+                    positions: positions,
+                    abbreviations: abbreviations,
+                  );
+                }
+                // After async calls, ensure the specific BuildContext is still mounted
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      isEdit ? 'Formation updated' : 'Formation created',
+                    ),
+                  ),
+                );
+                context.pop();
+              },
+              icon: const Icon(Icons.save),
+              label: Text(isEdit ? 'Save' : 'Create'),
+            ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _notFound
@@ -285,56 +330,6 @@ class _FormationEditScreenState extends ConsumerState<FormationEditScreen> {
                         const SizedBox(height: 8),
                       ],
                       const SizedBox(height: 16),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: FilledButton.icon(
-                          icon: const Icon(Icons.save),
-                          label: Text(
-                            isEdit ? 'Save changes' : 'Create formation',
-                          ),
-                          onPressed: () async {
-                            if (!_formKey.currentState!.validate()) return;
-                            final count = int.parse(_playerCountCtrl.text);
-                            final positions = _positionCtrls
-                                .take(count)
-                                .map((c) => c.text.trim())
-                                .toList();
-                            final abbreviations = _abbreviationCtrls
-                                .take(count)
-                                .map((c) => c.text.trim())
-                                .toList();
-                            if (isEdit) {
-                              await db.updateFormation(
-                                id: widget.formationId!,
-                                name: _nameCtrl.text.trim(),
-                                playerCount: count,
-                                positions: positions,
-                                abbreviations: abbreviations,
-                              );
-                            } else {
-                              await db.createFormation(
-                                teamId: widget.teamId,
-                                name: _nameCtrl.text.trim(),
-                                playerCount: count,
-                                positions: positions,
-                                abbreviations: abbreviations,
-                              );
-                            }
-                            // After async calls, ensure the specific BuildContext is still mounted
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  isEdit
-                                      ? 'Formation updated'
-                                      : 'Formation created',
-                                ),
-                              ),
-                            );
-                            context.pop();
-                          },
-                        ),
-                      ),
                     ],
                   ),
                 ),

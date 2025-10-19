@@ -126,6 +126,33 @@ class _PlayerEditScreenState extends ConsumerState<PlayerEditScreen> {
         return TeamScaffold(
           teamId: teamId,
           appBar: const TeamAppBar(titleText: 'Edit Player'),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () async {
+              final f = _first.text.trim();
+              final l = _last.text.trim();
+              if (f.isEmpty || l.isEmpty) return;
+
+              // Parse jersey number
+              int? jerseyNumber;
+              final jerseyStr = _jerseyNumber.text.trim();
+              if (jerseyStr.isNotEmpty) {
+                jerseyNumber = int.tryParse(jerseyStr);
+              }
+
+              await db.updatePlayer(
+                id: widget.playerId,
+                firstName: f,
+                lastName: l,
+                isPresent: _present,
+                jerseyNumber: jerseyNumber,
+                profileImagePath: _profileImagePath,
+              );
+              if (!context.mounted) return;
+              Navigator.pop(context);
+            },
+            icon: const Icon(Icons.save),
+            label: const Text('Save'),
+          ),
           body: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -199,33 +226,6 @@ class _PlayerEditScreenState extends ConsumerState<PlayerEditScreen> {
                   onChanged: (v) => setState(() => _present = v),
                 ),
                 const SizedBox(height: 16),
-                FilledButton.icon(
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save'),
-                  onPressed: () async {
-                    final f = _first.text.trim();
-                    final l = _last.text.trim();
-                    if (f.isEmpty || l.isEmpty) return;
-
-                    // Parse jersey number
-                    int? jerseyNumber;
-                    final jerseyStr = _jerseyNumber.text.trim();
-                    if (jerseyStr.isNotEmpty) {
-                      jerseyNumber = int.tryParse(jerseyStr);
-                    }
-
-                    await db.updatePlayer(
-                      id: widget.playerId,
-                      firstName: f,
-                      lastName: l,
-                      isPresent: _present,
-                      jerseyNumber: jerseyNumber,
-                      profileImagePath: _profileImagePath,
-                    );
-                    if (!context.mounted) return;
-                    Navigator.pop(context);
-                  },
-                ),
               ],
             ),
           ),

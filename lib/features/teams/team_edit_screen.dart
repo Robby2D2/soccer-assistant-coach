@@ -83,6 +83,44 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
     return TeamScaffold(
       teamId: widget.teamId,
       appBar: const TeamAppBar(titleText: 'Edit Team'),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final name = _name.text.trim();
+          if (name.isEmpty) return;
+
+          await db.updateTeamName(widget.teamId, name);
+          await db.setTeamMode(widget.teamId, _teamMode);
+
+          // Save team customization
+          debugPrint('Saving team logo: $_logoImagePath');
+          await db.updateTeamLogo(widget.teamId, _logoImagePath);
+          final hexColors = ColorHelper.colorsToHexList(_teamColors);
+          debugPrint('Saving team colors: $hexColors');
+          await db.updateTeamColors(
+            widget.teamId,
+            color1: hexColors.isNotEmpty ? hexColors[0] : null,
+            color2: hexColors.length > 1 ? hexColors[1] : null,
+            color3: hexColors.length > 2 ? hexColors[2] : null,
+          );
+
+          if (_teamMode == 'shift') {
+            final mins = int.tryParse(_shiftMinutes.text.trim());
+            if (mins != null && mins > 0) {
+              await db.setTeamShiftLengthSeconds(widget.teamId, mins * 60);
+            }
+          } else {
+            final mins = int.tryParse(_halfMinutes.text.trim());
+            if (mins != null && mins > 0) {
+              await db.setTeamHalfDurationSeconds(widget.teamId, mins * 60);
+            }
+          }
+
+          if (!context.mounted) return;
+          Navigator.pop(context);
+        },
+        icon: const Icon(Icons.save),
+        label: const Text('Save'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -240,50 +278,6 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
               ),
             ],
             const SizedBox(height: 16),
-            FilledButton.icon(
-              icon: const Icon(Icons.save),
-              label: const Text('Save'),
-              onPressed: () async {
-                final name = _name.text.trim();
-                if (name.isEmpty) return;
-
-                await db.updateTeamName(widget.teamId, name);
-                await db.setTeamMode(widget.teamId, _teamMode);
-
-                // Save team customization
-                debugPrint('Saving team logo: $_logoImagePath');
-                await db.updateTeamLogo(widget.teamId, _logoImagePath);
-                final hexColors = ColorHelper.colorsToHexList(_teamColors);
-                debugPrint('Saving team colors: $hexColors');
-                await db.updateTeamColors(
-                  widget.teamId,
-                  color1: hexColors.isNotEmpty ? hexColors[0] : null,
-                  color2: hexColors.length > 1 ? hexColors[1] : null,
-                  color3: hexColors.length > 2 ? hexColors[2] : null,
-                );
-
-                if (_teamMode == 'shift') {
-                  final mins = int.tryParse(_shiftMinutes.text.trim());
-                  if (mins != null && mins > 0) {
-                    await db.setTeamShiftLengthSeconds(
-                      widget.teamId,
-                      mins * 60,
-                    );
-                  }
-                } else {
-                  final mins = int.tryParse(_halfMinutes.text.trim());
-                  if (mins != null && mins > 0) {
-                    await db.setTeamHalfDurationSeconds(
-                      widget.teamId,
-                      mins * 60,
-                    );
-                  }
-                }
-
-                if (!context.mounted) return;
-                Navigator.pop(context);
-              },
-            ),
           ],
         ),
       ),

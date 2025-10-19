@@ -97,6 +97,71 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
     return GameScaffold(
       gameId: widget.gameId,
       appBar: TeamAppBar(title: GameCompactTitle(gameId: widget.gameId)),
+      floatingActionButton: _loading
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _saving
+                  ? null
+                  : () async {
+                      if (_teamId == null) return;
+                      setState(() => _saving = true);
+                      await db.updateGame(
+                        id: widget.gameId,
+                        opponent: _opp.text.trim(),
+                        startTime: _start,
+                        formationId: _selectedFormationId,
+                      );
+                      if (!widget.basicOnly) {
+                        for (final player in _players) {
+                          final present = _presentPlayerIds.contains(player.id);
+                          await db.setAttendance(
+                            gameId: widget.gameId,
+                            playerId: player.id,
+                            isPresent: present,
+                          );
+                        }
+
+                        // If a formation is selected and no shifts exist yet, create initial lineup
+                        if (_selectedFormationId != null) {
+                          final existingShifts = await db
+                              .watchGameShifts(widget.gameId)
+                              .first;
+                          if (existingShifts.isEmpty) {
+                            final f = await db.getFormation(
+                              _selectedFormationId!,
+                            );
+                            if (f != null) {
+                              final positions = await db.getFormationPositions(
+                                f.id,
+                              );
+                              // Use fair assignment algorithm for initial shift
+                              await db.createAutoShift(
+                                gameId: widget.gameId,
+                                startSeconds: 0,
+                                positions: positions
+                                    .map((p) => p.positionName)
+                                    .toList(),
+                                activate: true,
+                              );
+                            }
+                          }
+                        }
+                      }
+                      if (!context.mounted) return;
+                      context.go('/game/${widget.gameId}');
+                    },
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.save),
+              label: const Text('Save'),
+            ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
@@ -263,70 +328,6 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                             ),
                     ),
                   const SizedBox(height: 16),
-                  FilledButton.icon(
-                    icon: _saving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.save),
-                    label: const Text('Save'),
-                    onPressed: _saving
-                        ? null
-                        : () async {
-                            if (_teamId == null) return;
-                            setState(() => _saving = true);
-                            await db.updateGame(
-                              id: widget.gameId,
-                              opponent: _opp.text.trim(),
-                              startTime: _start,
-                              formationId: _selectedFormationId,
-                            );
-                            if (!widget.basicOnly) {
-                              for (final player in _players) {
-                                final present = _presentPlayerIds.contains(
-                                  player.id,
-                                );
-                                await db.setAttendance(
-                                  gameId: widget.gameId,
-                                  playerId: player.id,
-                                  isPresent: present,
-                                );
-                              }
-
-                              // If a formation is selected and no shifts exist yet, create initial lineup
-                              if (_selectedFormationId != null) {
-                                final existingShifts = await db
-                                    .watchGameShifts(widget.gameId)
-                                    .first;
-                                if (existingShifts.isEmpty) {
-                                  final f = await db.getFormation(
-                                    _selectedFormationId!,
-                                  );
-                                  if (f != null) {
-                                    final positions = await db
-                                        .getFormationPositions(f.id);
-                                    // Use fair assignment algorithm for initial shift
-                                    await db.createAutoShift(
-                                      gameId: widget.gameId,
-                                      startSeconds: 0,
-                                      positions: positions
-                                          .map((p) => p.positionName)
-                                          .toList(),
-                                      activate: true,
-                                    );
-                                  }
-                                }
-                              }
-                            }
-                            if (!context.mounted) return;
-                            context.go('/game/${widget.gameId}');
-                          },
-                  ),
                 ],
               ),
             ),
