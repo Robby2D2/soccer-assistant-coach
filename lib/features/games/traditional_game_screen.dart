@@ -114,9 +114,11 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
 
       if (backgroundTime > 0) {
         // Update game time
-        setState(() {
-          _gameTime = currentGameTime;
-        });
+        if (mounted) {
+          setState(() {
+            _gameTime = currentGameTime;
+          });
+        }
 
         // Add background time to current players' playing time
         for (final playerId in _currentLineup.values) {
@@ -244,14 +246,17 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
     final existingLineup = await db.getTraditionalLineupFromGame(widget.gameId);
 
     if (existingLineup != null && existingLineup.isNotEmpty) {
-      setState(() {
-        _currentLineup.clear();
-        _currentLineup.addAll(existingLineup);
-        // Initialize last saved time to avoid double-counting
-        for (final playerId in existingLineup.values) {
-          _lastSavedPlayingTime[playerId] = _playingTimeThisGame[playerId] ?? 0;
-        }
-      });
+      if (mounted) {
+        setState(() {
+          _currentLineup.clear();
+          _currentLineup.addAll(existingLineup);
+          // Initialize last saved time to avoid double-counting
+          for (final playerId in existingLineup.values) {
+            _lastSavedPlayingTime[playerId] =
+                _playingTimeThisGame[playerId] ?? 0;
+          }
+        });
+      }
     }
   }
 
@@ -294,15 +299,17 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
         // Only use previous lineup if we have a reasonable number of matching positions
         // (at least half of the formation positions should be filled)
         if (validLineup.length >= (_formationPositions.length * 0.5).round()) {
-          setState(() {
-            _currentLineup.clear();
-            _currentLineup.addAll(validLineup);
-            // Initialize last saved time to avoid double-counting
-            for (final playerId in validLineup.values) {
-              _lastSavedPlayingTime[playerId] =
-                  _playingTimeThisGame[playerId] ?? 0;
-            }
-          });
+          if (mounted) {
+            setState(() {
+              _currentLineup.clear();
+              _currentLineup.addAll(validLineup);
+              // Initialize last saved time to avoid double-counting
+              for (final playerId in validLineup.values) {
+                _lastSavedPlayingTime[playerId] =
+                    _playingTimeThisGame[playerId] ?? 0;
+              }
+            });
+          }
           // Save the lineup to database
           await db.saveTraditionalLineup(
             gameId: widget.gameId,
@@ -328,15 +335,17 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
         );
 
         if (randomLineup.isNotEmpty) {
-          setState(() {
-            _currentLineup.clear();
-            _currentLineup.addAll(randomLineup);
-            // Initialize last saved time for randomly generated players
-            for (final playerId in randomLineup.values) {
-              _lastSavedPlayingTime[playerId] =
-                  _playingTimeThisGame[playerId] ?? 0;
-            }
-          });
+          if (mounted) {
+            setState(() {
+              _currentLineup.clear();
+              _currentLineup.addAll(randomLineup);
+              // Initialize last saved time for randomly generated players
+              for (final playerId in randomLineup.values) {
+                _lastSavedPlayingTime[playerId] =
+                    _playingTimeThisGame[playerId] ?? 0;
+              }
+            });
+          }
           // Save the generated lineup to database immediately
           await db.saveTraditionalLineup(
             gameId: widget.gameId,
@@ -350,15 +359,17 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
   void _startTimer() {
     _gameTimer?.cancel();
     _gameTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!_isRunning) {
+      if (!_isRunning || !mounted) {
         timer.cancel();
         return;
       }
 
       // Simple increment for normal operation
-      setState(() {
-        _gameTime = _gameTime + 1;
-      });
+      if (mounted) {
+        setState(() {
+          _gameTime = _gameTime + 1;
+        });
+      }
 
       // Update playing time for current lineup
       for (final playerId in _currentLineup.values) {
@@ -391,9 +402,11 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
   }
 
   void _startOrResumeTimer() async {
-    setState(() {
-      _isRunning = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isRunning = true;
+      });
+    }
     final db = ref.read(dbProvider);
     await db.startGameTimer(widget.gameId);
 
@@ -410,12 +423,14 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
 
   Future<void> _resetTimer() async {
     _gameTimer?.cancel();
-    setState(() {
-      _gameTime = 0;
-      _isRunning = false;
-      _currentHalf = 1;
-      _playingTimeThisGame.clear();
-    });
+    if (mounted) {
+      setState(() {
+        _gameTime = 0;
+        _isRunning = false;
+        _currentHalf = 1;
+        _playingTimeThisGame.clear();
+      });
+    }
     final db = ref.read(dbProvider);
     await db.resetGameTimer(widget.gameId);
 
@@ -461,11 +476,13 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
 
     // Start second half
     _pauseTimer();
-    setState(() {
-      _currentHalf = 2;
-      _gameTime = 0; // Reset timer for second half
-      // Don't clear _playingTimeThisHalf - keep accumulating total game time
-    });
+    if (mounted) {
+      setState(() {
+        _currentHalf = 2;
+        _gameTime = 0; // Reset timer for second half
+        // Don't clear _playingTimeThisHalf - keep accumulating total game time
+      });
+    }
 
     final db = ref.read(dbProvider);
     await db.startSecondHalf(widget.gameId);
@@ -742,20 +759,23 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
                                 getPlayerDisplayName: _getPlayerDisplayName,
                                 onPlayerSubstitution:
                                     (outPlayerId, inPlayerId, position) async {
-                                      setState(() {
-                                        if (outPlayerId != null) {
-                                          _currentLineup.remove(
-                                            _getPlayerPosition(outPlayerId),
-                                          );
-                                        }
-                                        if (inPlayerId != null &&
-                                            position != null) {
-                                          _currentLineup[position] = inPlayerId;
-                                          _lastSavedPlayingTime[inPlayerId] =
-                                              _playingTimeThisGame[inPlayerId] ??
-                                              0;
-                                        }
-                                      });
+                                      if (mounted) {
+                                        setState(() {
+                                          if (outPlayerId != null) {
+                                            _currentLineup.remove(
+                                              _getPlayerPosition(outPlayerId),
+                                            );
+                                          }
+                                          if (inPlayerId != null &&
+                                              position != null) {
+                                            _currentLineup[position] =
+                                                inPlayerId;
+                                            _lastSavedPlayingTime[inPlayerId] =
+                                                _playingTimeThisGame[inPlayerId] ??
+                                                0;
+                                          }
+                                        });
+                                      }
 
                                       final db = ref.read(dbProvider);
                                       await db.saveTraditionalLineup(
