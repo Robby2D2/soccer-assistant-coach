@@ -2,12 +2,16 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
-import 'package:drift_sqflite/drift_sqflite.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'schema.dart';
 import '../../features/teams/data/team_metrics_models.dart';
+
+// Conditional import for database connection
+import 'connection/database_connection.dart'
+    if (dart.library.io) 'connection/database_connection_mobile.dart'
+    if (dart.library.html) 'connection/database_connection_web.dart';
 
 part 'database.g.dart';
 
@@ -34,8 +38,7 @@ class GameWithTeam {
   ],
 )
 class AppDb extends _$AppDb {
-  AppDb()
-    : super(SqfliteQueryExecutor.inDatabaseFolder(path: 'soccer_manager.db'));
+  AppDb() : super(createDatabaseConnection());
   // In-memory constructor for tests (avoids sqflite platform dependency)
   AppDb.test() : super(NativeDatabase.memory());
   @override

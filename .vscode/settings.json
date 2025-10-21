@@ -1,5 +1,9 @@
 {
     "chat.disableAIFeatures": false,
     "java.configuration.updateBuildConfiguration": "automatic",
-    "chat.agent.maxRequests": 100
+    "chat.agent.maxRequests": 100,
+    "dart.flutterSdkPath": "/Users/rdanek/flutter",
+    "dart.env": {
+        "DEVELOPER_DIR": "/Users/rdanek/Downloads/Xcode-beta.app/Contents/Developer"
+    }
 }
