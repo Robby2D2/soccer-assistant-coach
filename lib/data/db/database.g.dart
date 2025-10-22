@@ -4328,311 +4328,6 @@ class FormationPositionsCompanion extends UpdateCompanion<FormationPosition> {
   }
 }
 
-class $TraditionalLineupsTable extends TraditionalLineups
-    with TableInfo<$TraditionalLineupsTable, TraditionalLineup> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $TraditionalLineupsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _gameIdMeta = const VerificationMeta('gameId');
-  @override
-  late final GeneratedColumn<int> gameId = GeneratedColumn<int>(
-    'game_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES games (id)',
-    ),
-  );
-  static const VerificationMeta _playerIdMeta = const VerificationMeta(
-    'playerId',
-  );
-  @override
-  late final GeneratedColumn<int> playerId = GeneratedColumn<int>(
-    'player_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES players (id)',
-    ),
-  );
-  static const VerificationMeta _positionMeta = const VerificationMeta(
-    'position',
-  );
-  @override
-  late final GeneratedColumn<String> position = GeneratedColumn<String>(
-    'position',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [id, gameId, playerId, position];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'traditional_lineups';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<TraditionalLineup> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('game_id')) {
-      context.handle(
-        _gameIdMeta,
-        gameId.isAcceptableOrUnknown(data['game_id']!, _gameIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_gameIdMeta);
-    }
-    if (data.containsKey('player_id')) {
-      context.handle(
-        _playerIdMeta,
-        playerId.isAcceptableOrUnknown(data['player_id']!, _playerIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_playerIdMeta);
-    }
-    if (data.containsKey('position')) {
-      context.handle(
-        _positionMeta,
-        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_positionMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  TraditionalLineup map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return TraditionalLineup(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      gameId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}game_id'],
-      )!,
-      playerId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}player_id'],
-      )!,
-      position: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}position'],
-      )!,
-    );
-  }
-
-  @override
-  $TraditionalLineupsTable createAlias(String alias) {
-    return $TraditionalLineupsTable(attachedDatabase, alias);
-  }
-}
-
-class TraditionalLineup extends DataClass
-    implements Insertable<TraditionalLineup> {
-  final int id;
-  final int gameId;
-  final int playerId;
-  final String position;
-  const TraditionalLineup({
-    required this.id,
-    required this.gameId,
-    required this.playerId,
-    required this.position,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['game_id'] = Variable<int>(gameId);
-    map['player_id'] = Variable<int>(playerId);
-    map['position'] = Variable<String>(position);
-    return map;
-  }
-
-  TraditionalLineupsCompanion toCompanion(bool nullToAbsent) {
-    return TraditionalLineupsCompanion(
-      id: Value(id),
-      gameId: Value(gameId),
-      playerId: Value(playerId),
-      position: Value(position),
-    );
-  }
-
-  factory TraditionalLineup.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return TraditionalLineup(
-      id: serializer.fromJson<int>(json['id']),
-      gameId: serializer.fromJson<int>(json['gameId']),
-      playerId: serializer.fromJson<int>(json['playerId']),
-      position: serializer.fromJson<String>(json['position']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'gameId': serializer.toJson<int>(gameId),
-      'playerId': serializer.toJson<int>(playerId),
-      'position': serializer.toJson<String>(position),
-    };
-  }
-
-  TraditionalLineup copyWith({
-    int? id,
-    int? gameId,
-    int? playerId,
-    String? position,
-  }) => TraditionalLineup(
-    id: id ?? this.id,
-    gameId: gameId ?? this.gameId,
-    playerId: playerId ?? this.playerId,
-    position: position ?? this.position,
-  );
-  TraditionalLineup copyWithCompanion(TraditionalLineupsCompanion data) {
-    return TraditionalLineup(
-      id: data.id.present ? data.id.value : this.id,
-      gameId: data.gameId.present ? data.gameId.value : this.gameId,
-      playerId: data.playerId.present ? data.playerId.value : this.playerId,
-      position: data.position.present ? data.position.value : this.position,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('TraditionalLineup(')
-          ..write('id: $id, ')
-          ..write('gameId: $gameId, ')
-          ..write('playerId: $playerId, ')
-          ..write('position: $position')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(id, gameId, playerId, position);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is TraditionalLineup &&
-          other.id == this.id &&
-          other.gameId == this.gameId &&
-          other.playerId == this.playerId &&
-          other.position == this.position);
-}
-
-class TraditionalLineupsCompanion extends UpdateCompanion<TraditionalLineup> {
-  final Value<int> id;
-  final Value<int> gameId;
-  final Value<int> playerId;
-  final Value<String> position;
-  const TraditionalLineupsCompanion({
-    this.id = const Value.absent(),
-    this.gameId = const Value.absent(),
-    this.playerId = const Value.absent(),
-    this.position = const Value.absent(),
-  });
-  TraditionalLineupsCompanion.insert({
-    this.id = const Value.absent(),
-    required int gameId,
-    required int playerId,
-    required String position,
-  }) : gameId = Value(gameId),
-       playerId = Value(playerId),
-       position = Value(position);
-  static Insertable<TraditionalLineup> custom({
-    Expression<int>? id,
-    Expression<int>? gameId,
-    Expression<int>? playerId,
-    Expression<String>? position,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (gameId != null) 'game_id': gameId,
-      if (playerId != null) 'player_id': playerId,
-      if (position != null) 'position': position,
-    });
-  }
-
-  TraditionalLineupsCompanion copyWith({
-    Value<int>? id,
-    Value<int>? gameId,
-    Value<int>? playerId,
-    Value<String>? position,
-  }) {
-    return TraditionalLineupsCompanion(
-      id: id ?? this.id,
-      gameId: gameId ?? this.gameId,
-      playerId: playerId ?? this.playerId,
-      position: position ?? this.position,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (gameId.present) {
-      map['game_id'] = Variable<int>(gameId.value);
-    }
-    if (playerId.present) {
-      map['player_id'] = Variable<int>(playerId.value);
-    }
-    if (position.present) {
-      map['position'] = Variable<String>(position.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('TraditionalLineupsCompanion(')
-          ..write('id: $id, ')
-          ..write('gameId: $gameId, ')
-          ..write('playerId: $playerId, ')
-          ..write('position: $position')
-          ..write(')'))
-        .toString();
-  }
-}
-
 abstract class _$AppDb extends GeneratedDatabase {
   _$AppDb(QueryExecutor e) : super(e);
   $AppDbManager get managers => $AppDbManager(this);
@@ -4648,8 +4343,6 @@ abstract class _$AppDb extends GeneratedDatabase {
       $PlayerPositionTotalsTable(this);
   late final $FormationPositionsTable formationPositions =
       $FormationPositionsTable(this);
-  late final $TraditionalLineupsTable traditionalLineups =
-      $TraditionalLineupsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4665,7 +4358,6 @@ abstract class _$AppDb extends GeneratedDatabase {
     gamePlayers,
     playerPositionTotals,
     formationPositions,
-    traditionalLineups,
   ];
 }
 
@@ -5370,29 +5062,6 @@ final class $$PlayersTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
-
-  static MultiTypedResultKey<$TraditionalLineupsTable, List<TraditionalLineup>>
-  _traditionalLineupsRefsTable(_$AppDb db) => MultiTypedResultKey.fromTable(
-    db.traditionalLineups,
-    aliasName: $_aliasNameGenerator(
-      db.players.id,
-      db.traditionalLineups.playerId,
-    ),
-  );
-
-  $$TraditionalLineupsTableProcessedTableManager get traditionalLineupsRefs {
-    final manager = $$TraditionalLineupsTableTableManager(
-      $_db,
-      $_db.traditionalLineups,
-    ).filter((f) => f.playerId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _traditionalLineupsRefsTable($_db),
-    );
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
 }
 
 class $$PlayersTableFilterComposer extends Composer<_$AppDb, $PlayersTable> {
@@ -5547,31 +5216,6 @@ class $$PlayersTableFilterComposer extends Composer<_$AppDb, $PlayersTable> {
           }) => $$PlayerPositionTotalsTableFilterComposer(
             $db: $db,
             $table: $db.playerPositionTotals,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> traditionalLineupsRefs(
-    Expression<bool> Function($$TraditionalLineupsTableFilterComposer f) f,
-  ) {
-    final $$TraditionalLineupsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.traditionalLineups,
-      getReferencedColumn: (t) => t.playerId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TraditionalLineupsTableFilterComposer(
-            $db: $db,
-            $table: $db.traditionalLineups,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5798,32 +5442,6 @@ class $$PlayersTableAnnotationComposer
         );
     return f(composer);
   }
-
-  Expression<T> traditionalLineupsRefs<T extends Object>(
-    Expression<T> Function($$TraditionalLineupsTableAnnotationComposer a) f,
-  ) {
-    final $$TraditionalLineupsTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.traditionalLineups,
-          getReferencedColumn: (t) => t.playerId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$TraditionalLineupsTableAnnotationComposer(
-                $db: $db,
-                $table: $db.traditionalLineups,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return f(composer);
-  }
 }
 
 class $$PlayersTableTableManager
@@ -5845,7 +5463,6 @@ class $$PlayersTableTableManager
             bool playerMetricsRefs,
             bool gamePlayersRefs,
             bool playerPositionTotalsRefs,
-            bool traditionalLineupsRefs,
           })
         > {
   $$PlayersTableTableManager(_$AppDb db, $PlayersTable table)
@@ -5910,7 +5527,6 @@ class $$PlayersTableTableManager
                 playerMetricsRefs = false,
                 gamePlayersRefs = false,
                 playerPositionTotalsRefs = false,
-                traditionalLineupsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -5919,7 +5535,6 @@ class $$PlayersTableTableManager
                     if (playerMetricsRefs) db.playerMetrics,
                     if (gamePlayersRefs) db.gamePlayers,
                     if (playerPositionTotalsRefs) db.playerPositionTotals,
-                    if (traditionalLineupsRefs) db.traditionalLineups,
                   ],
                   addJoins:
                       <
@@ -6039,27 +5654,6 @@ class $$PlayersTableTableManager
                               ),
                           typedResults: items,
                         ),
-                      if (traditionalLineupsRefs)
-                        await $_getPrefetchedData<
-                          Player,
-                          $PlayersTable,
-                          TraditionalLineup
-                        >(
-                          currentTable: table,
-                          referencedTable: $$PlayersTableReferences
-                              ._traditionalLineupsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$PlayersTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).traditionalLineupsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.playerId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
                     ];
                   },
                 );
@@ -6086,7 +5680,6 @@ typedef $$PlayersTableProcessedTableManager =
         bool playerMetricsRefs,
         bool gamePlayersRefs,
         bool playerPositionTotalsRefs,
-        bool traditionalLineupsRefs,
       })
     >;
 typedef $$FormationsTableCreateCompanionBuilder =
@@ -6718,26 +6311,6 @@ final class $$GamesTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
-
-  static MultiTypedResultKey<$TraditionalLineupsTable, List<TraditionalLineup>>
-  _traditionalLineupsRefsTable(_$AppDb db) => MultiTypedResultKey.fromTable(
-    db.traditionalLineups,
-    aliasName: $_aliasNameGenerator(db.games.id, db.traditionalLineups.gameId),
-  );
-
-  $$TraditionalLineupsTableProcessedTableManager get traditionalLineupsRefs {
-    final manager = $$TraditionalLineupsTableTableManager(
-      $_db,
-      $_db.traditionalLineups,
-    ).filter((f) => f.gameId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _traditionalLineupsRefsTable($_db),
-    );
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
 }
 
 class $$GamesTableFilterComposer extends Composer<_$AppDb, $GamesTable> {
@@ -6925,31 +6498,6 @@ class $$GamesTableFilterComposer extends Composer<_$AppDb, $GamesTable> {
           }) => $$GamePlayersTableFilterComposer(
             $db: $db,
             $table: $db.gamePlayers,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> traditionalLineupsRefs(
-    Expression<bool> Function($$TraditionalLineupsTableFilterComposer f) f,
-  ) {
-    final $$TraditionalLineupsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.traditionalLineups,
-      getReferencedColumn: (t) => t.gameId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TraditionalLineupsTableFilterComposer(
-            $db: $db,
-            $table: $db.traditionalLineups,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -7263,32 +6811,6 @@ class $$GamesTableAnnotationComposer extends Composer<_$AppDb, $GamesTable> {
     );
     return f(composer);
   }
-
-  Expression<T> traditionalLineupsRefs<T extends Object>(
-    Expression<T> Function($$TraditionalLineupsTableAnnotationComposer a) f,
-  ) {
-    final $$TraditionalLineupsTableAnnotationComposer composer =
-        $composerBuilder(
-          composer: this,
-          getCurrentColumn: (t) => t.id,
-          referencedTable: $db.traditionalLineups,
-          getReferencedColumn: (t) => t.gameId,
-          builder:
-              (
-                joinBuilder, {
-                $addJoinBuilderToRootComposer,
-                $removeJoinBuilderFromRootComposer,
-              }) => $$TraditionalLineupsTableAnnotationComposer(
-                $db: $db,
-                $table: $db.traditionalLineups,
-                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-                joinBuilder: joinBuilder,
-                $removeJoinBuilderFromRootComposer:
-                    $removeJoinBuilderFromRootComposer,
-              ),
-        );
-    return f(composer);
-  }
 }
 
 class $$GamesTableTableManager
@@ -7310,7 +6832,6 @@ class $$GamesTableTableManager
             bool shiftsRefs,
             bool playerMetricsRefs,
             bool gamePlayersRefs,
-            bool traditionalLineupsRefs,
           })
         > {
   $$GamesTableTableManager(_$AppDb db, $GamesTable table)
@@ -7405,7 +6926,6 @@ class $$GamesTableTableManager
                 shiftsRefs = false,
                 playerMetricsRefs = false,
                 gamePlayersRefs = false,
-                traditionalLineupsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -7413,7 +6933,6 @@ class $$GamesTableTableManager
                     if (shiftsRefs) db.shifts,
                     if (playerMetricsRefs) db.playerMetrics,
                     if (gamePlayersRefs) db.gamePlayers,
-                    if (traditionalLineupsRefs) db.traditionalLineups,
                   ],
                   addJoins:
                       <
@@ -7517,27 +7036,6 @@ class $$GamesTableTableManager
                               ),
                           typedResults: items,
                         ),
-                      if (traditionalLineupsRefs)
-                        await $_getPrefetchedData<
-                          Game,
-                          $GamesTable,
-                          TraditionalLineup
-                        >(
-                          currentTable: table,
-                          referencedTable: $$GamesTableReferences
-                              ._traditionalLineupsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$GamesTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).traditionalLineupsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.gameId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
                     ];
                   },
                 );
@@ -7564,7 +7062,6 @@ typedef $$GamesTableProcessedTableManager =
         bool shiftsRefs,
         bool playerMetricsRefs,
         bool gamePlayersRefs,
-        bool traditionalLineupsRefs,
       })
     >;
 typedef $$ShiftsTableCreateCompanionBuilder =
@@ -9790,400 +9287,6 @@ typedef $$FormationPositionsTableProcessedTableManager =
       FormationPosition,
       PrefetchHooks Function({bool formationId})
     >;
-typedef $$TraditionalLineupsTableCreateCompanionBuilder =
-    TraditionalLineupsCompanion Function({
-      Value<int> id,
-      required int gameId,
-      required int playerId,
-      required String position,
-    });
-typedef $$TraditionalLineupsTableUpdateCompanionBuilder =
-    TraditionalLineupsCompanion Function({
-      Value<int> id,
-      Value<int> gameId,
-      Value<int> playerId,
-      Value<String> position,
-    });
-
-final class $$TraditionalLineupsTableReferences
-    extends
-        BaseReferences<_$AppDb, $TraditionalLineupsTable, TraditionalLineup> {
-  $$TraditionalLineupsTableReferences(
-    super.$_db,
-    super.$_table,
-    super.$_typedResult,
-  );
-
-  static $GamesTable _gameIdTable(_$AppDb db) => db.games.createAlias(
-    $_aliasNameGenerator(db.traditionalLineups.gameId, db.games.id),
-  );
-
-  $$GamesTableProcessedTableManager get gameId {
-    final $_column = $_itemColumn<int>('game_id')!;
-
-    final manager = $$GamesTableTableManager(
-      $_db,
-      $_db.games,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_gameIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static $PlayersTable _playerIdTable(_$AppDb db) => db.players.createAlias(
-    $_aliasNameGenerator(db.traditionalLineups.playerId, db.players.id),
-  );
-
-  $$PlayersTableProcessedTableManager get playerId {
-    final $_column = $_itemColumn<int>('player_id')!;
-
-    final manager = $$PlayersTableTableManager(
-      $_db,
-      $_db.players,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_playerIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
-class $$TraditionalLineupsTableFilterComposer
-    extends Composer<_$AppDb, $TraditionalLineupsTable> {
-  $$TraditionalLineupsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get position => $composableBuilder(
-    column: $table.position,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  $$GamesTableFilterComposer get gameId {
-    final $$GamesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.gameId,
-      referencedTable: $db.games,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GamesTableFilterComposer(
-            $db: $db,
-            $table: $db.games,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$PlayersTableFilterComposer get playerId {
-    final $$PlayersTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.playerId,
-      referencedTable: $db.players,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$PlayersTableFilterComposer(
-            $db: $db,
-            $table: $db.players,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$TraditionalLineupsTableOrderingComposer
-    extends Composer<_$AppDb, $TraditionalLineupsTable> {
-  $$TraditionalLineupsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get position => $composableBuilder(
-    column: $table.position,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  $$GamesTableOrderingComposer get gameId {
-    final $$GamesTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.gameId,
-      referencedTable: $db.games,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GamesTableOrderingComposer(
-            $db: $db,
-            $table: $db.games,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$PlayersTableOrderingComposer get playerId {
-    final $$PlayersTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.playerId,
-      referencedTable: $db.players,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$PlayersTableOrderingComposer(
-            $db: $db,
-            $table: $db.players,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$TraditionalLineupsTableAnnotationComposer
-    extends Composer<_$AppDb, $TraditionalLineupsTable> {
-  $$TraditionalLineupsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get position =>
-      $composableBuilder(column: $table.position, builder: (column) => column);
-
-  $$GamesTableAnnotationComposer get gameId {
-    final $$GamesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.gameId,
-      referencedTable: $db.games,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GamesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.games,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$PlayersTableAnnotationComposer get playerId {
-    final $$PlayersTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.playerId,
-      referencedTable: $db.players,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$PlayersTableAnnotationComposer(
-            $db: $db,
-            $table: $db.players,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$TraditionalLineupsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDb,
-          $TraditionalLineupsTable,
-          TraditionalLineup,
-          $$TraditionalLineupsTableFilterComposer,
-          $$TraditionalLineupsTableOrderingComposer,
-          $$TraditionalLineupsTableAnnotationComposer,
-          $$TraditionalLineupsTableCreateCompanionBuilder,
-          $$TraditionalLineupsTableUpdateCompanionBuilder,
-          (TraditionalLineup, $$TraditionalLineupsTableReferences),
-          TraditionalLineup,
-          PrefetchHooks Function({bool gameId, bool playerId})
-        > {
-  $$TraditionalLineupsTableTableManager(
-    _$AppDb db,
-    $TraditionalLineupsTable table,
-  ) : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$TraditionalLineupsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$TraditionalLineupsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$TraditionalLineupsTableAnnotationComposer(
-                $db: db,
-                $table: table,
-              ),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<int> gameId = const Value.absent(),
-                Value<int> playerId = const Value.absent(),
-                Value<String> position = const Value.absent(),
-              }) => TraditionalLineupsCompanion(
-                id: id,
-                gameId: gameId,
-                playerId: playerId,
-                position: position,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required int gameId,
-                required int playerId,
-                required String position,
-              }) => TraditionalLineupsCompanion.insert(
-                id: id,
-                gameId: gameId,
-                playerId: playerId,
-                position: position,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$TraditionalLineupsTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: ({gameId = false, playerId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (gameId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.gameId,
-                                referencedTable:
-                                    $$TraditionalLineupsTableReferences
-                                        ._gameIdTable(db),
-                                referencedColumn:
-                                    $$TraditionalLineupsTableReferences
-                                        ._gameIdTable(db)
-                                        .id,
-                              )
-                              as T;
-                    }
-                    if (playerId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.playerId,
-                                referencedTable:
-                                    $$TraditionalLineupsTableReferences
-                                        ._playerIdTable(db),
-                                referencedColumn:
-                                    $$TraditionalLineupsTableReferences
-                                        ._playerIdTable(db)
-                                        .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $$TraditionalLineupsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDb,
-      $TraditionalLineupsTable,
-      TraditionalLineup,
-      $$TraditionalLineupsTableFilterComposer,
-      $$TraditionalLineupsTableOrderingComposer,
-      $$TraditionalLineupsTableAnnotationComposer,
-      $$TraditionalLineupsTableCreateCompanionBuilder,
-      $$TraditionalLineupsTableUpdateCompanionBuilder,
-      (TraditionalLineup, $$TraditionalLineupsTableReferences),
-      TraditionalLineup,
-      PrefetchHooks Function({bool gameId, bool playerId})
-    >;
 
 class $AppDbManager {
   final _$AppDb _db;
@@ -10208,6 +9311,4 @@ class $AppDbManager {
       $$PlayerPositionTotalsTableTableManager(_db, _db.playerPositionTotals);
   $$FormationPositionsTableTableManager get formationPositions =>
       $$FormationPositionsTableTableManager(_db, _db.formationPositions);
-  $$TraditionalLineupsTableTableManager get traditionalLineups =>
-      $$TraditionalLineupsTableTableManager(_db, _db.traditionalLineups);
 }

@@ -117,11 +117,3 @@ class FormationPositions extends Table {
   TextColumn get positionName => text()();
   TextColumn get abbreviation => text().withDefault(const Constant(''))();
 }
-
-/// Traditional game lineups (separate from shifts-based lineups)
-class TraditionalLineups extends Table {
-  IntColumn get id => integer().autoIncrement()();
-  IntColumn get gameId => integer().references(Games, #id)();
-  IntColumn get playerId => integer().references(Players, #id)();
-  TextColumn get position => text()();
-}
