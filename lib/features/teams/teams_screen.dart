@@ -235,7 +235,7 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
             itemBuilder: (_, i) {
               final team = visible[i];
               final archived = team.isArchived;
-              return TeamPanel(
+              return TeamListPanel(
                 teamId: team.id,
                 onTap: () => context.push('/team/${team.id}'),
                 trailing: Column(
