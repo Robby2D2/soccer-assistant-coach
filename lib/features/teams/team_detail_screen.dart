@@ -5,6 +5,7 @@ import '../../core/providers.dart';
 import '../../widgets/team_header.dart';
 import '../../core/team_theme_manager.dart';
 import '../../widgets/team_color_picker.dart';
+import '../../widgets/standardized_app_bar_actions.dart';
 
 class TeamDetailScreen extends ConsumerWidget {
   final int id;
@@ -91,17 +92,10 @@ class TeamDetailScreen extends ConsumerWidget {
       appBar: TeamAppBar(
         teamId: id,
         titleText: 'Team',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.home),
-            tooltip: 'Home',
-            onPressed: () => context.go('/'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () => context.push('/team/$id/edit'),
-          ),
-        ],
+        actions: StandardizedAppBarActions.createActionsWidgets([
+          CommonNavigationActions.home(context),
+          CommonNavigationActions.edit(context, '/team/$id/edit'),
+        ]),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../widgets/team_panels.dart';
 import '../../core/team_theme_manager.dart';
+import '../../widgets/standardized_app_bar_actions.dart';
 
 class TeamsScreen extends ConsumerStatefulWidget {
   const TeamsScreen({super.key});
@@ -194,13 +195,16 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
     return TeamScaffold(
       appBar: TeamAppBar(
         titleText: 'Teams',
-        actions: [
-          IconButton(
-            tooltip: _showArchived ? 'Hide archived' : 'Show archived',
-            icon: Icon(_showArchived ? Icons.inventory_2 : Icons.archive),
-            onPressed: () => setState(() => _showArchived = !_showArchived),
-          ),
-        ],
+        actions: StandardizedAppBarActions.createActionsWidgets(
+          [],
+          additionalMenuItems: [
+            NavigationAction(
+              label: _showArchived ? 'Hide Archived' : 'Show Archived',
+              icon: _showArchived ? Icons.inventory_2 : Icons.archive,
+              onPressed: () => setState(() => _showArchived = !_showArchived),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCreateTeamDialog(context, db),

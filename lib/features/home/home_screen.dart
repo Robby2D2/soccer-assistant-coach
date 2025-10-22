@@ -6,6 +6,7 @@ import '../../data/services/stopwatch_service.dart';
 import '../../../widgets/team_logo_widget.dart';
 import '../../widgets/team_color_picker.dart';
 import '../../utils/team_theme.dart'; // For TeamColorContrast
+import '../../widgets/standardized_app_bar_actions.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -17,33 +18,10 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Soccer Assistant Coach'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
-            onPressed: () => context.push('/settings'),
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'debug') {
-                context.push('/debug/database');
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'debug',
-                child: Row(
-                  children: [
-                    Icon(Icons.bug_report),
-                    SizedBox(width: 8),
-                    Expanded(child: Text('Database Diagnostics')),
-                  ],
-                ),
-              ),
-            ],
-            child: const Icon(Icons.more_vert),
-          ),
-        ],
+        actions: StandardizedAppBarActions.createActionsWidgets(
+          [CommonNavigationActions.settings(context)],
+          additionalMenuItems: [CommonNavigationActions.database(context)],
+        ),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

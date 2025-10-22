@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/providers.dart';
+import '../../widgets/standardized_app_bar_actions.dart';
 
 class DatabaseDiagnosticScreen extends ConsumerStatefulWidget {
   const DatabaseDiagnosticScreen({super.key});
@@ -542,66 +543,57 @@ class _DatabaseDiagnosticScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Database Diagnostics'),
-        actions: [
-          PopupMenuButton<String>(
-            enabled: !_isRunning,
-            onSelected: (value) async {
-              switch (value) {
-                case 'export':
-                  await _exportDatabase();
-                  break;
-                case 'import':
-                  await _importDatabase();
-                  break;
-                case 'test_team':
-                  await _createTestTeam();
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'export',
-                child: Row(
-                  children: [
-                    Icon(Icons.file_upload),
-                    SizedBox(width: 8),
-                    Expanded(child: Text('Export Database')),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'import',
-                child: Row(
-                  children: [
-                    Icon(Icons.file_download),
-                    SizedBox(width: 8),
-                    Expanded(child: Text('Import Database')),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'test_team',
-                child: Row(
-                  children: [
-                    Icon(Icons.add_circle_outline),
-                    SizedBox(width: 8),
-                    Expanded(child: Text('Create Test Team')),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          IconButton(
-            onPressed: _isRunning ? null : _showResetDatabaseDialog,
-            icon: const Icon(Icons.delete_forever),
-            tooltip: 'Reset Database',
-          ),
-          IconButton(
-            onPressed: _isRunning ? null : _runDiagnostics,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Run Diagnostics',
-          ),
-        ],
+        actions: StandardizedAppBarActions.createActionsWidgets(
+          [
+            NavigationAction(
+              label: 'Reset Database',
+              icon: Icons.delete_forever,
+              onPressed: _isRunning
+                  ? null
+                  : () {
+                      _showResetDatabaseDialog();
+                    },
+            ),
+            NavigationAction(
+              label: 'Run Diagnostics',
+              icon: Icons.refresh,
+              onPressed: _isRunning
+                  ? null
+                  : () {
+                      _runDiagnostics();
+                    },
+            ),
+          ],
+          additionalMenuItems: [
+            NavigationAction(
+              label: 'Export Database',
+              icon: Icons.file_upload,
+              onPressed: !_isRunning
+                  ? () {
+                      _exportDatabase();
+                    }
+                  : null,
+            ),
+            NavigationAction(
+              label: 'Import Database',
+              icon: Icons.file_download,
+              onPressed: !_isRunning
+                  ? () {
+                      _importDatabase();
+                    }
+                  : null,
+            ),
+            NavigationAction(
+              label: 'Create Test Team',
+              icon: Icons.add_circle_outline,
+              onPressed: !_isRunning
+                  ? () {
+                      _createTestTeam();
+                    }
+                  : null,
+            ),
+          ],
+        ),
       ),
       body: Column(
         children: [
