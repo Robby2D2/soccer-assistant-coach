@@ -174,32 +174,30 @@ class AppDb extends _$AppDb {
             }
           }
         }
-        
+
         if (from < 18) {
           // Add TraditionalLineups table for proper foreign key compliance
           // This replaces the use of negative shift IDs in PlayerShifts table
           await m.create(traditionalLineups);
-          
+
           // Migrate any existing traditional lineup data (negative shift IDs)
           // from PlayerShifts to the new TraditionalLineups table
           final existingTraditionalData = await customSelect(
-            'SELECT game_id, player_id, position FROM player_shifts WHERE shift_id < 0'
+            'SELECT game_id, player_id, position FROM player_shifts WHERE shift_id < 0',
           ).get();
-          
+
           for (final row in existingTraditionalData) {
             await into(traditionalLineups).insert(
               TraditionalLineupsCompanion.insert(
                 gameId: row.read<int>('game_id'),
-                playerId: row.read<int>('player_id'), 
+                playerId: row.read<int>('player_id'),
                 position: row.read<String>('position'),
               ),
             );
           }
-          
+
           // Clean up the old negative shift ID entries
-          await customStatement(
-            'DELETE FROM player_shifts WHERE shift_id < 0'
-          );
+          await customStatement('DELETE FROM player_shifts WHERE shift_id < 0');
         }
       } catch (e) {
         debugPrint('❌ Migration error from $from to $to: $e');
@@ -991,9 +989,9 @@ extension GameQueries on AppDb {
     required Map<String, int> lineup, // position -> playerId
   }) async {
     // Delete any existing lineup for this game
-    await (delete(traditionalLineups)..where(
-          (tl) => tl.gameId.equals(gameId),
-        )).go();
+    await (delete(
+      traditionalLineups,
+    )..where((tl) => tl.gameId.equals(gameId))).go();
 
     // Insert new lineup assignments
     for (final entry in lineup.entries) {
