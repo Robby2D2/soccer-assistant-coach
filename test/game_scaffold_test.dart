@@ -10,9 +10,19 @@ void main() {
     testWidgets('resolves team theme and shows body', (tester) async {
       final db = AppDb.test();
       // Create a team
-      final teamId = await db.addTeam(TeamsCompanion.insert(name: 'Theme FC'));
+      // Create a default season for testing
+      final seasonId = await db.createSeason(
+        name: 'Test Season',
+        startDate: DateTime.now(),
+      );
+      final teamId = await db.addTeamToSeason(
+        seasonId: seasonId,
+        name: 'Theme FC',
+      );
       // Create a game linked to team
-      final gameId = await db.addGame(GamesCompanion.insert(teamId: teamId));
+      final gameId = await db.addGame(
+        GamesCompanion.insert(teamId: teamId, seasonId: seasonId),
+      );
 
       await tester.pumpWidget(
         ProviderScope(

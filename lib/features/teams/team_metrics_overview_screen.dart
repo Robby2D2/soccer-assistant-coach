@@ -49,8 +49,15 @@ class TeamMetricsOverviewScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: FutureBuilder<TeamMetricsSummary>(
-        future: db.getTeamMetricsSummary(teamId),
+      body: FutureBuilder<(Team?, TeamMetricsSummary)>(
+        future:
+            Future.wait([
+              db.getTeam(teamId),
+              db.getTeamMetricsSummary(teamId),
+            ]).then(
+              (results) =>
+                  (results[0] as Team?, results[1] as TeamMetricsSummary),
+            ),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -78,7 +85,23 @@ class TeamMetricsOverviewScreen extends ConsumerWidget {
             );
           }
 
-          final summary = snapshot.data!;
+          final (team, summary) = snapshot.data!;
+          if (team == null) {
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'Team not found',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            );
+          }
+          ;
           if (summary.playerMetrics.isEmpty) {
             return const Center(
               child: Column(
@@ -212,6 +235,7 @@ class TeamMetricsOverviewScreen extends ConsumerWidget {
                               p.playerId: Player(
                                 id: p.playerId,
                                 teamId: teamId,
+                                seasonId: team.seasonId,
                                 firstName: p.firstName,
                                 lastName: p.lastName,
                                 isPresent: true,

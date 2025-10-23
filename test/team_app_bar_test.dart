@@ -21,7 +21,15 @@ void main() {
 
     testWidgets('renders team name when teamId provided', (tester) async {
       final db = AppDb.test();
-      final teamId = await db.addTeam(TeamsCompanion.insert(name: 'Test FC'));
+      // Create a default season for testing
+      final seasonId = await db.createSeason(
+        name: 'Test Season',
+        startDate: DateTime.now(),
+      );
+      final teamId = await db.addTeamToSeason(
+        seasonId: seasonId,
+        name: 'Test FC',
+      );
       await tester.pumpWidget(
         ProviderScope(
           overrides: [dbProvider.overrideWithValue(db)],

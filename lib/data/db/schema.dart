@@ -1,7 +1,20 @@
 import 'package:drift/drift.dart';
 
+/// Seasons table - groups teams, players, and games by season
+class Seasons extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name =>
+      text()(); // e.g., "2024 Spring", "2024-2025 School Year"
+  DateTimeColumn get startDate => dateTime()();
+  DateTimeColumn get endDate => dateTime().nullable()();
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 class Teams extends Table {
   IntColumn get id => integer().autoIncrement()();
+  IntColumn get seasonId => integer().references(Seasons, #id)();
   TextColumn get name => text()();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
   TextColumn get teamMode =>
@@ -24,6 +37,7 @@ class Teams extends Table {
 class Players extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get teamId => integer().references(Teams, #id)();
+  IntColumn get seasonId => integer().references(Seasons, #id)();
   TextColumn get firstName => text()();
   TextColumn get lastName => text()();
   BoolColumn get isPresent => boolean().withDefault(const Constant(true))();
@@ -33,6 +47,7 @@ class Players extends Table {
 
 class Games extends Table {
   IntColumn get id => integer().autoIncrement()();
+  IntColumn get seasonId => integer().references(Seasons, #id)();
   DateTimeColumn get startTime => dateTime().nullable()();
   TextColumn get opponent => text().nullable()();
   IntColumn get currentShiftId => integer().nullable()();
@@ -105,6 +120,7 @@ class GamePlayers extends Table {
 class Formations extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get teamId => integer().references(Teams, #id)();
+  IntColumn get seasonId => integer().references(Seasons, #id)();
   TextColumn get name => text()();
   IntColumn get playerCount => integer()();
 }

@@ -99,11 +99,16 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
                           jerseyNumber = int.tryParse(jerseyStr);
                         }
 
+                        // Get team's season
+                        final team = await db.getTeam(widget.teamId);
+                        if (team == null) continue;
+
                         await db
                             .into(db.players)
                             .insert(
                               PlayersCompanion.insert(
                                 teamId: widget.teamId,
+                                seasonId: team.seasonId,
                                 firstName: r['firstName'] ?? '',
                                 lastName: r['lastName'] ?? '',
                                 isPresent: const drift.Value(

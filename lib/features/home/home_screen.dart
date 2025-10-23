@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../core/season_provider.dart';
 import '../../data/services/stopwatch_service.dart';
 import '../../../widgets/team_logo_widget.dart';
 import '../../widgets/team_color_picker.dart';
@@ -25,11 +26,26 @@ class HomeScreen extends ConsumerWidget {
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
-              if (value == 'debug') {
-                context.push('/debug/database');
+              switch (value) {
+                case 'seasons':
+                  context.push('/seasons');
+                  break;
+                case 'debug':
+                  context.push('/debug/database');
+                  break;
               }
             },
             itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'seasons',
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today),
+                    SizedBox(width: 8),
+                    Expanded(child: Text('Manage Seasons')),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: 'debug',
                 child: Row(
@@ -191,58 +207,97 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   Expanded(
-                    child: FutureBuilder<List<Team>>(
-                      future: db.getTeamsWithRecentGames(),
-                      builder: (context, recentTeamsSnapshot) {
-                        final recentTeams = recentTeamsSnapshot.data ?? [];
-
-                        return StreamBuilder<List<Team>>(
-                          stream: db.watchTeams(),
-                          builder: (context, allTeamsSnapshot) {
-                            final allTeams = allTeamsSnapshot.data ?? [];
-
-                            final List<Widget> cards = [];
-
-                            // Always show Manage Teams card first
-                            cards.add(
-                              _QuickActionCard(
-                                icon: Icons.groups_outlined,
-                                title: 'Manage Teams',
-                                subtitle: '${allTeams.length} teams',
-                                onTap: () => context.push('/teams'),
-                              ),
-                            );
-
-                            // Add cards for teams with recent games
-                            for (final team in recentTeams.take(3)) {
-                              cards.add(
-                                _RecentTeamCard(
-                                  team: team,
-                                  onTap: () => context.push('/team/${team.id}'),
+                    child: Consumer(
+                      builder: (context, ref, child) {
+                        final currentSeasonAsync = ref.watch(
+                          currentSeasonProvider,
+                        );
+                        return currentSeasonAsync.when(
+                          data: (currentSeason) {
+                            if (currentSeason == null) {
+                              return Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.calendar_today, size: 48),
+                                    const SizedBox(height: 16),
+                                    const Text('No Active Season'),
+                                    const SizedBox(height: 16),
+                                    FilledButton(
+                                      onPressed: () => context.push('/seasons'),
+                                      child: const Text('Create Season'),
+                                    ),
+                                  ],
                                 ),
                               );
                             }
 
-                            // If no recent teams, show first team as fallback
-                            if (recentTeams.isEmpty && allTeams.isNotEmpty) {
-                              cards.add(
-                                _TeamBrandedCard(
-                                  team: allTeams.first,
-                                  onTap: () => context.push(
-                                    '/team/${allTeams.first.id}',
+                            return FutureBuilder<List<Team>>(
+                              future: db.getTeamsWithRecentGames(),
+                              builder: (context, recentTeamsSnapshot) {
+                                final recentTeams =
+                                    recentTeamsSnapshot.data ?? [];
+
+                                return StreamBuilder<List<Team>>(
+                                  stream: db.watchTeams(
+                                    seasonId: currentSeason.id,
                                   ),
-                                ),
-                              );
-                            }
+                                  builder: (context, allTeamsSnapshot) {
+                                    final allTeams =
+                                        allTeamsSnapshot.data ?? [];
 
-                            return GridView.count(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              childAspectRatio: 1.1,
-                              children: cards,
+                                    final List<Widget> cards = [];
+
+                                    // Always show Manage Teams card first
+                                    cards.add(
+                                      _QuickActionCard(
+                                        icon: Icons.groups_outlined,
+                                        title: 'Manage Teams',
+                                        subtitle: '${allTeams.length} teams',
+                                        onTap: () => context.push('/teams'),
+                                      ),
+                                    );
+
+                                    // Add cards for teams with recent games
+                                    for (final team in recentTeams.take(3)) {
+                                      cards.add(
+                                        _RecentTeamCard(
+                                          team: team,
+                                          onTap: () =>
+                                              context.push('/team/${team.id}'),
+                                        ),
+                                      );
+                                    }
+
+                                    // If no recent teams, show first team as fallback
+                                    if (recentTeams.isEmpty &&
+                                        allTeams.isNotEmpty) {
+                                      cards.add(
+                                        _TeamBrandedCard(
+                                          team: allTeams.first,
+                                          onTap: () => context.push(
+                                            '/team/${allTeams.first.id}',
+                                          ),
+                                        ),
+                                      );
+                                    }
+
+                                    return GridView.count(
+                                      crossAxisCount: 2,
+                                      crossAxisSpacing: 12,
+                                      mainAxisSpacing: 12,
+                                      childAspectRatio: 1.1,
+                                      children: cards,
+                                    );
+                                  },
+                                );
+                              },
                             );
                           },
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (error, stack) =>
+                              Center(child: Text('Error: $error')),
                         );
                       },
                     ),

@@ -609,7 +609,10 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
             children: [
               Expanded(
                 child: StreamBuilder<List<Player>>(
-                  stream: db.watchPlayersByTeam(game.teamId),
+                  stream: db.watchPlayersByTeam(
+                    game.teamId,
+                    seasonId: game.seasonId,
+                  ),
                   builder: (context, playersSnap) {
                     if (!playersSnap.hasData) {
                       return const Center(child: CircularProgressIndicator());
@@ -1547,6 +1550,7 @@ class _TraditionalLineupView extends StatelessWidget {
                               orElse: () => Player(
                                 id: playerId,
                                 teamId: 0,
+                                seasonId: benchPlayer.seasonId,
                                 firstName: 'Unknown',
                                 lastName: 'Player',
                                 isPresent: false,

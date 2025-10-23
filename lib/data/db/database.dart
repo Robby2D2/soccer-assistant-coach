@@ -25,6 +25,7 @@ class GameWithTeam {
 
 @DriftDatabase(
   tables: [
+    Seasons,
     Teams,
     Players,
     Games,
@@ -42,7 +43,7 @@ class AppDb extends _$AppDb {
   // In-memory constructor for tests (avoids sqflite platform dependency)
   AppDb.test() : super(NativeDatabase.memory());
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -172,6 +173,34 @@ class AppDb extends _$AppDb {
               );
             }
           }
+        }
+        if (from < 18) {
+          // Add seasons support
+          await m.createTable(seasons);
+
+          // Create a default season for existing data
+          final defaultSeasonId = await into(seasons).insert(
+            SeasonsCompanion.insert(
+              name: 'Default Season',
+              startDate: DateTime.now().subtract(const Duration(days: 365)),
+              endDate: Value(DateTime.now().add(const Duration(days: 365))),
+              isActive: Value(true),
+            ),
+          );
+
+          // Add seasonId columns with default values and foreign key references
+          await customStatement(
+            'ALTER TABLE teams ADD COLUMN season_id INTEGER NOT NULL DEFAULT $defaultSeasonId REFERENCES seasons (id)',
+          );
+          await customStatement(
+            'ALTER TABLE players ADD COLUMN season_id INTEGER NOT NULL DEFAULT $defaultSeasonId REFERENCES seasons (id)',
+          );
+          await customStatement(
+            'ALTER TABLE games ADD COLUMN season_id INTEGER NOT NULL DEFAULT $defaultSeasonId REFERENCES seasons (id)',
+          );
+          await customStatement(
+            'ALTER TABLE formations ADD COLUMN season_id INTEGER NOT NULL DEFAULT $defaultSeasonId REFERENCES seasons (id)',
+          );
         }
       } catch (e) {
         debugPrint('❌ Migration error from $from to $to: $e');
@@ -411,6 +440,313 @@ class AppDb extends _$AppDb {
   }
 }
 
+extension SeasonQueries on AppDb {
+  // Season management
+  Future<int> createSeason({
+    required String name,
+    required DateTime startDate,
+    DateTime? endDate,
+    bool isActive = true,
+  }) async {
+    return await into(seasons).insert(
+      SeasonsCompanion.insert(
+        name: name,
+        startDate: startDate,
+        endDate: Value(endDate),
+        isActive: Value(isActive),
+      ),
+    );
+  }
+
+  Future<List<Season>> getSeasons({bool includeArchived = false}) {
+    final query = select(seasons);
+    if (!includeArchived) {
+      query.where((s) => s.isArchived.equals(false));
+    }
+    query.orderBy([(s) => OrderingTerm.desc(s.createdAt)]);
+    return query.get();
+  }
+
+  Stream<List<Season>> watchSeasons({bool includeArchived = false}) {
+    final query = select(seasons);
+    if (!includeArchived) {
+      query.where((s) => s.isArchived.equals(false));
+    }
+    query.orderBy([(s) => OrderingTerm.desc(s.createdAt)]);
+    return query.watch();
+  }
+
+  Future<Season?> getSeason(int id) =>
+      (select(seasons)..where((s) => s.id.equals(id))).getSingleOrNull();
+
+  Future<Season?> getActiveSeason() =>
+      (select(seasons)
+            ..where((s) => s.isActive.equals(true) & s.isArchived.equals(false))
+            ..orderBy([(s) => OrderingTerm.desc(s.createdAt)])
+            ..limit(1))
+          .getSingleOrNull();
+
+  Stream<Season?> watchActiveSeason() =>
+      (select(seasons)
+            ..where((s) => s.isActive.equals(true) & s.isArchived.equals(false))
+            ..orderBy([(s) => OrderingTerm.desc(s.createdAt)])
+            ..limit(1))
+          .watchSingleOrNull();
+
+  Future<void> setActiveSeason(int seasonId) async {
+    // Deactivate all seasons first
+    await (update(seasons)).write(SeasonsCompanion(isActive: Value(false)));
+    // Activate the selected season
+    await (update(seasons)..where((s) => s.id.equals(seasonId))).write(
+      SeasonsCompanion(isActive: Value(true)),
+    );
+  }
+
+  Future<void> archiveSeason(int seasonId) async {
+    await (update(seasons)..where((s) => s.id.equals(seasonId))).write(
+      SeasonsCompanion(isArchived: Value(true), isActive: Value(false)),
+    );
+  }
+
+  Future<void> unarchiveSeason(int seasonId) async {
+    await (update(seasons)..where((s) => s.id.equals(seasonId))).write(
+      SeasonsCompanion(isArchived: Value(false)),
+    );
+  }
+
+  Future<void> updateSeason({
+    required int seasonId,
+    String? name,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    await (update(seasons)..where((s) => s.id.equals(seasonId))).write(
+      SeasonsCompanion(
+        name: name != null ? Value(name) : const Value.absent(),
+        startDate: startDate != null ? Value(startDate) : const Value.absent(),
+        endDate: endDate != null ? Value(endDate) : const Value.absent(),
+      ),
+    );
+  }
+
+  /// Clone an entire season with all its teams, players, formations, etc.
+  Future<int> cloneSeason({
+    required int fromSeasonId,
+    required String newSeasonName,
+    required DateTime newStartDate,
+    DateTime? newEndDate,
+  }) async {
+    return await transaction(() async {
+      // Create new season
+      final newSeasonId = await createSeason(
+        name: newSeasonName,
+        startDate: newStartDate,
+        endDate: newEndDate,
+      );
+
+      // Get all teams from the source season
+      final sourceTeams = await (select(
+        teams,
+      )..where((t) => t.seasonId.equals(fromSeasonId))).get();
+
+      final teamIdMapping = <int, int>{};
+
+      // Clone teams
+      for (final team in sourceTeams) {
+        final newTeamId = await into(teams).insert(
+          TeamsCompanion.insert(
+            seasonId: newSeasonId,
+            name: team.name,
+            isArchived: Value(false), // Reset archive status for new season
+            teamMode: Value(team.teamMode),
+            halfDurationSeconds: Value(team.halfDurationSeconds),
+            shiftLengthSeconds: Value(team.shiftLengthSeconds),
+            logoImagePath: Value(team.logoImagePath),
+            primaryColor1: Value(team.primaryColor1),
+            primaryColor2: Value(team.primaryColor2),
+            primaryColor3: Value(team.primaryColor3),
+          ),
+        );
+        teamIdMapping[team.id] = newTeamId;
+      }
+
+      // Clone players for each team
+      for (final oldTeamId in teamIdMapping.keys) {
+        final newTeamId = teamIdMapping[oldTeamId]!;
+        final sourcePlayers =
+            await (select(players)..where(
+                  (p) =>
+                      p.teamId.equals(oldTeamId) &
+                      p.seasonId.equals(fromSeasonId),
+                ))
+                .get();
+
+        for (final player in sourcePlayers) {
+          await into(players).insert(
+            PlayersCompanion.insert(
+              teamId: newTeamId,
+              seasonId: newSeasonId,
+              firstName: player.firstName,
+              lastName: player.lastName,
+              isPresent: Value(true), // Reset presence for new season
+              jerseyNumber: Value(player.jerseyNumber),
+              profileImagePath: Value(player.profileImagePath),
+            ),
+          );
+        }
+      }
+
+      // Clone formations for each team
+      for (final oldTeamId in teamIdMapping.keys) {
+        final newTeamId = teamIdMapping[oldTeamId]!;
+        final sourceFormations =
+            await (select(formations)..where(
+                  (f) =>
+                      f.teamId.equals(oldTeamId) &
+                      f.seasonId.equals(fromSeasonId),
+                ))
+                .get();
+
+        for (final formation in sourceFormations) {
+          final newFormationId = await into(formations).insert(
+            FormationsCompanion.insert(
+              teamId: newTeamId,
+              seasonId: newSeasonId,
+              name: formation.name,
+              playerCount: formation.playerCount,
+            ),
+          );
+
+          // Clone formation positions
+          final sourcePositions = await (select(
+            formationPositions,
+          )..where((fp) => fp.formationId.equals(formation.id))).get();
+
+          for (final position in sourcePositions) {
+            await into(formationPositions).insert(
+              FormationPositionsCompanion.insert(
+                formationId: newFormationId,
+                index: position.index,
+                positionName: position.positionName,
+                abbreviation: Value(position.abbreviation),
+              ),
+            );
+          }
+        }
+      }
+
+      return newSeasonId;
+    });
+  }
+
+  /// Clone selected teams to a new season
+  Future<int> cloneSelectedTeamsToSeason({
+    required String newSeasonName,
+    required DateTime newStartDate,
+    DateTime? newEndDate,
+    required List<int> teamIds,
+  }) async {
+    return await transaction(() async {
+      // Create new season
+      final newSeasonId = await createSeason(
+        name: newSeasonName,
+        startDate: newStartDate,
+        endDate: newEndDate,
+      );
+
+      // If no teams selected, just return the new empty season
+      if (teamIds.isEmpty) {
+        return newSeasonId;
+      }
+
+      // Get selected teams
+      final sourceTeams = await (select(
+        teams,
+      )..where((t) => t.id.isIn(teamIds))).get();
+
+      final teamIdMapping = <int, int>{};
+
+      // Clone selected teams
+      for (final team in sourceTeams) {
+        final newTeamId = await into(teams).insert(
+          TeamsCompanion.insert(
+            seasonId: newSeasonId,
+            name: team.name,
+            isArchived: Value(false), // Reset archive status for new season
+            teamMode: Value(team.teamMode),
+            halfDurationSeconds: Value(team.halfDurationSeconds),
+            shiftLengthSeconds: Value(team.shiftLengthSeconds),
+            logoImagePath: Value(team.logoImagePath),
+            primaryColor1: Value(team.primaryColor1),
+            primaryColor2: Value(team.primaryColor2),
+            primaryColor3: Value(team.primaryColor3),
+          ),
+        );
+        teamIdMapping[team.id] = newTeamId;
+      }
+
+      // Clone players for each selected team
+      for (final oldTeamId in teamIdMapping.keys) {
+        final newTeamId = teamIdMapping[oldTeamId]!;
+        final sourcePlayers = await (select(
+          players,
+        )..where((p) => p.teamId.equals(oldTeamId))).get();
+
+        for (final player in sourcePlayers) {
+          await into(players).insert(
+            PlayersCompanion.insert(
+              teamId: newTeamId,
+              seasonId: newSeasonId,
+              firstName: player.firstName,
+              lastName: player.lastName,
+              isPresent: Value(true), // Reset presence for new season
+              jerseyNumber: Value(player.jerseyNumber),
+              profileImagePath: Value(player.profileImagePath),
+            ),
+          );
+        }
+      }
+
+      // Clone formations for each selected team
+      for (final oldTeamId in teamIdMapping.keys) {
+        final newTeamId = teamIdMapping[oldTeamId]!;
+        final sourceFormations = await (select(
+          formations,
+        )..where((f) => f.teamId.equals(oldTeamId))).get();
+
+        for (final formation in sourceFormations) {
+          final newFormationId = await into(formations).insert(
+            FormationsCompanion.insert(
+              teamId: newTeamId,
+              seasonId: newSeasonId,
+              name: formation.name,
+              playerCount: formation.playerCount,
+            ),
+          );
+
+          // Clone formation positions
+          final sourcePositions = await (select(
+            formationPositions,
+          )..where((fp) => fp.formationId.equals(formation.id))).get();
+
+          for (final position in sourcePositions) {
+            await into(formationPositions).insert(
+              FormationPositionsCompanion.insert(
+                formationId: newFormationId,
+                index: position.index,
+                positionName: position.positionName,
+                abbreviation: Value(position.abbreviation),
+              ),
+            );
+          }
+        }
+      }
+
+      return newSeasonId;
+    });
+  }
+}
+
 extension TeamQueries on AppDb {
   Future<int> addTeam(TeamsCompanion t) async {
     final teamId = await into(teams).insert(t);
@@ -418,16 +754,52 @@ extension TeamQueries on AppDb {
     return teamId;
   }
 
-  Stream<List<Team>> watchTeams({bool includeArchived = false}) {
+  /// Add team with season context
+  Future<int> addTeamToSeason({
+    required int seasonId,
+    required String name,
+    String teamMode = 'shift',
+    int halfDurationSeconds = 1200,
+    int shiftLengthSeconds = 300,
+    String? logoImagePath,
+    String? primaryColor1,
+    String? primaryColor2,
+    String? primaryColor3,
+  }) async {
+    return await into(teams).insert(
+      TeamsCompanion.insert(
+        seasonId: seasonId,
+        name: name,
+        teamMode: Value(teamMode),
+        halfDurationSeconds: Value(halfDurationSeconds),
+        shiftLengthSeconds: Value(shiftLengthSeconds),
+        logoImagePath: Value(logoImagePath),
+        primaryColor1: Value(primaryColor1),
+        primaryColor2: Value(primaryColor2),
+        primaryColor3: Value(primaryColor3),
+      ),
+    );
+  }
+
+  Stream<List<Team>> watchTeams({bool includeArchived = false, int? seasonId}) {
     final query = select(teams);
     if (!includeArchived) {
       query.where((t) => t.isArchived.equals(false));
+    }
+    if (seasonId != null) {
+      query.where((t) => t.seasonId.equals(seasonId));
     }
     return query.watch();
   }
 
   Future<Team?> getTeam(int id) =>
       (select(teams)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  /// Get all teams across all seasons
+  Future<List<Team>> getAllTeams() async {
+    return await select(teams).get();
+  }
+
   Future<void> updateTeamName(int id, String name) => (update(
     teams,
   )..where((t) => t.id.equals(id))).write(TeamsCompanion(name: Value(name)));
@@ -545,6 +917,7 @@ extension FormationQueries on AppDb {
 
   Future<int> createFormation({
     required int teamId,
+    required int seasonId,
     required String name,
     required int playerCount,
     required List<String> positions,
@@ -553,6 +926,7 @@ extension FormationQueries on AppDb {
     final formationId = await into(formations).insert(
       FormationsCompanion.insert(
         teamId: teamId,
+        seasonId: seasonId,
         name: name,
         playerCount: playerCount,
       ),
@@ -610,8 +984,13 @@ extension FormationQueries on AppDb {
     await (delete(formations)..where((f) => f.id.equals(formationId))).go();
   }
 
-  Stream<List<Formation>> watchTeamFormations(int teamId) =>
-      (select(formations)..where((f) => f.teamId.equals(teamId))).watch();
+  Stream<List<Formation>> watchTeamFormations(int teamId, {int? seasonId}) {
+    final query = select(formations)..where((f) => f.teamId.equals(teamId));
+    if (seasonId != null) {
+      query.where((f) => f.seasonId.equals(seasonId));
+    }
+    return query.watch();
+  }
 
   Future<List<Formation>> getTeamFormations(int teamId) =>
       (select(formations)..where((f) => f.teamId.equals(teamId))).get();
@@ -778,10 +1157,22 @@ class FormationTemplate {
 }
 
 extension PlayerQueries on AppDb {
-  Stream<List<Player>> watchPlayersByTeam(int teamId) =>
-      (select(players)..where((p) => p.teamId.equals(teamId))).watch();
-  Future<List<Player>> getPlayersByTeam(int teamId) =>
-      (select(players)..where((p) => p.teamId.equals(teamId))).get();
+  Stream<List<Player>> watchPlayersByTeam(int teamId, {int? seasonId}) {
+    final query = select(players)..where((p) => p.teamId.equals(teamId));
+    if (seasonId != null) {
+      query.where((p) => p.seasonId.equals(seasonId));
+    }
+    return query.watch();
+  }
+
+  Future<List<Player>> getPlayersByTeam(int teamId, {int? seasonId}) {
+    final query = select(players)..where((p) => p.teamId.equals(teamId));
+    if (seasonId != null) {
+      query.where((p) => p.seasonId.equals(seasonId));
+    }
+    return query.get();
+  }
+
   Future<Player?> getPlayer(int id) =>
       (select(players)..where((p) => p.id.equals(id))).getSingleOrNull();
   Future<void> updatePlayer({

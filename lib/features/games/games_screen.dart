@@ -125,9 +125,15 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
             FilledButton.icon(
               onPressed: () async {
                 final db = ref.read(dbProvider);
+
+                // Get team's season
+                final team = await db.getTeam(widget.teamId);
+                if (team == null) return;
+
                 final gameId = await db.addGame(
                   GamesCompanion.insert(
                     teamId: widget.teamId,
+                    seasonId: team.seasonId,
                     startTime: const drift.Value.absent(),
                     opponent: const drift.Value.absent(),
                   ),
@@ -172,9 +178,14 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
       floatingActionButton: TeamFloatingActionButton(
         teamId: widget.teamId,
         onPressed: () async {
+          // Get team's season
+          final team = await db.getTeam(widget.teamId);
+          if (team == null) return;
+
           final gameId = await db.addGame(
             GamesCompanion.insert(
               teamId: widget.teamId,
+              seasonId: team.seasonId,
               startTime: const drift.Value.absent(),
               opponent: const drift.Value.absent(),
             ),

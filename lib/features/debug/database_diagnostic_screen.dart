@@ -96,11 +96,16 @@ class _DatabaseDiagnosticScreenState
       // Test basic database operations
       buffer.writeln('🔧 Testing database operations:');
       try {
+        // Create a test season first
+        final testSeasonId = await db.createSeason(
+          name: 'DIAGNOSTIC TEST SEASON - SAFE TO DELETE',
+          startDate: DateTime.now(),
+        );
+
         // Try to create a test team
-        final testTeamId = await db.addTeam(
-          TeamsCompanion.insert(
-            name: '[DIAGNOSTIC TEST TEAM - SAFE TO DELETE]',
-          ),
+        final testTeamId = await db.addTeamToSeason(
+          seasonId: testSeasonId,
+          name: '[DIAGNOSTIC TEST TEAM - SAFE TO DELETE]',
         );
         buffer.writeln('  ✅ Team creation: SUCCESS (ID: $testTeamId)');
 
@@ -134,10 +139,24 @@ class _DatabaseDiagnosticScreenState
   Future<void> _createTestTeam() async {
     try {
       final db = ref.read(dbProvider);
-      final teamId = await db.addTeam(
-        TeamsCompanion.insert(
-          name: 'Test Team ${DateTime.now().millisecondsSinceEpoch}',
-        ),
+
+      // Get or create a test season
+      var testSeason = await db.getActiveSeason();
+      if (testSeason == null) {
+        final seasonId = await db.createSeason(
+          name: 'Test Season',
+          startDate: DateTime.now(),
+        );
+        testSeason = await db.getSeason(seasonId);
+      }
+
+      if (testSeason == null) {
+        throw Exception('Could not create or find a test season');
+      }
+
+      final teamId = await db.addTeamToSeason(
+        seasonId: testSeason.id,
+        name: 'Test Team ${DateTime.now().millisecondsSinceEpoch}',
       );
 
       if (mounted) {

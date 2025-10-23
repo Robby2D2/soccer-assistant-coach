@@ -20,6 +20,7 @@ import '../features/games/end_game_screen.dart';
 import '../features/debug/database_diagnostic_screen.dart';
 import '../features/teams/team_metrics_overview_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/seasons/season_management_screen.dart';
 
 final router = GoRouter(
   routes: [
@@ -126,5 +127,9 @@ final router = GoRouter(
       builder: (_, _) => const DatabaseDiagnosticScreen(),
     ),
     GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+    GoRoute(
+      path: '/seasons',
+      builder: (_, _) => const SeasonManagementScreen(),
+    ),
   ],
 );

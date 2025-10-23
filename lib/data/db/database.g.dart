@@ -3,6 +3,460 @@
 part of 'database.dart';
 
 // ignore_for_file: type=lint
+class $SeasonsTable extends Seasons with TableInfo<$SeasonsTable, Season> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SeasonsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+    'start_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endDateMeta = const VerificationMeta(
+    'endDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
+    'end_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
+  );
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _isArchivedMeta = const VerificationMeta(
+    'isArchived',
+  );
+  @override
+  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
+    'is_archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    startDate,
+    endDate,
+    isActive,
+    isArchived,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'seasons';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Season> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(
+        _endDateMeta,
+        endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta),
+      );
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    if (data.containsKey('is_archived')) {
+      context.handle(
+        _isArchivedMeta,
+        isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Season map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Season(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_date'],
+      )!,
+      endDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_date'],
+      ),
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
+      isArchived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_archived'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SeasonsTable createAlias(String alias) {
+    return $SeasonsTable(attachedDatabase, alias);
+  }
+}
+
+class Season extends DataClass implements Insertable<Season> {
+  final int id;
+  final String name;
+  final DateTime startDate;
+  final DateTime? endDate;
+  final bool isActive;
+  final bool isArchived;
+  final DateTime createdAt;
+  const Season({
+    required this.id,
+    required this.name,
+    required this.startDate,
+    this.endDate,
+    required this.isActive,
+    required this.isArchived,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    map['start_date'] = Variable<DateTime>(startDate);
+    if (!nullToAbsent || endDate != null) {
+      map['end_date'] = Variable<DateTime>(endDate);
+    }
+    map['is_active'] = Variable<bool>(isActive);
+    map['is_archived'] = Variable<bool>(isArchived);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  SeasonsCompanion toCompanion(bool nullToAbsent) {
+    return SeasonsCompanion(
+      id: Value(id),
+      name: Value(name),
+      startDate: Value(startDate),
+      endDate: endDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endDate),
+      isActive: Value(isActive),
+      isArchived: Value(isArchived),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Season.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Season(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      startDate: serializer.fromJson<DateTime>(json['startDate']),
+      endDate: serializer.fromJson<DateTime?>(json['endDate']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      isArchived: serializer.fromJson<bool>(json['isArchived']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'startDate': serializer.toJson<DateTime>(startDate),
+      'endDate': serializer.toJson<DateTime?>(endDate),
+      'isActive': serializer.toJson<bool>(isActive),
+      'isArchived': serializer.toJson<bool>(isArchived),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  Season copyWith({
+    int? id,
+    String? name,
+    DateTime? startDate,
+    Value<DateTime?> endDate = const Value.absent(),
+    bool? isActive,
+    bool? isArchived,
+    DateTime? createdAt,
+  }) => Season(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    startDate: startDate ?? this.startDate,
+    endDate: endDate.present ? endDate.value : this.endDate,
+    isActive: isActive ?? this.isActive,
+    isArchived: isArchived ?? this.isArchived,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  Season copyWithCompanion(SeasonsCompanion data) {
+    return Season(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      isArchived: data.isArchived.present
+          ? data.isArchived.value
+          : this.isArchived,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Season(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('isActive: $isActive, ')
+          ..write('isArchived: $isArchived, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    startDate,
+    endDate,
+    isActive,
+    isArchived,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Season &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.startDate == this.startDate &&
+          other.endDate == this.endDate &&
+          other.isActive == this.isActive &&
+          other.isArchived == this.isArchived &&
+          other.createdAt == this.createdAt);
+}
+
+class SeasonsCompanion extends UpdateCompanion<Season> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<DateTime> startDate;
+  final Value<DateTime?> endDate;
+  final Value<bool> isActive;
+  final Value<bool> isArchived;
+  final Value<DateTime> createdAt;
+  const SeasonsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  SeasonsCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    required DateTime startDate,
+    this.endDate = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : name = Value(name),
+       startDate = Value(startDate);
+  static Insertable<Season> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<DateTime>? startDate,
+    Expression<DateTime>? endDate,
+    Expression<bool>? isActive,
+    Expression<bool>? isArchived,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (startDate != null) 'start_date': startDate,
+      if (endDate != null) 'end_date': endDate,
+      if (isActive != null) 'is_active': isActive,
+      if (isArchived != null) 'is_archived': isArchived,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  SeasonsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<DateTime>? startDate,
+    Value<DateTime?>? endDate,
+    Value<bool>? isActive,
+    Value<bool>? isArchived,
+    Value<DateTime>? createdAt,
+  }) {
+    return SeasonsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      isActive: isActive ?? this.isActive,
+      isArchived: isArchived ?? this.isArchived,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<DateTime>(endDate.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (isArchived.present) {
+      map['is_archived'] = Variable<bool>(isArchived.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SeasonsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('isActive: $isActive, ')
+          ..write('isArchived: $isArchived, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $TeamsTable extends Teams with TableInfo<$TeamsTable, Team> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -19,6 +473,20 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, Team> {
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _seasonIdMeta = const VerificationMeta(
+    'seasonId',
+  );
+  @override
+  late final GeneratedColumn<int> seasonId = GeneratedColumn<int>(
+    'season_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES seasons (id)',
     ),
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
@@ -126,6 +594,7 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, Team> {
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    seasonId,
     name,
     isArchived,
     teamMode,
@@ -150,6 +619,14 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, Team> {
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('season_id')) {
+      context.handle(
+        _seasonIdMeta,
+        seasonId.isAcceptableOrUnknown(data['season_id']!, _seasonIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_seasonIdMeta);
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -238,6 +715,10 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, Team> {
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
+      seasonId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}season_id'],
+      )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -285,6 +766,7 @@ class $TeamsTable extends Teams with TableInfo<$TeamsTable, Team> {
 
 class Team extends DataClass implements Insertable<Team> {
   final int id;
+  final int seasonId;
   final String name;
   final bool isArchived;
   final String teamMode;
@@ -296,6 +778,7 @@ class Team extends DataClass implements Insertable<Team> {
   final String? primaryColor3;
   const Team({
     required this.id,
+    required this.seasonId,
     required this.name,
     required this.isArchived,
     required this.teamMode,
@@ -310,6 +793,7 @@ class Team extends DataClass implements Insertable<Team> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    map['season_id'] = Variable<int>(seasonId);
     map['name'] = Variable<String>(name);
     map['is_archived'] = Variable<bool>(isArchived);
     map['team_mode'] = Variable<String>(teamMode);
@@ -333,6 +817,7 @@ class Team extends DataClass implements Insertable<Team> {
   TeamsCompanion toCompanion(bool nullToAbsent) {
     return TeamsCompanion(
       id: Value(id),
+      seasonId: Value(seasonId),
       name: Value(name),
       isArchived: Value(isArchived),
       teamMode: Value(teamMode),
@@ -360,6 +845,7 @@ class Team extends DataClass implements Insertable<Team> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Team(
       id: serializer.fromJson<int>(json['id']),
+      seasonId: serializer.fromJson<int>(json['seasonId']),
       name: serializer.fromJson<String>(json['name']),
       isArchived: serializer.fromJson<bool>(json['isArchived']),
       teamMode: serializer.fromJson<String>(json['teamMode']),
@@ -378,6 +864,7 @@ class Team extends DataClass implements Insertable<Team> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'seasonId': serializer.toJson<int>(seasonId),
       'name': serializer.toJson<String>(name),
       'isArchived': serializer.toJson<bool>(isArchived),
       'teamMode': serializer.toJson<String>(teamMode),
@@ -392,6 +879,7 @@ class Team extends DataClass implements Insertable<Team> {
 
   Team copyWith({
     int? id,
+    int? seasonId,
     String? name,
     bool? isArchived,
     String? teamMode,
@@ -403,6 +891,7 @@ class Team extends DataClass implements Insertable<Team> {
     Value<String?> primaryColor3 = const Value.absent(),
   }) => Team(
     id: id ?? this.id,
+    seasonId: seasonId ?? this.seasonId,
     name: name ?? this.name,
     isArchived: isArchived ?? this.isArchived,
     teamMode: teamMode ?? this.teamMode,
@@ -424,6 +913,7 @@ class Team extends DataClass implements Insertable<Team> {
   Team copyWithCompanion(TeamsCompanion data) {
     return Team(
       id: data.id.present ? data.id.value : this.id,
+      seasonId: data.seasonId.present ? data.seasonId.value : this.seasonId,
       name: data.name.present ? data.name.value : this.name,
       isArchived: data.isArchived.present
           ? data.isArchived.value
@@ -454,6 +944,7 @@ class Team extends DataClass implements Insertable<Team> {
   String toString() {
     return (StringBuffer('Team(')
           ..write('id: $id, ')
+          ..write('seasonId: $seasonId, ')
           ..write('name: $name, ')
           ..write('isArchived: $isArchived, ')
           ..write('teamMode: $teamMode, ')
@@ -470,6 +961,7 @@ class Team extends DataClass implements Insertable<Team> {
   @override
   int get hashCode => Object.hash(
     id,
+    seasonId,
     name,
     isArchived,
     teamMode,
@@ -485,6 +977,7 @@ class Team extends DataClass implements Insertable<Team> {
       identical(this, other) ||
       (other is Team &&
           other.id == this.id &&
+          other.seasonId == this.seasonId &&
           other.name == this.name &&
           other.isArchived == this.isArchived &&
           other.teamMode == this.teamMode &&
@@ -498,6 +991,7 @@ class Team extends DataClass implements Insertable<Team> {
 
 class TeamsCompanion extends UpdateCompanion<Team> {
   final Value<int> id;
+  final Value<int> seasonId;
   final Value<String> name;
   final Value<bool> isArchived;
   final Value<String> teamMode;
@@ -509,6 +1003,7 @@ class TeamsCompanion extends UpdateCompanion<Team> {
   final Value<String?> primaryColor3;
   const TeamsCompanion({
     this.id = const Value.absent(),
+    this.seasonId = const Value.absent(),
     this.name = const Value.absent(),
     this.isArchived = const Value.absent(),
     this.teamMode = const Value.absent(),
@@ -521,6 +1016,7 @@ class TeamsCompanion extends UpdateCompanion<Team> {
   });
   TeamsCompanion.insert({
     this.id = const Value.absent(),
+    required int seasonId,
     required String name,
     this.isArchived = const Value.absent(),
     this.teamMode = const Value.absent(),
@@ -530,9 +1026,11 @@ class TeamsCompanion extends UpdateCompanion<Team> {
     this.primaryColor1 = const Value.absent(),
     this.primaryColor2 = const Value.absent(),
     this.primaryColor3 = const Value.absent(),
-  }) : name = Value(name);
+  }) : seasonId = Value(seasonId),
+       name = Value(name);
   static Insertable<Team> custom({
     Expression<int>? id,
+    Expression<int>? seasonId,
     Expression<String>? name,
     Expression<bool>? isArchived,
     Expression<String>? teamMode,
@@ -545,6 +1043,7 @@ class TeamsCompanion extends UpdateCompanion<Team> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (seasonId != null) 'season_id': seasonId,
       if (name != null) 'name': name,
       if (isArchived != null) 'is_archived': isArchived,
       if (teamMode != null) 'team_mode': teamMode,
@@ -561,6 +1060,7 @@ class TeamsCompanion extends UpdateCompanion<Team> {
 
   TeamsCompanion copyWith({
     Value<int>? id,
+    Value<int>? seasonId,
     Value<String>? name,
     Value<bool>? isArchived,
     Value<String>? teamMode,
@@ -573,6 +1073,7 @@ class TeamsCompanion extends UpdateCompanion<Team> {
   }) {
     return TeamsCompanion(
       id: id ?? this.id,
+      seasonId: seasonId ?? this.seasonId,
       name: name ?? this.name,
       isArchived: isArchived ?? this.isArchived,
       teamMode: teamMode ?? this.teamMode,
@@ -590,6 +1091,9 @@ class TeamsCompanion extends UpdateCompanion<Team> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (seasonId.present) {
+      map['season_id'] = Variable<int>(seasonId.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -625,6 +1129,7 @@ class TeamsCompanion extends UpdateCompanion<Team> {
   String toString() {
     return (StringBuffer('TeamsCompanion(')
           ..write('id: $id, ')
+          ..write('seasonId: $seasonId, ')
           ..write('name: $name, ')
           ..write('isArchived: $isArchived, ')
           ..write('teamMode: $teamMode, ')
@@ -667,6 +1172,20 @@ class $PlayersTable extends Players with TableInfo<$PlayersTable, Player> {
     requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'REFERENCES teams (id)',
+    ),
+  );
+  static const VerificationMeta _seasonIdMeta = const VerificationMeta(
+    'seasonId',
+  );
+  @override
+  late final GeneratedColumn<int> seasonId = GeneratedColumn<int>(
+    'season_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES seasons (id)',
     ),
   );
   static const VerificationMeta _firstNameMeta = const VerificationMeta(
@@ -732,6 +1251,7 @@ class $PlayersTable extends Players with TableInfo<$PlayersTable, Player> {
   List<GeneratedColumn> get $columns => [
     id,
     teamId,
+    seasonId,
     firstName,
     lastName,
     isPresent,
@@ -760,6 +1280,14 @@ class $PlayersTable extends Players with TableInfo<$PlayersTable, Player> {
       );
     } else if (isInserting) {
       context.missing(_teamIdMeta);
+    }
+    if (data.containsKey('season_id')) {
+      context.handle(
+        _seasonIdMeta,
+        seasonId.isAcceptableOrUnknown(data['season_id']!, _seasonIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_seasonIdMeta);
     }
     if (data.containsKey('first_name')) {
       context.handle(
@@ -818,6 +1346,10 @@ class $PlayersTable extends Players with TableInfo<$PlayersTable, Player> {
         DriftSqlType.int,
         data['${effectivePrefix}team_id'],
       )!,
+      seasonId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}season_id'],
+      )!,
       firstName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}first_name'],
@@ -850,6 +1382,7 @@ class $PlayersTable extends Players with TableInfo<$PlayersTable, Player> {
 class Player extends DataClass implements Insertable<Player> {
   final int id;
   final int teamId;
+  final int seasonId;
   final String firstName;
   final String lastName;
   final bool isPresent;
@@ -858,6 +1391,7 @@ class Player extends DataClass implements Insertable<Player> {
   const Player({
     required this.id,
     required this.teamId,
+    required this.seasonId,
     required this.firstName,
     required this.lastName,
     required this.isPresent,
@@ -869,6 +1403,7 @@ class Player extends DataClass implements Insertable<Player> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['team_id'] = Variable<int>(teamId);
+    map['season_id'] = Variable<int>(seasonId);
     map['first_name'] = Variable<String>(firstName);
     map['last_name'] = Variable<String>(lastName);
     map['is_present'] = Variable<bool>(isPresent);
@@ -885,6 +1420,7 @@ class Player extends DataClass implements Insertable<Player> {
     return PlayersCompanion(
       id: Value(id),
       teamId: Value(teamId),
+      seasonId: Value(seasonId),
       firstName: Value(firstName),
       lastName: Value(lastName),
       isPresent: Value(isPresent),
@@ -905,6 +1441,7 @@ class Player extends DataClass implements Insertable<Player> {
     return Player(
       id: serializer.fromJson<int>(json['id']),
       teamId: serializer.fromJson<int>(json['teamId']),
+      seasonId: serializer.fromJson<int>(json['seasonId']),
       firstName: serializer.fromJson<String>(json['firstName']),
       lastName: serializer.fromJson<String>(json['lastName']),
       isPresent: serializer.fromJson<bool>(json['isPresent']),
@@ -918,6 +1455,7 @@ class Player extends DataClass implements Insertable<Player> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'teamId': serializer.toJson<int>(teamId),
+      'seasonId': serializer.toJson<int>(seasonId),
       'firstName': serializer.toJson<String>(firstName),
       'lastName': serializer.toJson<String>(lastName),
       'isPresent': serializer.toJson<bool>(isPresent),
@@ -929,6 +1467,7 @@ class Player extends DataClass implements Insertable<Player> {
   Player copyWith({
     int? id,
     int? teamId,
+    int? seasonId,
     String? firstName,
     String? lastName,
     bool? isPresent,
@@ -937,6 +1476,7 @@ class Player extends DataClass implements Insertable<Player> {
   }) => Player(
     id: id ?? this.id,
     teamId: teamId ?? this.teamId,
+    seasonId: seasonId ?? this.seasonId,
     firstName: firstName ?? this.firstName,
     lastName: lastName ?? this.lastName,
     isPresent: isPresent ?? this.isPresent,
@@ -949,6 +1489,7 @@ class Player extends DataClass implements Insertable<Player> {
     return Player(
       id: data.id.present ? data.id.value : this.id,
       teamId: data.teamId.present ? data.teamId.value : this.teamId,
+      seasonId: data.seasonId.present ? data.seasonId.value : this.seasonId,
       firstName: data.firstName.present ? data.firstName.value : this.firstName,
       lastName: data.lastName.present ? data.lastName.value : this.lastName,
       isPresent: data.isPresent.present ? data.isPresent.value : this.isPresent,
@@ -966,6 +1507,7 @@ class Player extends DataClass implements Insertable<Player> {
     return (StringBuffer('Player(')
           ..write('id: $id, ')
           ..write('teamId: $teamId, ')
+          ..write('seasonId: $seasonId, ')
           ..write('firstName: $firstName, ')
           ..write('lastName: $lastName, ')
           ..write('isPresent: $isPresent, ')
@@ -979,6 +1521,7 @@ class Player extends DataClass implements Insertable<Player> {
   int get hashCode => Object.hash(
     id,
     teamId,
+    seasonId,
     firstName,
     lastName,
     isPresent,
@@ -991,6 +1534,7 @@ class Player extends DataClass implements Insertable<Player> {
       (other is Player &&
           other.id == this.id &&
           other.teamId == this.teamId &&
+          other.seasonId == this.seasonId &&
           other.firstName == this.firstName &&
           other.lastName == this.lastName &&
           other.isPresent == this.isPresent &&
@@ -1001,6 +1545,7 @@ class Player extends DataClass implements Insertable<Player> {
 class PlayersCompanion extends UpdateCompanion<Player> {
   final Value<int> id;
   final Value<int> teamId;
+  final Value<int> seasonId;
   final Value<String> firstName;
   final Value<String> lastName;
   final Value<bool> isPresent;
@@ -1009,6 +1554,7 @@ class PlayersCompanion extends UpdateCompanion<Player> {
   const PlayersCompanion({
     this.id = const Value.absent(),
     this.teamId = const Value.absent(),
+    this.seasonId = const Value.absent(),
     this.firstName = const Value.absent(),
     this.lastName = const Value.absent(),
     this.isPresent = const Value.absent(),
@@ -1018,17 +1564,20 @@ class PlayersCompanion extends UpdateCompanion<Player> {
   PlayersCompanion.insert({
     this.id = const Value.absent(),
     required int teamId,
+    required int seasonId,
     required String firstName,
     required String lastName,
     this.isPresent = const Value.absent(),
     this.jerseyNumber = const Value.absent(),
     this.profileImagePath = const Value.absent(),
   }) : teamId = Value(teamId),
+       seasonId = Value(seasonId),
        firstName = Value(firstName),
        lastName = Value(lastName);
   static Insertable<Player> custom({
     Expression<int>? id,
     Expression<int>? teamId,
+    Expression<int>? seasonId,
     Expression<String>? firstName,
     Expression<String>? lastName,
     Expression<bool>? isPresent,
@@ -1038,6 +1587,7 @@ class PlayersCompanion extends UpdateCompanion<Player> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (teamId != null) 'team_id': teamId,
+      if (seasonId != null) 'season_id': seasonId,
       if (firstName != null) 'first_name': firstName,
       if (lastName != null) 'last_name': lastName,
       if (isPresent != null) 'is_present': isPresent,
@@ -1049,6 +1599,7 @@ class PlayersCompanion extends UpdateCompanion<Player> {
   PlayersCompanion copyWith({
     Value<int>? id,
     Value<int>? teamId,
+    Value<int>? seasonId,
     Value<String>? firstName,
     Value<String>? lastName,
     Value<bool>? isPresent,
@@ -1058,6 +1609,7 @@ class PlayersCompanion extends UpdateCompanion<Player> {
     return PlayersCompanion(
       id: id ?? this.id,
       teamId: teamId ?? this.teamId,
+      seasonId: seasonId ?? this.seasonId,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       isPresent: isPresent ?? this.isPresent,
@@ -1074,6 +1626,9 @@ class PlayersCompanion extends UpdateCompanion<Player> {
     }
     if (teamId.present) {
       map['team_id'] = Variable<int>(teamId.value);
+    }
+    if (seasonId.present) {
+      map['season_id'] = Variable<int>(seasonId.value);
     }
     if (firstName.present) {
       map['first_name'] = Variable<String>(firstName.value);
@@ -1098,6 +1653,7 @@ class PlayersCompanion extends UpdateCompanion<Player> {
     return (StringBuffer('PlayersCompanion(')
           ..write('id: $id, ')
           ..write('teamId: $teamId, ')
+          ..write('seasonId: $seasonId, ')
           ..write('firstName: $firstName, ')
           ..write('lastName: $lastName, ')
           ..write('isPresent: $isPresent, ')
@@ -1139,6 +1695,20 @@ class $FormationsTable extends Formations
       'REFERENCES teams (id)',
     ),
   );
+  static const VerificationMeta _seasonIdMeta = const VerificationMeta(
+    'seasonId',
+  );
+  @override
+  late final GeneratedColumn<int> seasonId = GeneratedColumn<int>(
+    'season_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES seasons (id)',
+    ),
+  );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
@@ -1160,7 +1730,13 @@ class $FormationsTable extends Formations
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, teamId, name, playerCount];
+  List<GeneratedColumn> get $columns => [
+    id,
+    teamId,
+    seasonId,
+    name,
+    playerCount,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1183,6 +1759,14 @@ class $FormationsTable extends Formations
       );
     } else if (isInserting) {
       context.missing(_teamIdMeta);
+    }
+    if (data.containsKey('season_id')) {
+      context.handle(
+        _seasonIdMeta,
+        seasonId.isAcceptableOrUnknown(data['season_id']!, _seasonIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_seasonIdMeta);
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -1220,6 +1804,10 @@ class $FormationsTable extends Formations
         DriftSqlType.int,
         data['${effectivePrefix}team_id'],
       )!,
+      seasonId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}season_id'],
+      )!,
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -1240,11 +1828,13 @@ class $FormationsTable extends Formations
 class Formation extends DataClass implements Insertable<Formation> {
   final int id;
   final int teamId;
+  final int seasonId;
   final String name;
   final int playerCount;
   const Formation({
     required this.id,
     required this.teamId,
+    required this.seasonId,
     required this.name,
     required this.playerCount,
   });
@@ -1253,6 +1843,7 @@ class Formation extends DataClass implements Insertable<Formation> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['team_id'] = Variable<int>(teamId);
+    map['season_id'] = Variable<int>(seasonId);
     map['name'] = Variable<String>(name);
     map['player_count'] = Variable<int>(playerCount);
     return map;
@@ -1262,6 +1853,7 @@ class Formation extends DataClass implements Insertable<Formation> {
     return FormationsCompanion(
       id: Value(id),
       teamId: Value(teamId),
+      seasonId: Value(seasonId),
       name: Value(name),
       playerCount: Value(playerCount),
     );
@@ -1275,6 +1867,7 @@ class Formation extends DataClass implements Insertable<Formation> {
     return Formation(
       id: serializer.fromJson<int>(json['id']),
       teamId: serializer.fromJson<int>(json['teamId']),
+      seasonId: serializer.fromJson<int>(json['seasonId']),
       name: serializer.fromJson<String>(json['name']),
       playerCount: serializer.fromJson<int>(json['playerCount']),
     );
@@ -1285,22 +1878,30 @@ class Formation extends DataClass implements Insertable<Formation> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'teamId': serializer.toJson<int>(teamId),
+      'seasonId': serializer.toJson<int>(seasonId),
       'name': serializer.toJson<String>(name),
       'playerCount': serializer.toJson<int>(playerCount),
     };
   }
 
-  Formation copyWith({int? id, int? teamId, String? name, int? playerCount}) =>
-      Formation(
-        id: id ?? this.id,
-        teamId: teamId ?? this.teamId,
-        name: name ?? this.name,
-        playerCount: playerCount ?? this.playerCount,
-      );
+  Formation copyWith({
+    int? id,
+    int? teamId,
+    int? seasonId,
+    String? name,
+    int? playerCount,
+  }) => Formation(
+    id: id ?? this.id,
+    teamId: teamId ?? this.teamId,
+    seasonId: seasonId ?? this.seasonId,
+    name: name ?? this.name,
+    playerCount: playerCount ?? this.playerCount,
+  );
   Formation copyWithCompanion(FormationsCompanion data) {
     return Formation(
       id: data.id.present ? data.id.value : this.id,
       teamId: data.teamId.present ? data.teamId.value : this.teamId,
+      seasonId: data.seasonId.present ? data.seasonId.value : this.seasonId,
       name: data.name.present ? data.name.value : this.name,
       playerCount: data.playerCount.present
           ? data.playerCount.value
@@ -1313,6 +1914,7 @@ class Formation extends DataClass implements Insertable<Formation> {
     return (StringBuffer('Formation(')
           ..write('id: $id, ')
           ..write('teamId: $teamId, ')
+          ..write('seasonId: $seasonId, ')
           ..write('name: $name, ')
           ..write('playerCount: $playerCount')
           ..write(')'))
@@ -1320,13 +1922,14 @@ class Formation extends DataClass implements Insertable<Formation> {
   }
 
   @override
-  int get hashCode => Object.hash(id, teamId, name, playerCount);
+  int get hashCode => Object.hash(id, teamId, seasonId, name, playerCount);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Formation &&
           other.id == this.id &&
           other.teamId == this.teamId &&
+          other.seasonId == this.seasonId &&
           other.name == this.name &&
           other.playerCount == this.playerCount);
 }
@@ -1334,31 +1937,37 @@ class Formation extends DataClass implements Insertable<Formation> {
 class FormationsCompanion extends UpdateCompanion<Formation> {
   final Value<int> id;
   final Value<int> teamId;
+  final Value<int> seasonId;
   final Value<String> name;
   final Value<int> playerCount;
   const FormationsCompanion({
     this.id = const Value.absent(),
     this.teamId = const Value.absent(),
+    this.seasonId = const Value.absent(),
     this.name = const Value.absent(),
     this.playerCount = const Value.absent(),
   });
   FormationsCompanion.insert({
     this.id = const Value.absent(),
     required int teamId,
+    required int seasonId,
     required String name,
     required int playerCount,
   }) : teamId = Value(teamId),
+       seasonId = Value(seasonId),
        name = Value(name),
        playerCount = Value(playerCount);
   static Insertable<Formation> custom({
     Expression<int>? id,
     Expression<int>? teamId,
+    Expression<int>? seasonId,
     Expression<String>? name,
     Expression<int>? playerCount,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (teamId != null) 'team_id': teamId,
+      if (seasonId != null) 'season_id': seasonId,
       if (name != null) 'name': name,
       if (playerCount != null) 'player_count': playerCount,
     });
@@ -1367,12 +1976,14 @@ class FormationsCompanion extends UpdateCompanion<Formation> {
   FormationsCompanion copyWith({
     Value<int>? id,
     Value<int>? teamId,
+    Value<int>? seasonId,
     Value<String>? name,
     Value<int>? playerCount,
   }) {
     return FormationsCompanion(
       id: id ?? this.id,
       teamId: teamId ?? this.teamId,
+      seasonId: seasonId ?? this.seasonId,
       name: name ?? this.name,
       playerCount: playerCount ?? this.playerCount,
     );
@@ -1386,6 +1997,9 @@ class FormationsCompanion extends UpdateCompanion<Formation> {
     }
     if (teamId.present) {
       map['team_id'] = Variable<int>(teamId.value);
+    }
+    if (seasonId.present) {
+      map['season_id'] = Variable<int>(seasonId.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -1401,6 +2015,7 @@ class FormationsCompanion extends UpdateCompanion<Formation> {
     return (StringBuffer('FormationsCompanion(')
           ..write('id: $id, ')
           ..write('teamId: $teamId, ')
+          ..write('seasonId: $seasonId, ')
           ..write('name: $name, ')
           ..write('playerCount: $playerCount')
           ..write(')'))
@@ -1424,6 +2039,20 @@ class $GamesTable extends Games with TableInfo<$GamesTable, Game> {
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _seasonIdMeta = const VerificationMeta(
+    'seasonId',
+  );
+  @override
+  late final GeneratedColumn<int> seasonId = GeneratedColumn<int>(
+    'season_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES seasons (id)',
     ),
   );
   static const VerificationMeta _startTimeMeta = const VerificationMeta(
@@ -1601,6 +2230,7 @@ class $GamesTable extends Games with TableInfo<$GamesTable, Game> {
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    seasonId,
     startTime,
     opponent,
     currentShiftId,
@@ -1630,6 +2260,14 @@ class $GamesTable extends Games with TableInfo<$GamesTable, Game> {
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('season_id')) {
+      context.handle(
+        _seasonIdMeta,
+        seasonId.isAcceptableOrUnknown(data['season_id']!, _seasonIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_seasonIdMeta);
     }
     if (data.containsKey('start_time')) {
       context.handle(
@@ -1751,6 +2389,10 @@ class $GamesTable extends Games with TableInfo<$GamesTable, Game> {
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
+      seasonId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}season_id'],
+      )!,
       startTime: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}start_time'],
@@ -1818,6 +2460,7 @@ class $GamesTable extends Games with TableInfo<$GamesTable, Game> {
 
 class Game extends DataClass implements Insertable<Game> {
   final int id;
+  final int seasonId;
   final DateTime? startTime;
   final String? opponent;
   final int? currentShiftId;
@@ -1834,6 +2477,7 @@ class Game extends DataClass implements Insertable<Game> {
   final int opponentScore;
   const Game({
     required this.id,
+    required this.seasonId,
     this.startTime,
     this.opponent,
     this.currentShiftId,
@@ -1853,6 +2497,7 @@ class Game extends DataClass implements Insertable<Game> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
+    map['season_id'] = Variable<int>(seasonId);
     if (!nullToAbsent || startTime != null) {
       map['start_time'] = Variable<DateTime>(startTime);
     }
@@ -1885,6 +2530,7 @@ class Game extends DataClass implements Insertable<Game> {
   GamesCompanion toCompanion(bool nullToAbsent) {
     return GamesCompanion(
       id: Value(id),
+      seasonId: Value(seasonId),
       startTime: startTime == null && nullToAbsent
           ? const Value.absent()
           : Value(startTime),
@@ -1921,6 +2567,7 @@ class Game extends DataClass implements Insertable<Game> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Game(
       id: serializer.fromJson<int>(json['id']),
+      seasonId: serializer.fromJson<int>(json['seasonId']),
       startTime: serializer.fromJson<DateTime?>(json['startTime']),
       opponent: serializer.fromJson<String?>(json['opponent']),
       currentShiftId: serializer.fromJson<int?>(json['currentShiftId']),
@@ -1942,6 +2589,7 @@ class Game extends DataClass implements Insertable<Game> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
+      'seasonId': serializer.toJson<int>(seasonId),
       'startTime': serializer.toJson<DateTime?>(startTime),
       'opponent': serializer.toJson<String?>(opponent),
       'currentShiftId': serializer.toJson<int?>(currentShiftId),
@@ -1961,6 +2609,7 @@ class Game extends DataClass implements Insertable<Game> {
 
   Game copyWith({
     int? id,
+    int? seasonId,
     Value<DateTime?> startTime = const Value.absent(),
     Value<String?> opponent = const Value.absent(),
     Value<int?> currentShiftId = const Value.absent(),
@@ -1977,6 +2626,7 @@ class Game extends DataClass implements Insertable<Game> {
     int? opponentScore,
   }) => Game(
     id: id ?? this.id,
+    seasonId: seasonId ?? this.seasonId,
     startTime: startTime.present ? startTime.value : this.startTime,
     opponent: opponent.present ? opponent.value : this.opponent,
     currentShiftId: currentShiftId.present
@@ -1999,6 +2649,7 @@ class Game extends DataClass implements Insertable<Game> {
   Game copyWithCompanion(GamesCompanion data) {
     return Game(
       id: data.id.present ? data.id.value : this.id,
+      seasonId: data.seasonId.present ? data.seasonId.value : this.seasonId,
       startTime: data.startTime.present ? data.startTime.value : this.startTime,
       opponent: data.opponent.present ? data.opponent.value : this.opponent,
       currentShiftId: data.currentShiftId.present
@@ -2038,6 +2689,7 @@ class Game extends DataClass implements Insertable<Game> {
   String toString() {
     return (StringBuffer('Game(')
           ..write('id: $id, ')
+          ..write('seasonId: $seasonId, ')
           ..write('startTime: $startTime, ')
           ..write('opponent: $opponent, ')
           ..write('currentShiftId: $currentShiftId, ')
@@ -2059,6 +2711,7 @@ class Game extends DataClass implements Insertable<Game> {
   @override
   int get hashCode => Object.hash(
     id,
+    seasonId,
     startTime,
     opponent,
     currentShiftId,
@@ -2079,6 +2732,7 @@ class Game extends DataClass implements Insertable<Game> {
       identical(this, other) ||
       (other is Game &&
           other.id == this.id &&
+          other.seasonId == this.seasonId &&
           other.startTime == this.startTime &&
           other.opponent == this.opponent &&
           other.currentShiftId == this.currentShiftId &&
@@ -2097,6 +2751,7 @@ class Game extends DataClass implements Insertable<Game> {
 
 class GamesCompanion extends UpdateCompanion<Game> {
   final Value<int> id;
+  final Value<int> seasonId;
   final Value<DateTime?> startTime;
   final Value<String?> opponent;
   final Value<int?> currentShiftId;
@@ -2113,6 +2768,7 @@ class GamesCompanion extends UpdateCompanion<Game> {
   final Value<int> opponentScore;
   const GamesCompanion({
     this.id = const Value.absent(),
+    this.seasonId = const Value.absent(),
     this.startTime = const Value.absent(),
     this.opponent = const Value.absent(),
     this.currentShiftId = const Value.absent(),
@@ -2130,6 +2786,7 @@ class GamesCompanion extends UpdateCompanion<Game> {
   });
   GamesCompanion.insert({
     this.id = const Value.absent(),
+    required int seasonId,
     this.startTime = const Value.absent(),
     this.opponent = const Value.absent(),
     this.currentShiftId = const Value.absent(),
@@ -2144,9 +2801,11 @@ class GamesCompanion extends UpdateCompanion<Game> {
     this.endTime = const Value.absent(),
     this.teamScore = const Value.absent(),
     this.opponentScore = const Value.absent(),
-  }) : teamId = Value(teamId);
+  }) : seasonId = Value(seasonId),
+       teamId = Value(teamId);
   static Insertable<Game> custom({
     Expression<int>? id,
+    Expression<int>? seasonId,
     Expression<DateTime>? startTime,
     Expression<String>? opponent,
     Expression<int>? currentShiftId,
@@ -2164,6 +2823,7 @@ class GamesCompanion extends UpdateCompanion<Game> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (seasonId != null) 'season_id': seasonId,
       if (startTime != null) 'start_time': startTime,
       if (opponent != null) 'opponent': opponent,
       if (currentShiftId != null) 'current_shift_id': currentShiftId,
@@ -2183,6 +2843,7 @@ class GamesCompanion extends UpdateCompanion<Game> {
 
   GamesCompanion copyWith({
     Value<int>? id,
+    Value<int>? seasonId,
     Value<DateTime?>? startTime,
     Value<String?>? opponent,
     Value<int?>? currentShiftId,
@@ -2200,6 +2861,7 @@ class GamesCompanion extends UpdateCompanion<Game> {
   }) {
     return GamesCompanion(
       id: id ?? this.id,
+      seasonId: seasonId ?? this.seasonId,
       startTime: startTime ?? this.startTime,
       opponent: opponent ?? this.opponent,
       currentShiftId: currentShiftId ?? this.currentShiftId,
@@ -2222,6 +2884,9 @@ class GamesCompanion extends UpdateCompanion<Game> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (seasonId.present) {
+      map['season_id'] = Variable<int>(seasonId.value);
     }
     if (startTime.present) {
       map['start_time'] = Variable<DateTime>(startTime.value);
@@ -2272,6 +2937,7 @@ class GamesCompanion extends UpdateCompanion<Game> {
   String toString() {
     return (StringBuffer('GamesCompanion(')
           ..write('id: $id, ')
+          ..write('seasonId: $seasonId, ')
           ..write('startTime: $startTime, ')
           ..write('opponent: $opponent, ')
           ..write('currentShiftId: $currentShiftId, ')
@@ -4331,6 +4997,7 @@ class FormationPositionsCompanion extends UpdateCompanion<FormationPosition> {
 abstract class _$AppDb extends GeneratedDatabase {
   _$AppDb(QueryExecutor e) : super(e);
   $AppDbManager get managers => $AppDbManager(this);
+  late final $SeasonsTable seasons = $SeasonsTable(this);
   late final $TeamsTable teams = $TeamsTable(this);
   late final $PlayersTable players = $PlayersTable(this);
   late final $FormationsTable formations = $FormationsTable(this);
@@ -4348,6 +5015,7 @@ abstract class _$AppDb extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+    seasons,
     teams,
     players,
     formations,
@@ -4361,9 +5029,620 @@ abstract class _$AppDb extends GeneratedDatabase {
   ];
 }
 
+typedef $$SeasonsTableCreateCompanionBuilder =
+    SeasonsCompanion Function({
+      Value<int> id,
+      required String name,
+      required DateTime startDate,
+      Value<DateTime?> endDate,
+      Value<bool> isActive,
+      Value<bool> isArchived,
+      Value<DateTime> createdAt,
+    });
+typedef $$SeasonsTableUpdateCompanionBuilder =
+    SeasonsCompanion Function({
+      Value<int> id,
+      Value<String> name,
+      Value<DateTime> startDate,
+      Value<DateTime?> endDate,
+      Value<bool> isActive,
+      Value<bool> isArchived,
+      Value<DateTime> createdAt,
+    });
+
+final class $$SeasonsTableReferences
+    extends BaseReferences<_$AppDb, $SeasonsTable, Season> {
+  $$SeasonsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$TeamsTable, List<Team>> _teamsRefsTable(
+    _$AppDb db,
+  ) => MultiTypedResultKey.fromTable(
+    db.teams,
+    aliasName: $_aliasNameGenerator(db.seasons.id, db.teams.seasonId),
+  );
+
+  $$TeamsTableProcessedTableManager get teamsRefs {
+    final manager = $$TeamsTableTableManager(
+      $_db,
+      $_db.teams,
+    ).filter((f) => f.seasonId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_teamsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$PlayersTable, List<Player>> _playersRefsTable(
+    _$AppDb db,
+  ) => MultiTypedResultKey.fromTable(
+    db.players,
+    aliasName: $_aliasNameGenerator(db.seasons.id, db.players.seasonId),
+  );
+
+  $$PlayersTableProcessedTableManager get playersRefs {
+    final manager = $$PlayersTableTableManager(
+      $_db,
+      $_db.players,
+    ).filter((f) => f.seasonId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_playersRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$FormationsTable, List<Formation>>
+  _formationsRefsTable(_$AppDb db) => MultiTypedResultKey.fromTable(
+    db.formations,
+    aliasName: $_aliasNameGenerator(db.seasons.id, db.formations.seasonId),
+  );
+
+  $$FormationsTableProcessedTableManager get formationsRefs {
+    final manager = $$FormationsTableTableManager(
+      $_db,
+      $_db.formations,
+    ).filter((f) => f.seasonId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_formationsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$GamesTable, List<Game>> _gamesRefsTable(
+    _$AppDb db,
+  ) => MultiTypedResultKey.fromTable(
+    db.games,
+    aliasName: $_aliasNameGenerator(db.seasons.id, db.games.seasonId),
+  );
+
+  $$GamesTableProcessedTableManager get gamesRefs {
+    final manager = $$GamesTableTableManager(
+      $_db,
+      $_db.games,
+    ).filter((f) => f.seasonId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_gamesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$SeasonsTableFilterComposer extends Composer<_$AppDb, $SeasonsTable> {
+  $$SeasonsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> teamsRefs(
+    Expression<bool> Function($$TeamsTableFilterComposer f) f,
+  ) {
+    final $$TeamsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.seasonId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableFilterComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> playersRefs(
+    Expression<bool> Function($$PlayersTableFilterComposer f) f,
+  ) {
+    final $$PlayersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.players,
+      getReferencedColumn: (t) => t.seasonId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlayersTableFilterComposer(
+            $db: $db,
+            $table: $db.players,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> formationsRefs(
+    Expression<bool> Function($$FormationsTableFilterComposer f) f,
+  ) {
+    final $$FormationsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.formations,
+      getReferencedColumn: (t) => t.seasonId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FormationsTableFilterComposer(
+            $db: $db,
+            $table: $db.formations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> gamesRefs(
+    Expression<bool> Function($$GamesTableFilterComposer f) f,
+  ) {
+    final $$GamesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.games,
+      getReferencedColumn: (t) => t.seasonId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GamesTableFilterComposer(
+            $db: $db,
+            $table: $db.games,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SeasonsTableOrderingComposer extends Composer<_$AppDb, $SeasonsTable> {
+  $$SeasonsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SeasonsTableAnnotationComposer
+    extends Composer<_$AppDb, $SeasonsTable> {
+  $$SeasonsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  Expression<T> teamsRefs<T extends Object>(
+    Expression<T> Function($$TeamsTableAnnotationComposer a) f,
+  ) {
+    final $$TeamsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.teams,
+      getReferencedColumn: (t) => t.seasonId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TeamsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> playersRefs<T extends Object>(
+    Expression<T> Function($$PlayersTableAnnotationComposer a) f,
+  ) {
+    final $$PlayersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.players,
+      getReferencedColumn: (t) => t.seasonId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlayersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.players,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> formationsRefs<T extends Object>(
+    Expression<T> Function($$FormationsTableAnnotationComposer a) f,
+  ) {
+    final $$FormationsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.formations,
+      getReferencedColumn: (t) => t.seasonId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FormationsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.formations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> gamesRefs<T extends Object>(
+    Expression<T> Function($$GamesTableAnnotationComposer a) f,
+  ) {
+    final $$GamesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.games,
+      getReferencedColumn: (t) => t.seasonId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$GamesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.games,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SeasonsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDb,
+          $SeasonsTable,
+          Season,
+          $$SeasonsTableFilterComposer,
+          $$SeasonsTableOrderingComposer,
+          $$SeasonsTableAnnotationComposer,
+          $$SeasonsTableCreateCompanionBuilder,
+          $$SeasonsTableUpdateCompanionBuilder,
+          (Season, $$SeasonsTableReferences),
+          Season,
+          PrefetchHooks Function({
+            bool teamsRefs,
+            bool playersRefs,
+            bool formationsRefs,
+            bool gamesRefs,
+          })
+        > {
+  $$SeasonsTableTableManager(_$AppDb db, $SeasonsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SeasonsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SeasonsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SeasonsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<DateTime> startDate = const Value.absent(),
+                Value<DateTime?> endDate = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => SeasonsCompanion(
+                id: id,
+                name: name,
+                startDate: startDate,
+                endDate: endDate,
+                isActive: isActive,
+                isArchived: isArchived,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                required DateTime startDate,
+                Value<DateTime?> endDate = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => SeasonsCompanion.insert(
+                id: id,
+                name: name,
+                startDate: startDate,
+                endDate: endDate,
+                isActive: isActive,
+                isArchived: isArchived,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SeasonsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                teamsRefs = false,
+                playersRefs = false,
+                formationsRefs = false,
+                gamesRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (teamsRefs) db.teams,
+                    if (playersRefs) db.players,
+                    if (formationsRefs) db.formations,
+                    if (gamesRefs) db.games,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (teamsRefs)
+                        await $_getPrefetchedData<Season, $SeasonsTable, Team>(
+                          currentTable: table,
+                          referencedTable: $$SeasonsTableReferences
+                              ._teamsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SeasonsTableReferences(db, table, p0).teamsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.seasonId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (playersRefs)
+                        await $_getPrefetchedData<
+                          Season,
+                          $SeasonsTable,
+                          Player
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SeasonsTableReferences
+                              ._playersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SeasonsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).playersRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.seasonId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (formationsRefs)
+                        await $_getPrefetchedData<
+                          Season,
+                          $SeasonsTable,
+                          Formation
+                        >(
+                          currentTable: table,
+                          referencedTable: $$SeasonsTableReferences
+                              ._formationsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SeasonsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).formationsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.seasonId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (gamesRefs)
+                        await $_getPrefetchedData<Season, $SeasonsTable, Game>(
+                          currentTable: table,
+                          referencedTable: $$SeasonsTableReferences
+                              ._gamesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SeasonsTableReferences(db, table, p0).gamesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.seasonId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$SeasonsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDb,
+      $SeasonsTable,
+      Season,
+      $$SeasonsTableFilterComposer,
+      $$SeasonsTableOrderingComposer,
+      $$SeasonsTableAnnotationComposer,
+      $$SeasonsTableCreateCompanionBuilder,
+      $$SeasonsTableUpdateCompanionBuilder,
+      (Season, $$SeasonsTableReferences),
+      Season,
+      PrefetchHooks Function({
+        bool teamsRefs,
+        bool playersRefs,
+        bool formationsRefs,
+        bool gamesRefs,
+      })
+    >;
 typedef $$TeamsTableCreateCompanionBuilder =
     TeamsCompanion Function({
       Value<int> id,
+      required int seasonId,
       required String name,
       Value<bool> isArchived,
       Value<String> teamMode,
@@ -4377,6 +5656,7 @@ typedef $$TeamsTableCreateCompanionBuilder =
 typedef $$TeamsTableUpdateCompanionBuilder =
     TeamsCompanion Function({
       Value<int> id,
+      Value<int> seasonId,
       Value<String> name,
       Value<bool> isArchived,
       Value<String> teamMode,
@@ -4391,6 +5671,24 @@ typedef $$TeamsTableUpdateCompanionBuilder =
 final class $$TeamsTableReferences
     extends BaseReferences<_$AppDb, $TeamsTable, Team> {
   $$TeamsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $SeasonsTable _seasonIdTable(_$AppDb db) => db.seasons.createAlias(
+    $_aliasNameGenerator(db.teams.seasonId, db.seasons.id),
+  );
+
+  $$SeasonsTableProcessedTableManager get seasonId {
+    final $_column = $_itemColumn<int>('season_id')!;
+
+    final manager = $$SeasonsTableTableManager(
+      $_db,
+      $_db.seasons,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_seasonIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static MultiTypedResultKey<$PlayersTable, List<Player>> _playersRefsTable(
     _$AppDb db,
@@ -4506,6 +5804,29 @@ class $$TeamsTableFilterComposer extends Composer<_$AppDb, $TeamsTable> {
     column: $table.primaryColor3,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$SeasonsTableFilterComposer get seasonId {
+    final $$SeasonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.seasonId,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeasonsTableFilterComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<bool> playersRefs(
     Expression<bool> Function($$PlayersTableFilterComposer f) f,
@@ -4640,6 +5961,29 @@ class $$TeamsTableOrderingComposer extends Composer<_$AppDb, $TeamsTable> {
     column: $table.primaryColor3,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$SeasonsTableOrderingComposer get seasonId {
+    final $$SeasonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.seasonId,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeasonsTableOrderingComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$TeamsTableAnnotationComposer extends Composer<_$AppDb, $TeamsTable> {
@@ -4693,6 +6037,29 @@ class $$TeamsTableAnnotationComposer extends Composer<_$AppDb, $TeamsTable> {
     column: $table.primaryColor3,
     builder: (column) => column,
   );
+
+  $$SeasonsTableAnnotationComposer get seasonId {
+    final $$SeasonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.seasonId,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeasonsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<T> playersRefs<T extends Object>(
     Expression<T> Function($$PlayersTableAnnotationComposer a) f,
@@ -4784,6 +6151,7 @@ class $$TeamsTableTableManager
           (Team, $$TeamsTableReferences),
           Team,
           PrefetchHooks Function({
+            bool seasonId,
             bool playersRefs,
             bool formationsRefs,
             bool gamesRefs,
@@ -4803,6 +6171,7 @@ class $$TeamsTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<int> seasonId = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
                 Value<String> teamMode = const Value.absent(),
@@ -4814,6 +6183,7 @@ class $$TeamsTableTableManager
                 Value<String?> primaryColor3 = const Value.absent(),
               }) => TeamsCompanion(
                 id: id,
+                seasonId: seasonId,
                 name: name,
                 isArchived: isArchived,
                 teamMode: teamMode,
@@ -4827,6 +6197,7 @@ class $$TeamsTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                required int seasonId,
                 required String name,
                 Value<bool> isArchived = const Value.absent(),
                 Value<String> teamMode = const Value.absent(),
@@ -4838,6 +6209,7 @@ class $$TeamsTableTableManager
                 Value<String?> primaryColor3 = const Value.absent(),
               }) => TeamsCompanion.insert(
                 id: id,
+                seasonId: seasonId,
                 name: name,
                 isArchived: isArchived,
                 teamMode: teamMode,
@@ -4856,6 +6228,7 @@ class $$TeamsTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
+                seasonId = false,
                 playersRefs = false,
                 formationsRefs = false,
                 gamesRefs = false,
@@ -4867,7 +6240,38 @@ class $$TeamsTableTableManager
                     if (formationsRefs) db.formations,
                     if (gamesRefs) db.games,
                   ],
-                  addJoins: null,
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (seasonId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.seasonId,
+                                    referencedTable: $$TeamsTableReferences
+                                        ._seasonIdTable(db),
+                                    referencedColumn: $$TeamsTableReferences
+                                        ._seasonIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
                   getPrefetchedDataCallback: (items) async {
                     return [
                       if (playersRefs)
@@ -4934,6 +6338,7 @@ typedef $$TeamsTableProcessedTableManager =
       (Team, $$TeamsTableReferences),
       Team,
       PrefetchHooks Function({
+        bool seasonId,
         bool playersRefs,
         bool formationsRefs,
         bool gamesRefs,
@@ -4943,6 +6348,7 @@ typedef $$PlayersTableCreateCompanionBuilder =
     PlayersCompanion Function({
       Value<int> id,
       required int teamId,
+      required int seasonId,
       required String firstName,
       required String lastName,
       Value<bool> isPresent,
@@ -4953,6 +6359,7 @@ typedef $$PlayersTableUpdateCompanionBuilder =
     PlayersCompanion Function({
       Value<int> id,
       Value<int> teamId,
+      Value<int> seasonId,
       Value<String> firstName,
       Value<String> lastName,
       Value<bool> isPresent,
@@ -4976,6 +6383,24 @@ final class $$PlayersTableReferences
       $_db.teams,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_teamIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $SeasonsTable _seasonIdTable(_$AppDb db) => db.seasons.createAlias(
+    $_aliasNameGenerator(db.players.seasonId, db.seasons.id),
+  );
+
+  $$SeasonsTableProcessedTableManager get seasonId {
+    final $_column = $_itemColumn<int>('season_id')!;
+
+    final manager = $$SeasonsTableTableManager(
+      $_db,
+      $_db.seasons,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_seasonIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -5116,6 +6541,29 @@ class $$PlayersTableFilterComposer extends Composer<_$AppDb, $PlayersTable> {
           }) => $$TeamsTableFilterComposer(
             $db: $db,
             $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableFilterComposer get seasonId {
+    final $$SeasonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.seasonId,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeasonsTableFilterComposer(
+            $db: $db,
+            $table: $db.seasons,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5286,6 +6734,29 @@ class $$PlayersTableOrderingComposer extends Composer<_$AppDb, $PlayersTable> {
     );
     return composer;
   }
+
+  $$SeasonsTableOrderingComposer get seasonId {
+    final $$SeasonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.seasonId,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeasonsTableOrderingComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$PlayersTableAnnotationComposer
@@ -5333,6 +6804,29 @@ class $$PlayersTableAnnotationComposer
           }) => $$TeamsTableAnnotationComposer(
             $db: $db,
             $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableAnnotationComposer get seasonId {
+    final $$SeasonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.seasonId,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeasonsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.seasons,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5459,6 +6953,7 @@ class $$PlayersTableTableManager
           Player,
           PrefetchHooks Function({
             bool teamId,
+            bool seasonId,
             bool playerShiftsRefs,
             bool playerMetricsRefs,
             bool gamePlayersRefs,
@@ -5480,6 +6975,7 @@ class $$PlayersTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<int> teamId = const Value.absent(),
+                Value<int> seasonId = const Value.absent(),
                 Value<String> firstName = const Value.absent(),
                 Value<String> lastName = const Value.absent(),
                 Value<bool> isPresent = const Value.absent(),
@@ -5488,6 +6984,7 @@ class $$PlayersTableTableManager
               }) => PlayersCompanion(
                 id: id,
                 teamId: teamId,
+                seasonId: seasonId,
                 firstName: firstName,
                 lastName: lastName,
                 isPresent: isPresent,
@@ -5498,6 +6995,7 @@ class $$PlayersTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 required int teamId,
+                required int seasonId,
                 required String firstName,
                 required String lastName,
                 Value<bool> isPresent = const Value.absent(),
@@ -5506,6 +7004,7 @@ class $$PlayersTableTableManager
               }) => PlayersCompanion.insert(
                 id: id,
                 teamId: teamId,
+                seasonId: seasonId,
                 firstName: firstName,
                 lastName: lastName,
                 isPresent: isPresent,
@@ -5523,6 +7022,7 @@ class $$PlayersTableTableManager
           prefetchHooksCallback:
               ({
                 teamId = false,
+                seasonId = false,
                 playerShiftsRefs = false,
                 playerMetricsRefs = false,
                 gamePlayersRefs = false,
@@ -5561,6 +7061,19 @@ class $$PlayersTableTableManager
                                         ._teamIdTable(db),
                                     referencedColumn: $$PlayersTableReferences
                                         ._teamIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (seasonId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.seasonId,
+                                    referencedTable: $$PlayersTableReferences
+                                        ._seasonIdTable(db),
+                                    referencedColumn: $$PlayersTableReferences
+                                        ._seasonIdTable(db)
                                         .id,
                                   )
                                   as T;
@@ -5676,6 +7189,7 @@ typedef $$PlayersTableProcessedTableManager =
       Player,
       PrefetchHooks Function({
         bool teamId,
+        bool seasonId,
         bool playerShiftsRefs,
         bool playerMetricsRefs,
         bool gamePlayersRefs,
@@ -5686,6 +7200,7 @@ typedef $$FormationsTableCreateCompanionBuilder =
     FormationsCompanion Function({
       Value<int> id,
       required int teamId,
+      required int seasonId,
       required String name,
       required int playerCount,
     });
@@ -5693,6 +7208,7 @@ typedef $$FormationsTableUpdateCompanionBuilder =
     FormationsCompanion Function({
       Value<int> id,
       Value<int> teamId,
+      Value<int> seasonId,
       Value<String> name,
       Value<int> playerCount,
     });
@@ -5713,6 +7229,24 @@ final class $$FormationsTableReferences
       $_db.teams,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_teamIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $SeasonsTable _seasonIdTable(_$AppDb db) => db.seasons.createAlias(
+    $_aliasNameGenerator(db.formations.seasonId, db.seasons.id),
+  );
+
+  $$SeasonsTableProcessedTableManager get seasonId {
+    final $_column = $_itemColumn<int>('season_id')!;
+
+    final manager = $$SeasonsTableTableManager(
+      $_db,
+      $_db.seasons,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_seasonIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -5800,6 +7334,29 @@ class $$FormationsTableFilterComposer
           }) => $$TeamsTableFilterComposer(
             $db: $db,
             $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableFilterComposer get seasonId {
+    final $$SeasonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.seasonId,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeasonsTableFilterComposer(
+            $db: $db,
+            $table: $db.seasons,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5906,6 +7463,29 @@ class $$FormationsTableOrderingComposer
     );
     return composer;
   }
+
+  $$SeasonsTableOrderingComposer get seasonId {
+    final $$SeasonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.seasonId,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeasonsTableOrderingComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$FormationsTableAnnotationComposer
@@ -5942,6 +7522,29 @@ class $$FormationsTableAnnotationComposer
           }) => $$TeamsTableAnnotationComposer(
             $db: $db,
             $table: $db.teams,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableAnnotationComposer get seasonId {
+    final $$SeasonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.seasonId,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeasonsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.seasons,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6018,6 +7621,7 @@ class $$FormationsTableTableManager
           Formation,
           PrefetchHooks Function({
             bool teamId,
+            bool seasonId,
             bool gamesRefs,
             bool formationPositionsRefs,
           })
@@ -6037,11 +7641,13 @@ class $$FormationsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<int> teamId = const Value.absent(),
+                Value<int> seasonId = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<int> playerCount = const Value.absent(),
               }) => FormationsCompanion(
                 id: id,
                 teamId: teamId,
+                seasonId: seasonId,
                 name: name,
                 playerCount: playerCount,
               ),
@@ -6049,11 +7655,13 @@ class $$FormationsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 required int teamId,
+                required int seasonId,
                 required String name,
                 required int playerCount,
               }) => FormationsCompanion.insert(
                 id: id,
                 teamId: teamId,
+                seasonId: seasonId,
                 name: name,
                 playerCount: playerCount,
               ),
@@ -6068,6 +7676,7 @@ class $$FormationsTableTableManager
           prefetchHooksCallback:
               ({
                 teamId = false,
+                seasonId = false,
                 gamesRefs = false,
                 formationPositionsRefs = false,
               }) {
@@ -6103,6 +7712,20 @@ class $$FormationsTableTableManager
                                     referencedColumn:
                                         $$FormationsTableReferences
                                             ._teamIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (seasonId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.seasonId,
+                                    referencedTable: $$FormationsTableReferences
+                                        ._seasonIdTable(db),
+                                    referencedColumn:
+                                        $$FormationsTableReferences
+                                            ._seasonIdTable(db)
                                             .id,
                                   )
                                   as T;
@@ -6176,6 +7799,7 @@ typedef $$FormationsTableProcessedTableManager =
       Formation,
       PrefetchHooks Function({
         bool teamId,
+        bool seasonId,
         bool gamesRefs,
         bool formationPositionsRefs,
       })
@@ -6183,6 +7807,7 @@ typedef $$FormationsTableProcessedTableManager =
 typedef $$GamesTableCreateCompanionBuilder =
     GamesCompanion Function({
       Value<int> id,
+      required int seasonId,
       Value<DateTime?> startTime,
       Value<String?> opponent,
       Value<int?> currentShiftId,
@@ -6201,6 +7826,7 @@ typedef $$GamesTableCreateCompanionBuilder =
 typedef $$GamesTableUpdateCompanionBuilder =
     GamesCompanion Function({
       Value<int> id,
+      Value<int> seasonId,
       Value<DateTime?> startTime,
       Value<String?> opponent,
       Value<int?> currentShiftId,
@@ -6220,6 +7846,24 @@ typedef $$GamesTableUpdateCompanionBuilder =
 final class $$GamesTableReferences
     extends BaseReferences<_$AppDb, $GamesTable, Game> {
   $$GamesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $SeasonsTable _seasonIdTable(_$AppDb db) => db.seasons.createAlias(
+    $_aliasNameGenerator(db.games.seasonId, db.seasons.id),
+  );
+
+  $$SeasonsTableProcessedTableManager get seasonId {
+    final $_column = $_itemColumn<int>('season_id')!;
+
+    final manager = $$SeasonsTableTableManager(
+      $_db,
+      $_db.seasons,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_seasonIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static $TeamsTable _teamIdTable(_$AppDb db) =>
       db.teams.createAlias($_aliasNameGenerator(db.games.teamId, db.teams.id));
@@ -6385,6 +8029,29 @@ class $$GamesTableFilterComposer extends Composer<_$AppDb, $GamesTable> {
     column: $table.opponentScore,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$SeasonsTableFilterComposer get seasonId {
+    final $$SeasonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.seasonId,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeasonsTableFilterComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   $$TeamsTableFilterComposer get teamId {
     final $$TeamsTableFilterComposer composer = $composerBuilder(
@@ -6581,6 +8248,29 @@ class $$GamesTableOrderingComposer extends Composer<_$AppDb, $GamesTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
+  $$SeasonsTableOrderingComposer get seasonId {
+    final $$SeasonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.seasonId,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeasonsTableOrderingComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   $$TeamsTableOrderingComposer get teamId {
     final $$TeamsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -6690,6 +8380,29 @@ class $$GamesTableAnnotationComposer extends Composer<_$AppDb, $GamesTable> {
     column: $table.opponentScore,
     builder: (column) => column,
   );
+
+  $$SeasonsTableAnnotationComposer get seasonId {
+    final $$SeasonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.seasonId,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeasonsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   $$TeamsTableAnnotationComposer get teamId {
     final $$TeamsTableAnnotationComposer composer = $composerBuilder(
@@ -6827,6 +8540,7 @@ class $$GamesTableTableManager
           (Game, $$GamesTableReferences),
           Game,
           PrefetchHooks Function({
+            bool seasonId,
             bool teamId,
             bool formationId,
             bool shiftsRefs,
@@ -6848,6 +8562,7 @@ class $$GamesTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                Value<int> seasonId = const Value.absent(),
                 Value<DateTime?> startTime = const Value.absent(),
                 Value<String?> opponent = const Value.absent(),
                 Value<int?> currentShiftId = const Value.absent(),
@@ -6864,6 +8579,7 @@ class $$GamesTableTableManager
                 Value<int> opponentScore = const Value.absent(),
               }) => GamesCompanion(
                 id: id,
+                seasonId: seasonId,
                 startTime: startTime,
                 opponent: opponent,
                 currentShiftId: currentShiftId,
@@ -6882,6 +8598,7 @@ class $$GamesTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
+                required int seasonId,
                 Value<DateTime?> startTime = const Value.absent(),
                 Value<String?> opponent = const Value.absent(),
                 Value<int?> currentShiftId = const Value.absent(),
@@ -6898,6 +8615,7 @@ class $$GamesTableTableManager
                 Value<int> opponentScore = const Value.absent(),
               }) => GamesCompanion.insert(
                 id: id,
+                seasonId: seasonId,
                 startTime: startTime,
                 opponent: opponent,
                 currentShiftId: currentShiftId,
@@ -6921,6 +8639,7 @@ class $$GamesTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
+                seasonId = false,
                 teamId = false,
                 formationId = false,
                 shiftsRefs = false,
@@ -6950,6 +8669,19 @@ class $$GamesTableTableManager
                           dynamic
                         >
                       >(state) {
+                        if (seasonId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.seasonId,
+                                    referencedTable: $$GamesTableReferences
+                                        ._seasonIdTable(db),
+                                    referencedColumn: $$GamesTableReferences
+                                        ._seasonIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
                         if (teamId) {
                           state =
                               state.withJoin(
@@ -7057,6 +8789,7 @@ typedef $$GamesTableProcessedTableManager =
       (Game, $$GamesTableReferences),
       Game,
       PrefetchHooks Function({
+        bool seasonId,
         bool teamId,
         bool formationId,
         bool shiftsRefs,
@@ -9291,6 +11024,8 @@ typedef $$FormationPositionsTableProcessedTableManager =
 class $AppDbManager {
   final _$AppDb _db;
   $AppDbManager(this._db);
+  $$SeasonsTableTableManager get seasons =>
+      $$SeasonsTableTableManager(_db, _db.seasons);
   $$TeamsTableTableManager get teams =>
       $$TeamsTableTableManager(_db, _db.teams);
   $$PlayersTableTableManager get players =>

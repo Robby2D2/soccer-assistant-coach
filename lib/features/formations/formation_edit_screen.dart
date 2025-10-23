@@ -160,8 +160,15 @@ class _FormationEditScreenState extends ConsumerState<FormationEditScreen> {
                     abbreviations: abbreviations,
                   );
                 } else {
+                  // Get the team's season for formation creation
+                  final team = await db.getTeam(widget.teamId);
+                  if (team == null) {
+                    throw Exception('Team not found');
+                  }
+
                   await db.createFormation(
                     teamId: widget.teamId,
+                    seasonId: team.seasonId,
                     name: _nameCtrl.text.trim(),
                     playerCount: count,
                     positions: positions,
