@@ -1,3 +1,7 @@
+Can you add support for seasons?  So when one season is done, the coach should be able to clone the players, formations, etc. into the next season.  All information about the players should be specific to the season including their profile, metrics, etc.  But, they definitely should be the same player such that we could look back at a specific player's stats over several seasons.  If, for example, a player changes their profile picture in one season, it should not affect the previous season's profile picture.  Similarly, if one season a player is absent from the team, it shouldn't affect their presence in other seasons.
+Please keep in mind that this feature will be used once or twice a year - just when the season changes, so it should not have a significant place in the app.  Maybe it could just be in a kebab pull down menu?
+
+
 Before publishing this app, I'd like to make sure all of the dependencies are updated to the latest versions of everything.  Can you do this?
 
 
