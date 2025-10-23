@@ -8,6 +8,7 @@ import '../../utils/files.dart';
 import '../../widgets/player_avatar.dart';
 import '../../core/team_theme_manager.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/standardized_app_bar_actions.dart';
 
 class PlayersScreen extends ConsumerWidget {
   final int teamId;
@@ -100,11 +101,9 @@ class PlayersScreen extends ConsumerWidget {
       appBar: TeamAppBar(
         teamId: teamId,
         titleText: 'Players',
-        actions: [
-          IconButton(
-            tooltip: 'Export CSV',
-            icon: const Icon(Icons.file_download),
-            onPressed: () async {
+        actions: StandardizedAppBarActions.createActionsWidgets(
+          [
+            CommonNavigationActions.export(() async {
               final players = await db.getPlayersByTeam(teamId);
               final rows = players
                   .map(
@@ -122,14 +121,16 @@ class PlayersScreen extends ConsumerWidget {
                   context,
                 ).showSnackBar(SnackBar(content: Text('Saved CSV to $path')));
               }
-            },
-          ),
-          IconButton(
-            tooltip: 'Import CSV',
-            icon: const Icon(Icons.file_upload),
-            onPressed: () => context.push('/team/$teamId/players/import'),
-          ),
-        ],
+            }),
+          ],
+          additionalMenuItems: [
+            NavigationAction(
+              label: 'Import CSV',
+              icon: Icons.file_upload,
+              onPressed: () => context.push('/team/$teamId/players/import'),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {

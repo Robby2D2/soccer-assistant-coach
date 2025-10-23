@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+
 import '../../core/providers.dart';
 import '../../utils/files.dart';
 import '../../core/game_scaffold.dart';
 import '../../core/team_theme_manager.dart';
+import '../../widgets/standardized_app_bar_actions.dart';
 
 class MetricsOverviewScreen extends ConsumerWidget {
   final int gameId;
@@ -17,52 +18,44 @@ class MetricsOverviewScreen extends ConsumerWidget {
       gameId: gameId,
       appBar: TeamAppBar(
         title: GameCompactTitle(gameId: gameId),
-        actions: [
-          IconButton(
-            tooltip: 'Input Metrics',
-            icon: const Icon(Icons.edit),
-            onPressed: () => context.push('/game/$gameId/metrics/input'),
-          ),
-          IconButton(
-            tooltip: 'Export CSV',
-            icon: const Icon(Icons.file_download),
-            onPressed: () async {
-              final game = await db.getGame(gameId);
-              if (game == null) return;
-              final players = await db.getPlayersByTeam(game.teamId);
-              final metrics = await db.watchMetricsForGame(gameId).first;
-              final per = <int, Map<String, int>>{};
-              for (final m in metrics) {
-                final map = per.putIfAbsent(m.playerId, () => {});
-                map[m.metric] = (map[m.metric] ?? 0) + m.value;
-              }
-              final teamMode = await db.getTeamMode(game.teamId);
-              final playedSeconds = teamMode == 'traditional'
-                  ? await db.getTraditionalPlayingTimeByPlayer(gameId)
-                  : await db.playedSecondsByPlayer(gameId);
-              final buffer = StringBuffer();
+        actions: StandardizedAppBarActions.createActionsWidgets([
+          CommonNavigationActions.inputMetrics(context, gameId),
+          CommonNavigationActions.export(() async {
+            final game = await db.getGame(gameId);
+            if (game == null) return;
+            final players = await db.getPlayersByTeam(game.teamId);
+            final metrics = await db.watchMetricsForGame(gameId).first;
+            final per = <int, Map<String, int>>{};
+            for (final m in metrics) {
+              final map = per.putIfAbsent(m.playerId, () => {});
+              map[m.metric] = (map[m.metric] ?? 0) + m.value;
+            }
+            final teamMode = await db.getTeamMode(game.teamId);
+            final playedSeconds = teamMode == 'traditional'
+                ? await db.getTraditionalPlayingTimeByPlayer(gameId)
+                : await db.playedSecondsByPlayer(gameId);
+            final buffer = StringBuffer();
+            buffer.writeln(
+              'playerId,firstName,lastName,minutesPlayed,GOAL,ASSIST,SAVE',
+            );
+            for (final p in players) {
+              final mp = per[p.id] ?? const {};
+              final minutes = (playedSeconds[p.id] ?? 0) / 60.0;
               buffer.writeln(
-                'playerId,firstName,lastName,minutesPlayed,GOAL,ASSIST,SAVE',
+                '${p.id},${p.firstName},${p.lastName},${minutes.toStringAsFixed(1)},${mp['GOAL'] ?? 0},${mp['ASSIST'] ?? 0},${mp['SAVE'] ?? 0}',
               );
-              for (final p in players) {
-                final mp = per[p.id] ?? const {};
-                final minutes = (playedSeconds[p.id] ?? 0) / 60.0;
-                buffer.writeln(
-                  '${p.id},${p.firstName},${p.lastName},${minutes.toStringAsFixed(1)},${mp['GOAL'] ?? 0},${mp['ASSIST'] ?? 0},${mp['SAVE'] ?? 0}',
-                );
-              }
-              final path = await saveTextFile(
-                'game_${gameId}_metrics.csv',
-                buffer.toString(),
-              );
-              if (context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('Saved CSV to $path')));
-              }
-            },
-          ),
-        ],
+            }
+            final path = await saveTextFile(
+              'game_${gameId}_metrics.csv',
+              buffer.toString(),
+            );
+            if (context.mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Saved CSV to $path')));
+            }
+          }),
+        ]),
       ),
       body: FutureBuilder<Game?>(
         future: db.getGame(gameId),

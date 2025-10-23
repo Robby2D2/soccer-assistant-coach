@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+
 import 'package:drift/drift.dart' as drift;
 import '../../core/providers.dart';
 import '../../widgets/player_avatar.dart';
 import '../../widgets/player_panel.dart';
 import '../../core/game_scaffold.dart';
 import '../../core/team_theme_manager.dart';
+import '../../widgets/standardized_app_bar_actions.dart';
 
 class TraditionalGameScreen extends ConsumerStatefulWidget {
   final int gameId;
@@ -531,71 +532,22 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
       gameId: widget.gameId,
       appBar: TeamAppBar(
         title: GameCompactTitle(gameId: widget.gameId),
-        actions: [
-          PopupMenuButton<_TraditionalGameMenuAction>(
-            onSelected: (value) async {
-              switch (value) {
-                case _TraditionalGameMenuAction.edit:
-                  if (!context.mounted) return;
-                  context.push('/game/${widget.gameId}/edit');
-                  break;
-                case _TraditionalGameMenuAction.metricsView:
-                  if (!context.mounted) return;
-                  context.push('/game/${widget.gameId}/metrics');
-                  break;
-                case _TraditionalGameMenuAction.metricsInput:
-                  if (!context.mounted) return;
-                  context.push('/game/${widget.gameId}/metrics/input');
-                  break;
-                case _TraditionalGameMenuAction.attendance:
-                  if (!context.mounted) return;
-                  context.push('/game/${widget.gameId}/attendance');
-                  break;
-                case _TraditionalGameMenuAction.reset:
-                  await _resetTimer();
-                  break;
-                case _TraditionalGameMenuAction.endGame:
-                  if (!context.mounted) return;
-                  context.push('/game/${widget.gameId}/end');
-                  break;
-                case _TraditionalGameMenuAction.home:
-                  if (!context.mounted) return;
-                  context.go('/');
-                  break;
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: _TraditionalGameMenuAction.home,
-                child: Text('Home'),
-              ),
-              PopupMenuItem(
-                value: _TraditionalGameMenuAction.edit,
-                child: Text('Edit game'),
-              ),
-              PopupMenuItem(
-                value: _TraditionalGameMenuAction.metricsView,
-                child: Text('View Metrics'),
-              ),
-              PopupMenuItem(
-                value: _TraditionalGameMenuAction.metricsInput,
-                child: Text('Input Metrics'),
-              ),
-              PopupMenuItem(
-                value: _TraditionalGameMenuAction.attendance,
-                child: Text('Attendance'),
-              ),
-              PopupMenuItem(
-                value: _TraditionalGameMenuAction.reset,
-                child: Text('Reset timer'),
-              ),
-              PopupMenuItem(
-                value: _TraditionalGameMenuAction.endGame,
-                child: Text('End Game'),
-              ),
-            ],
-          ),
-        ],
+        actions: StandardizedAppBarActions.createActionsWidgets(
+          [
+            CommonNavigationActions.home(context),
+            CommonNavigationActions.edit(
+              context,
+              '/game/${widget.gameId}/edit',
+            ),
+          ],
+          additionalMenuItems: [
+            CommonNavigationActions.viewMetrics(context, widget.gameId),
+            CommonNavigationActions.inputMetrics(context, widget.gameId),
+            CommonNavigationActions.attendance(context, widget.gameId),
+            CommonNavigationActions.reset(_resetTimer),
+            CommonNavigationActions.endGame(context, widget.gameId),
+          ],
+        ),
       ),
       body: FutureBuilder<Game?>(
         future: db.getGame(widget.gameId),
@@ -2048,14 +2000,4 @@ class _CompactGameControl extends StatelessWidget {
       ),
     );
   }
-}
-
-enum _TraditionalGameMenuAction {
-  edit,
-  metricsView,
-  metricsInput,
-  attendance,
-  reset,
-  endGame,
-  home,
 }

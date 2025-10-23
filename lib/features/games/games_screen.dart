@@ -6,6 +6,7 @@ import '../../core/providers.dart';
 import '../../widgets/team_accent_widgets.dart';
 import '../../core/team_theme_manager.dart';
 import '../../widgets/team_header.dart';
+import '../../widgets/standardized_app_bar_actions.dart';
 
 class GamesScreen extends ConsumerStatefulWidget {
   final int teamId;
@@ -162,18 +163,16 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
       appBar: TeamAppBar(
         teamId: widget.teamId,
         titleText: 'Games',
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.home),
-            tooltip: 'Home',
-            onPressed: () => context.go('/'),
-          ),
-          IconButton(
-            tooltip: _showArchived ? 'Hide archived' : 'Show archived',
-            icon: Icon(_showArchived ? Icons.inventory_2 : Icons.archive),
-            onPressed: () => setState(() => _showArchived = !_showArchived),
-          ),
-        ],
+        actions: StandardizedAppBarActions.createActionsWidgets(
+          [CommonNavigationActions.home(context)],
+          additionalMenuItems: [
+            NavigationAction(
+              label: _showArchived ? 'Hide Archived' : 'Show Archived',
+              icon: _showArchived ? Icons.inventory_2 : Icons.archive,
+              onPressed: () => setState(() => _showArchived = !_showArchived),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: TeamFloatingActionButton(
         teamId: widget.teamId,
