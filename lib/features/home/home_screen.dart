@@ -21,6 +21,11 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(loc.appTitle),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => context.push('/settings'),
+            tooltip: loc.settings,
+          ),
           PopupMenuButton<String>(
             onSelected: (value) {
               switch (value) {
