@@ -477,21 +477,35 @@ class NotificationService {
     String matchupTitle,
     int? shiftNumber,
   ) async {
+    // Load alarm settings to check if shift alarms are enabled
+    bool shiftsEnabled = true;
+    bool vibrationEnabled = true;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final settingsJson = prefs.getString('alarm_settings');
+      if (settingsJson != null) {
+        final queryParams = Uri.splitQueryString(settingsJson);
+        shiftsEnabled = queryParams['shiftsEnabled']?.toLowerCase() == 'true';
+        vibrationEnabled =
+            queryParams['vibrationEnabled']?.toLowerCase() == 'true';
+      } else {
+        // Fallback to old vibration setting
+        vibrationEnabled = prefs.getBool('alarm_vibration_enabled') ?? true;
+      }
+    } catch (_) {}
+
+    // Don't trigger alarm if shift alarms are disabled
+    if (!shiftsEnabled) {
+      return;
+    }
+
     _shiftAlarmsActive[gameId] = true;
 
     // Cancel the countdown notification
     await _plugin.cancel(_shiftCountdownNotifId + gameId);
 
     final shiftText = shiftNumber == null ? 'Shift' : 'Shift #$shiftNumber';
-
-    // Load vibration preference synchronously fallback to true
-    bool vibrationEnabled = true;
-    try {
-      // SharedPreferences is synchronous after first load
-      // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
-      final prefs = await SharedPreferences.getInstance();
-      vibrationEnabled = prefs.getBool('alarm_vibration_enabled') ?? true;
-    } catch (_) {}
 
     final android = AndroidNotificationDetails(
       'shift_alarm',

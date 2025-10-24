@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../utils/csv.dart';
 
 class RosterImportScreen extends ConsumerStatefulWidget {
@@ -30,13 +31,13 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
   Widget build(BuildContext context) {
     final db = ref.watch(dbProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Import Roster CSV')),
+      appBar: AppBar(title: Text(AppLocalizations.of(context).importRosterCsv)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             Text(
-              'Paste CSV with header: firstName,lastName,jerseyNumber (jersey number is optional)',
+              AppLocalizations.of(context).pasteCsvWithHeader,
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 8),
@@ -46,10 +47,9 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
                 expands: true,
                 maxLines: null,
                 minLines: null,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText:
-                      'firstName,lastName,jerseyNumber\nJane,Doe,10\nJohn,Smith,\nAlex,Johnson,7',
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  hintText: AppLocalizations.of(context).csvHintText,
                 ),
                 onChanged: (_) => _parse(),
               ),
@@ -58,7 +58,7 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Preview: ${_rows.length} rows',
+                AppLocalizations.of(context).previewRows(_rows.length),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
               ),
@@ -78,7 +78,10 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
                       maxLines: 1,
                     ),
                     subtitle: Text(
-                      'Jersey #: ${r['jerseyNumber'] ?? 'N/A'}',
+                      AppLocalizations.of(context).jerseyNumber(
+                        r['jerseyNumber'] ??
+                            AppLocalizations.of(context).jerseyNA,
+                      ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
@@ -121,7 +124,7 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
                       if (!context.mounted) return;
                       Navigator.pop(context);
                     },
-              child: const Text('Import'),
+              child: Text(AppLocalizations.of(context).import),
             ),
           ],
         ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widgets/player_avatar.dart';
 import '../../core/game_scaffold.dart';
 import '../../core/team_theme_manager.dart';
@@ -27,7 +28,7 @@ class _MetricsInputScreenState extends ConsumerState<MetricsInputScreen> {
         title: GameCompactTitle(gameId: widget.gameId),
         actions: [
           IconButton(
-            tooltip: 'View Overview',
+            tooltip: AppLocalizations.of(context).viewOverview,
             icon: const Icon(Icons.analytics),
             onPressed: () => Navigator.of(context).pop(),
           ),
@@ -51,7 +52,7 @@ class _MetricsInputScreenState extends ConsumerState<MetricsInputScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Select Metric Type',
+                        AppLocalizations.of(context).selectMetricType,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 12),
@@ -61,7 +62,7 @@ class _MetricsInputScreenState extends ConsumerState<MetricsInputScreen> {
                           final isSelected = _selectedMetric == metric;
                           return FilterChip(
                             selected: isSelected,
-                            label: Text(_getMetricDisplayName(metric)),
+                            label: Text(_getMetricDisplayName(metric, context)),
                             avatar: Icon(_getMetricIcon(metric), size: 18),
                             onSelected: (selected) {
                               if (selected) {
@@ -127,7 +128,7 @@ class _MetricsInputScreenState extends ConsumerState<MetricsInputScreen> {
                                   '${player.firstName} ${player.lastName}',
                                 ),
                                 subtitle: Text(
-                                  'Current ${_getMetricDisplayName(_selectedMetric)}: $currentValue',
+                                  'Current ${_getMetricDisplayName(_selectedMetric, context)}: $currentValue',
                                 ),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -141,7 +142,7 @@ class _MetricsInputScreenState extends ConsumerState<MetricsInputScreen> {
                                           Icons.remove_circle_outline,
                                         ),
                                         tooltip:
-                                            'Remove ${_getMetricDisplayName(_selectedMetric)}',
+                                            'Remove ${_getMetricDisplayName(_selectedMetric, context)}',
                                         color: Colors.red,
                                       ),
 
@@ -178,7 +179,7 @@ class _MetricsInputScreenState extends ConsumerState<MetricsInputScreen> {
                                         Icons.add_circle_outline,
                                       ),
                                       tooltip:
-                                          'Add ${_getMetricDisplayName(_selectedMetric)}',
+                                          'Add ${_getMetricDisplayName(_selectedMetric, context)}',
                                       color: Colors.green,
                                     ),
                                   ],
@@ -199,7 +200,7 @@ class _MetricsInputScreenState extends ConsumerState<MetricsInputScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showBulkInputDialog(context),
         icon: const Icon(Icons.speed),
-        label: const Text('Quick Entry'),
+        label: Text(AppLocalizations.of(context).quickEntry),
       ),
     );
   }
@@ -216,7 +217,11 @@ class _MetricsInputScreenState extends ConsumerState<MetricsInputScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Added ${_getMetricDisplayName(_selectedMetric)}'),
+          content: Text(
+            AppLocalizations.of(
+              context,
+            ).addedMetric(_getMetricDisplayName(_selectedMetric, context)),
+          ),
           duration: const Duration(milliseconds: 800),
         ),
       );
@@ -256,7 +261,11 @@ class _MetricsInputScreenState extends ConsumerState<MetricsInputScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Removed ${_getMetricDisplayName(_selectedMetric)}'),
+            content: Text(
+              AppLocalizations.of(
+                context,
+              ).removedMetric(_getMetricDisplayName(_selectedMetric, context)),
+            ),
             duration: const Duration(milliseconds: 800),
           ),
         );
@@ -278,14 +287,23 @@ class _MetricsInputScreenState extends ConsumerState<MetricsInputScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: Text('Quick ${_getMetricDisplayName(_selectedMetric)} Entry'),
+          title: Text(
+            AppLocalizations.of(
+              context,
+            ).quickMetricEntry(_getMetricDisplayName(_selectedMetric, context)),
+          ),
           content: SizedBox(
             width: double.maxFinite,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Tap players who scored ${_getMetricDisplayName(_selectedMetric).toLowerCase()}s:',
+                  AppLocalizations.of(context).tapPlayersWhoScored(
+                    _getMetricDisplayName(
+                      _selectedMetric,
+                      context,
+                    ).toLowerCase(),
+                  ),
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 16),
@@ -324,7 +342,7 @@ class _MetricsInputScreenState extends ConsumerState<MetricsInputScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context).cancel),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -349,13 +367,19 @@ class _MetricsInputScreenState extends ConsumerState<MetricsInputScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        'Added $totalAdded ${_getMetricDisplayName(_selectedMetric).toLowerCase()}s',
+                        AppLocalizations.of(context).addedMultipleMetrics(
+                          totalAdded,
+                          _getMetricDisplayName(
+                            _selectedMetric,
+                            context,
+                          ).toLowerCase(),
+                        ),
                       ),
                     ),
                   );
                 }
               },
-              child: const Text('Apply'),
+              child: Text(AppLocalizations.of(context).apply),
             ),
           ],
         ),
@@ -363,14 +387,15 @@ class _MetricsInputScreenState extends ConsumerState<MetricsInputScreen> {
     );
   }
 
-  String _getMetricDisplayName(String metric) {
+  String _getMetricDisplayName(String metric, BuildContext context) {
+    final loc = AppLocalizations.of(context);
     switch (metric) {
       case 'GOAL':
-        return 'Goal';
+        return loc.goal;
       case 'ASSIST':
-        return 'Assist';
+        return loc.assist;
       case 'SAVE':
-        return 'Save';
+        return loc.save;
       default:
         return metric;
     }

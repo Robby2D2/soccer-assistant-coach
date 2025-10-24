@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 
 import '../../utils/csv.dart';
 import '../../utils/files.dart';
@@ -15,6 +16,7 @@ class PlayersScreen extends ConsumerWidget {
   const PlayersScreen({super.key, required this.teamId});
 
   Widget _buildEmptyState(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -36,14 +38,14 @@ class PlayersScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              'No Players Yet',
+              loc.noPlayersYet,
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
-              'Add players to your team roster to get started with lineup management.',
+              loc.addPlayersDescription,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -69,21 +71,21 @@ class PlayersScreen extends ConsumerWidget {
                           PlayersCompanion.insert(
                             teamId: teamId,
                             seasonId: team.seasonId,
-                            firstName: 'New',
-                            lastName: 'Player',
+                            firstName: loc.newPlayer,
+                            lastName: loc.player,
                             isPresent: const drift.Value(true),
                           ),
                         );
                   },
                   icon: const Icon(Icons.person_add),
-                  label: const Text('Add Player'),
+                  label: Text(loc.addPlayer),
                 ),
                 const SizedBox(width: 12),
                 OutlinedButton.icon(
                   onPressed: () =>
                       GoRouter.of(context).push('/team/$teamId/players/import'),
                   icon: const Icon(Icons.file_upload),
-                  label: const Text('Import CSV'),
+                  label: Text(loc.importCsv),
                 ),
               ],
             ),
@@ -95,15 +97,16 @@ class PlayersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final loc = AppLocalizations.of(context);
     final db = ref.watch(dbProvider);
     return TeamScaffold(
       teamId: teamId,
       appBar: TeamAppBar(
         teamId: teamId,
-        titleText: 'Players',
+        titleText: loc.players,
         actions: StandardizedAppBarActions.createActionsWidgets(
           [
-            CommonNavigationActions.export(() async {
+            CommonNavigationActions.export(context, () async {
               final players = await db.getPlayersByTeam(teamId);
               final rows = players
                   .map(
@@ -125,7 +128,7 @@ class PlayersScreen extends ConsumerWidget {
           ],
           additionalMenuItems: [
             NavigationAction(
-              label: 'Import CSV',
+              label: loc.importCsv,
               icon: Icons.file_upload,
               onPressed: () => context.push('/team/$teamId/players/import'),
             ),

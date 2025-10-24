@@ -20,7 +20,7 @@ class MetricsOverviewScreen extends ConsumerWidget {
         title: GameCompactTitle(gameId: gameId),
         actions: StandardizedAppBarActions.createActionsWidgets([
           CommonNavigationActions.inputMetrics(context, gameId),
-          CommonNavigationActions.export(() async {
+          CommonNavigationActions.export(context, () async {
             final game = await db.getGame(gameId);
             if (game == null) return;
             final players = await db.getPlayersByTeam(game.teamId);

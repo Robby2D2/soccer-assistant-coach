@@ -15,16 +15,69 @@ class AlertService {
   /// Now also dismisses the shift alarm notification when acknowledged
   Future<void> triggerShiftChangeAlert({
     required int gameId,
-    int durationSeconds = 60,
+    int? durationSeconds,
   }) async {
     if (_isAlerting) {
       return; // Don't start another alert if one is already active
     }
 
+    // Load alarm settings
+    bool shiftsEnabled = true;
+    int alertDuration = durationSeconds ?? 60;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final settingsJson = prefs.getString('alarm_settings');
+      if (settingsJson != null) {
+        final queryParams = Uri.splitQueryString(settingsJson);
+        shiftsEnabled = queryParams['shiftsEnabled']?.toLowerCase() != 'false';
+        alertDuration =
+            int.tryParse(queryParams['durationSeconds'] ?? '60') ?? 60;
+      }
+    } catch (_) {}
+
+    // Don't trigger alert if shift alarms are disabled
+    if (!shiftsEnabled) {
+      return;
+    }
+
     _isAlerting = true;
 
-    // Start the alert loop
-    await _startAlertLoop(durationSeconds);
+    // Start the alert loop with configured duration
+    await _startAlertLoop(alertDuration);
+  }
+
+  /// Triggers a halftime alert for traditional games
+  Future<void> triggerHalftimeAlert({required int gameId}) async {
+    if (_isAlerting) {
+      return; // Don't start another alert if one is already active
+    }
+
+    // Load alarm settings
+    bool halftimeEnabled = true;
+    int alertDuration = 60;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final settingsJson = prefs.getString('alarm_settings');
+      if (settingsJson != null) {
+        final queryParams = Uri.splitQueryString(settingsJson);
+        halftimeEnabled =
+            queryParams['halftimeEnabled']?.toLowerCase() != 'false';
+        alertDuration =
+            int.tryParse(queryParams['durationSeconds'] ?? '60') ?? 60;
+      }
+    } catch (_) {}
+
+    // Don't trigger alert if halftime alarms are disabled
+    if (!halftimeEnabled) {
+      return;
+    }
+
+    _isAlerting = true;
+
+    // Start the alert loop with configured duration
+    await _startAlertLoop(alertDuration);
   }
 
   /// Stops any active shift change alert and dismisses notification
@@ -80,10 +133,20 @@ class AlertService {
 
   /// Plays haptic feedback with strong vibration
   Future<void> _playHapticFeedback() async {
-    // Check vibration preference
+    // Check vibration preference from new alarm settings
     try {
       final prefs = await SharedPreferences.getInstance();
-      final enabled = prefs.getBool('alarm_vibration_enabled') ?? true;
+      final settingsJson = prefs.getString('alarm_settings');
+      bool enabled = true;
+
+      if (settingsJson != null) {
+        final queryParams = Uri.splitQueryString(settingsJson);
+        enabled = queryParams['vibrationEnabled']?.toLowerCase() == 'true';
+      } else {
+        // Fallback to old vibration setting
+        enabled = prefs.getBool('alarm_vibration_enabled') ?? true;
+      }
+
       if (!enabled) {
         return; // Skip vibration entirely
       }

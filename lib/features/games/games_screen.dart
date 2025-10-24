@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widgets/team_accent_widgets.dart';
 import '../../core/team_theme_manager.dart';
 import '../../widgets/team_header.dart';
@@ -43,13 +44,18 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
     }
   }
 
-  String _getResultText(int teamScore, int opponentScore) {
+  String _getResultText(
+    BuildContext context,
+    int teamScore,
+    int opponentScore,
+  ) {
+    final loc = AppLocalizations.of(context);
     if (teamScore > opponentScore) {
-      return 'Win';
+      return loc.win;
     } else if (teamScore < opponentScore) {
-      return 'Loss';
+      return loc.loss;
     } else {
-      return 'Draw';
+      return loc.draw;
     }
   }
 
@@ -86,6 +92,7 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -107,7 +114,7 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              _showArchived ? 'No Archived Games' : 'No Games Yet',
+              _showArchived ? loc.noArchivedGames : loc.noGamesYet,
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
@@ -115,8 +122,8 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
             const SizedBox(height: 8),
             Text(
               _showArchived
-                  ? 'You don\'t have any archived games.'
-                  : 'Schedule your first game to start tracking match performance and player statistics.',
+                  ? loc.noArchivedGamesDescription
+                  : loc.noGamesYetDescription,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -143,7 +150,7 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
                 context.push('/game/$gameId/edit');
               },
               icon: const Icon(Icons.add),
-              label: const Text('Create Game'),
+              label: Text(loc.createGame),
             ),
           ],
         ),
@@ -158,16 +165,17 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
         ? db.watchTeamGames(widget.teamId, includeArchived: true)
         : db.watchTeamGames(widget.teamId);
 
+    final loc = AppLocalizations.of(context);
     return TeamScaffold(
       teamId: widget.teamId,
       appBar: TeamAppBar(
         teamId: widget.teamId,
-        titleText: 'Games',
+        titleText: loc.games,
         actions: StandardizedAppBarActions.createActionsWidgets(
           [CommonNavigationActions.home(context)],
           additionalMenuItems: [
             NavigationAction(
-              label: _showArchived ? 'Hide Archived' : 'Show Archived',
+              label: _showArchived ? loc.hideArchived : loc.showArchived,
               icon: _showArchived ? Icons.inventory_2 : Icons.archive,
               onPressed: () => setState(() => _showArchived = !_showArchived),
             ),
@@ -337,6 +345,7 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
                                           _pill(
                                             context,
                                             _getResultText(
+                                              context,
                                               game.teamScore,
                                               game.opponentScore,
                                             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widgets/team_header.dart';
 import '../../widgets/team_accent_widgets.dart';
 
@@ -14,6 +15,7 @@ class TeamFormationsScreen extends ConsumerWidget {
     Formation f,
     AppDb db,
   ) async {
+    final loc = AppLocalizations.of(context);
     final positions = await db.getFormationPositions(f.id);
     if (!context.mounted) return;
     showDialog(
@@ -33,7 +35,7 @@ class TeamFormationsScreen extends ConsumerWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(loc.close),
           ),
           FilledButton(
             onPressed: () {
@@ -42,7 +44,7 @@ class TeamFormationsScreen extends ConsumerWidget {
                 context,
               ).push('/team/$teamId/formations/${f.id}/edit');
             },
-            child: const Text('Edit'),
+            child: Text(loc.edit),
           ),
         ],
       ),
@@ -52,13 +54,18 @@ class TeamFormationsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(dbProvider);
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: TeamHeader(teamId: teamId, suffix: ' Formations', logoSize: 28),
+        title: TeamHeader(
+          teamId: teamId,
+          suffix: ' ${loc.formations}',
+          logoSize: 28,
+        ),
       ),
       floatingActionButton: TeamFloatingActionButton(
         teamId: teamId,
-        tooltip: 'Create formation',
+        tooltip: loc.createFormationTooltip,
         onPressed: () => context.push('/team/$teamId/formations/new'),
         child: const Icon(Icons.add),
       ),
@@ -132,7 +139,7 @@ class TeamFormationsScreen extends ConsumerWidget {
                                     ).colorScheme.tertiaryContainer,
                                   ),
                                   child: Text(
-                                    '${f.playerCount} players',
+                                    loc.playersCount(f.playerCount),
                                     style: Theme.of(context)
                                         .textTheme
                                         .labelSmall
@@ -163,20 +170,20 @@ class TeamFormationsScreen extends ConsumerWidget {
                                       await showDialog<bool>(
                                         context: context,
                                         builder: (_) => AlertDialog(
-                                          title: const Text(
-                                            'Delete formation?',
+                                          title: Text(loc.deleteFormationTitle),
+                                          content: Text(
+                                            loc.deleteFormationMessage(f.name),
                                           ),
-                                          content: Text('Delete "${f.name}"?'),
                                           actions: [
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.pop(context, false),
-                                              child: const Text('Cancel'),
+                                              child: Text(loc.cancel),
                                             ),
                                             FilledButton(
                                               onPressed: () =>
                                                   Navigator.pop(context, true),
-                                              child: const Text('Delete'),
+                                              child: Text(loc.delete),
                                             ),
                                           ],
                                         ),
@@ -188,19 +195,19 @@ class TeamFormationsScreen extends ConsumerWidget {
                               }
                             },
                             itemBuilder: (context) => [
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'edit',
                                 child: ListTile(
-                                  leading: Icon(Icons.edit_outlined),
-                                  title: Text('Edit'),
+                                  leading: const Icon(Icons.edit_outlined),
+                                  title: Text(loc.editFormation),
                                   contentPadding: EdgeInsets.zero,
                                 ),
                               ),
-                              const PopupMenuItem(
+                              PopupMenuItem(
                                 value: 'delete',
                                 child: ListTile(
-                                  leading: Icon(Icons.delete_outline),
-                                  title: Text('Delete'),
+                                  leading: const Icon(Icons.delete_outline),
+                                  title: Text(loc.deleteFormation),
                                   contentPadding: EdgeInsets.zero,
                                 ),
                               ),
@@ -220,6 +227,7 @@ class TeamFormationsScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -241,14 +249,14 @@ class TeamFormationsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              'No Formations Yet',
+              loc.noFormationsYet,
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
-              'Create tactical formations to organize your team\'s positioning and strategy.',
+              loc.noFormationsYetDescription,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -259,7 +267,7 @@ class TeamFormationsScreen extends ConsumerWidget {
               onPressed: () =>
                   GoRouter.of(context).push('/team/$teamId/formations/new'),
               icon: const Icon(Icons.add),
-              label: const Text('Create Formation'),
+              label: Text(loc.createFormation),
             ),
           ],
         ),

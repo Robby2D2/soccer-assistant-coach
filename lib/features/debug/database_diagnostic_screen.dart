@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widgets/standardized_app_bar_actions.dart';
 
 class DatabaseDiagnosticScreen extends ConsumerStatefulWidget {
@@ -21,7 +22,7 @@ class _DatabaseDiagnosticScreenState
   Future<void> _runDiagnostics() async {
     setState(() {
       _isRunning = true;
-      _diagnosticResult = 'Running diagnostics...\n';
+      _diagnosticResult = '${AppLocalizations.of(context).runningDiagnostics}\n';
     });
 
     final db = ref.read(dbProvider);
@@ -559,13 +560,14 @@ class _DatabaseDiagnosticScreenState
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Database Diagnostics'),
+        title: Text(loc.databaseDiagnostics),
         actions: StandardizedAppBarActions.createActionsWidgets(
           [
             NavigationAction(
-              label: 'Reset Database',
+              label: loc.resetDatabase,
               icon: Icons.delete_forever,
               onPressed: _isRunning
                   ? null
@@ -574,7 +576,7 @@ class _DatabaseDiagnosticScreenState
                     },
             ),
             NavigationAction(
-              label: 'Run Diagnostics',
+              label: loc.runDiagnostics,
               icon: Icons.refresh,
               onPressed: _isRunning
                   ? null
@@ -585,7 +587,7 @@ class _DatabaseDiagnosticScreenState
           ],
           additionalMenuItems: [
             NavigationAction(
-              label: 'Export Database',
+              label: loc.exportDatabase,
               icon: Icons.file_upload,
               onPressed: !_isRunning
                   ? () {
@@ -594,7 +596,7 @@ class _DatabaseDiagnosticScreenState
                   : null,
             ),
             NavigationAction(
-              label: 'Import Database',
+              label: loc.importDatabase,
               icon: Icons.file_download,
               onPressed: !_isRunning
                   ? () {
@@ -603,7 +605,7 @@ class _DatabaseDiagnosticScreenState
                   : null,
             ),
             NavigationAction(
-              label: 'Create Test Team',
+              label: loc.createTestTeam,
               icon: Icons.add_circle_outline,
               onPressed: !_isRunning
                   ? () {
@@ -636,19 +638,19 @@ class _DatabaseDiagnosticScreenState
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'Database Diagnostic Tool',
+                              loc.databaseDiagnosticTool,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 8),
-                            const Text(
-                              'This tool will help identify database issues and check if your teams are still in the database.',
+                            Text(
+                              loc.databaseDiagnosticDescription,
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 16),
                             FilledButton.icon(
                               onPressed: _runDiagnostics,
                               icon: const Icon(Icons.play_arrow),
-                              label: const Text('Run Diagnostics'),
+                              label: Text(loc.runDiagnostics),
                             ),
                           ],
                         ),
@@ -662,7 +664,7 @@ class _DatabaseDiagnosticScreenState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Diagnostic Results',
+                              loc.diagnosticResults,
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             const SizedBox(height: 16),

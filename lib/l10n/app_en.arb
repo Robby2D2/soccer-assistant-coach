@@ -15,5 +15,365 @@
   "vibrationDisabledStatus": "Vibration disabled",
   "stopAlarmAction": "Stop Alarm",
   "alarmDismissed": "Alarm dismissed",
-  "alarmDismissedBody": "Countdown continuing…"
+  "alarmDismissedBody": "Countdown continuing…",
+  "alarmCustomization": "Alarm Customization",
+  "shiftAlarmsEnabled": "Shift End Alarms",
+  "shiftAlarmsDescription": "Play alarm when shift time expires",
+  "halftimeAlarmsEnabled": "Halftime Alarms",
+  "halftimeAlarmsDescription": "Play alarm at halftime in traditional games",
+  "alarmSounds": "Alarm Sounds",
+  "shiftAlarmSound": "Shift End Sound",
+  "halftimeAlarmSound": "Halftime Sound",
+  "alarmVolume": "Volume",
+  "alarmDuration": "Alarm Duration",
+  "alarmDurationDescription": "How long alarms sound before stopping",
+  "previewSound": "Preview",
+  "seconds": "seconds",
+  "language": "Language",
+  "languageDescription": "Select the application language",
+  
+  "home": "Home",
+  "settings": "Settings",
+  "edit": "Edit",
+  "delete": "Delete",
+  "cancel": "Cancel",
+  "save": "Save",
+  "create": "Create",
+  "done": "Done",
+  "reset": "Reset",
+  "loading": "Loading...",
+  "error": "Error",
+  
+  "teams": "Teams",
+  "createTeam": "Create Team",
+  "teamName": "Team name",
+  "manageTeams": "Manage Teams",
+  "manageSeasons": "Manage Seasons",
+  "noActiveSeasons": "No Active Season",
+  "createSeason": "Create Season",
+  "archived": "Archived",
+  "traditional": "Traditional",
+  "shiftMode": "Shift Mode",
+  "showArchived": "Show Archived",
+  "hideArchived": "Hide Archived",
+  "archive": "Archive",
+  "restore": "Restore",
+  "exportCsv": "Export CSV",
+  "inputMetrics": "Input Metrics",
+  "viewMetrics": "View Metrics",
+  "attendance": "Attendance",
+  "formation": "Formation",
+  "endGame": "End Game",
+  "reset": "Reset",
+  "databaseDiagnostics": "Database Diagnostics",
+  
+  "noArchivedTeams": "No Archived Teams",
+  "noTeamsYet": "No Teams Yet",
+  "noArchivedTeamsDescription": "You don't have any archived teams.",
+  "noTeamsYetDescription": "Create your first team to start managing players, formations, and games.",
+  "noActiveSeasonFound": "No active season found. Please create a season first.",
+  "manageSeasons": "Manage Seasons",
+  "creatingTeamFor": "Creating team for: {seasonName}",
+  "@creatingTeamFor": {
+    "placeholders": {
+      "seasonName": {
+        "type": "String"
+      }
+    }
+  },
+  "noActiveSeason": "No Active Season",
+  "createSeasonToManageTeams": "Create a season to start managing teams.",
+  "errorLoadingTeams": "Error loading teams: {error}",
+  "@errorLoadingTeams": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "restoreTeam": "Restore team",
+  "archiveTeam": "Archive team",
+  "editTeam": "Edit team",
+  "errorLoadingSeason": "Error loading season: {error}",
+  "@errorLoadingSeason": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "games": "Games",
+  "createGame": "Create Game",
+  "win": "Win",
+  "loss": "Loss", 
+  "draw": "Draw",
+  "noArchivedGames": "No Archived Games",
+  "noGamesYet": "No Games Yet",
+  "noArchivedGamesDescription": "You don't have any archived games.",
+  "noGamesYetDescription": "Schedule your first game to start tracking match performance and player statistics.",
+  "startGame": "Start Game",
+  "endGame": "End Game",
+  "pause": "Pause",
+  "resume": "Resume",
+  "start": "Start",
+  "firstHalf": "1st Half",
+  "secondHalf": "2nd Half",
+  "halftime": "Halftime",
+  "overtime": "Overtime",
+  "completeGame": "Complete Game",
+  "completing": "Completing...",
+  
+  "players": "Players",
+  "noPlayersYet": "No Players Yet", 
+  "addPlayersDescription": "Add players to your team roster to get started with lineup management.",
+  "addPlayer": "Add Player",
+  "importCsv": "Import CSV",
+  "newPlayer": "New",
+  "player": "Player",
+  "formations": "Formations",
+  "createFormation": "Create Formation",
+  "attendance": "Attendance",
+  "metrics": "Metrics",
+  "inputMetrics": "Input Metrics",
+  "viewMetrics": "View Metrics",
+  "exportCsv": "Export CSV",
+  
+  "resetToDefaults": "Reset to Defaults",
+  "resetSettings": "Reset Settings",
+  "resetConfirmation": "Are you sure you want to reset all alarm settings to their default values? This action cannot be undone.",
+  "settingsResetToDefaults": "Settings reset to defaults",
+  "currentConfiguration": "Current Configuration",
+  "enabled": "Enabled",
+  "disabled": "Disabled",
+  "on": "On",
+  "off": "Off",
+  
+  "databaseDiagnostics": "Database Diagnostics",
+  "runDiagnostics": "Run Diagnostics",
+  "exportDatabase": "Export Database",
+  "importDatabase": "Import Database",
+  "resetDatabase": "Reset Database",
+  "diagnosticResults": "Diagnostic Results",
+  "databaseDiagnosticTool": "Database Diagnostic Tool",
+  "databaseDiagnosticDescription": "This tool will help identify database issues and check if your teams are still in the database.",
+  "createTestTeam": "Create Test Team",
+  "runningDiagnostics": "Running diagnostics...",
+  "databaseExported": "Database exported successfully",
+  "databaseImported": "Database imported successfully",
+  "exportFailed": "Export failed",
+  "importFailed": "Import failed",
+  "cannotBeUndone": "THIS CANNOT BE UNDONE!",
+  "startOverWarning": "Only proceed if you want to completely start over with a fresh database.",
+  
+  "teamLogo": "Team Logo",
+  "selectTeamLogo": "Select Team Logo",
+  "chooseFromGallery": "Choose from Gallery",
+  "takePhoto": "Take Photo",
+  "teamColorPalette": "Team Color Palette",
+  "pickColor": "Pick Color",
+  "advancedPicker": "Advanced Picker",
+  "color": "Color",
+  
+  "teamManagementHub": "Team Management Hub",
+  "teamManagement": "Team Management",
+  "gameManagement": "Game Management",
+  "manageTeamRosterDescription": "Manage team roster and player status",
+  "setupTacticalFormationsDescription": "Set up tactical formations and positions",
+  "scheduleGamesDescription": "Schedule games and track match history",
+  "viewPlayerStatisticsDescription": "View all-time player statistics and performance",
+  "teamMetrics": "Team Metrics",
+  
+  "activeGames": "Active Games",
+  "noActiveGames": "No Active Games", 
+  "startGameForQuickAccess": "Start a game to see it here for quick access",
+  "quickActions": "Quick Actions",
+  "errorWithDetails": "Error: {error}",
+  "@errorWithDetails": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "languageChangedTo": "Language changed to",
+  
+  "close": "Close",
+  "noFormationsYet": "No Formations Yet",
+  "noFormationsYetDescription": "Create tactical formations to organize your team's positioning and strategy.",
+  "createFormationTooltip": "Create formation",
+  "editFormation": "Edit Formation",
+  "deleteFormation": "Delete Formation",
+  "deleteFormationTitle": "Delete formation?",
+  "deleteFormationMessage": "Delete \"{formationName}\"?",
+  "@deleteFormationMessage": {
+    "placeholders": {
+      "formationName": {
+        "type": "String"
+      }
+    }
+  },
+  "playersCount": "{count} players",
+  "@playersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  
+  "noDate": "No date",
+  "opponent": "Opponent",
+  "pickDateTime": "Pick date/time",
+  "formation": "Formation",
+  "noFormation": "No formation",
+  "manageFormations": "Manage formations",
+  "manageFormationsTooltip": "Manage formations",
+  "noPlayersFoundForTeam": "No players found for this team.",
+  "playerIdLabel": "Player ID: {playerId}",
+  "@playerIdLabel": {
+    "placeholders": {
+      "playerId": {
+        "type": "int"
+      }
+    }
+  },
+  "manage": "Manage",
+  
+  "selectMetricType": "Select Metric Type",
+  "quickEntry": "Quick Entry",
+  "viewOverview": "View Overview",
+  "addedMetric": "Added {metric}",
+  "@addedMetric": {
+    "placeholders": {
+      "metric": {
+        "type": "String"
+      }
+    }
+  },
+  "removedMetric": "Removed {metric}",
+  "@removedMetric": {
+    "placeholders": {
+      "metric": {
+        "type": "String"
+      }
+    }
+  },
+  "quickMetricEntry": "Quick {metric} Entry",
+  "@quickMetricEntry": {
+    "placeholders": {
+      "metric": {
+        "type": "String"
+      }
+    }
+  },
+  "tapPlayersWhoScored": "Tap players who scored {metric}s:",
+  "@tapPlayersWhoScored": {
+    "placeholders": {
+      "metric": {
+        "type": "String"
+      }
+    }
+  },
+  "apply": "Apply",
+  "addedMultipleMetrics": "Added {count} {metric}s",
+  "@addedMultipleMetrics": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "metric": {
+        "type": "String"
+      }
+    }
+  },
+  "goal": "Goal",
+  "assist": "Assist",
+  "save": "Save",
+  
+  "importRosterCsv": "Import Roster CSV",
+  "pasteCsvWithHeader": "Paste CSV with header: firstName,lastName,jerseyNumber (jersey number is optional)",
+  "csvHintText": "firstName,lastName,jerseyNumber\nJane,Doe,10\nJohn,Smith,\nAlex,Johnson,7",
+  "previewRows": "Preview: {count} rows",
+  "@previewRows": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "jerseyNumber": "Jersey #: {number}",
+  "@jerseyNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "jerseyNA": "N/A",
+  "import": "Import",
+  
+  "creatingSeason": "Creating season...",
+  "seasonCreatedSuccessfully": "Season created successfully!",
+  "errorCreatingSeason": "Error creating season: {error}",
+  "@errorCreatingSeason": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "cloningSeason": "Cloning season...",
+  "seasonClonedSuccessfully": "Season cloned successfully!",
+  "errorCloningSeason": "Error cloning season: {error}",
+  "@errorCloningSeason": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "seasonActivated": "Season activated!",
+  "errorActivatingSeason": "Error activating season: {error}",
+  "@errorActivatingSeason": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "archiveSeason": "Archive Season",
+  "seasonArchived": "Season archived!",
+  "errorArchivingSeason": "Error archiving season: {error}",
+  "@errorArchivingSeason": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "seasonUpdated": "Season updated!",
+  "errorUpdatingSeason": "Error updating season: {error}",
+  "@errorUpdatingSeason": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "activate": "Activate",
+  "cloneSeason": "Clone Season",
+  "createNewSeason": "Create New Season",
+  "startDate": "Start Date",
+  "endDateOptional": "End Date (Optional)",
+  "noExistingTeamsToClone": "No existing teams to clone",
+  "cloneSeasonTitle": "Clone \"{seasonName}\"",
+  "@cloneSeasonTitle": {
+    "placeholders": {
+      "seasonName": {
+        "type": "String"
+      }
+    }
+  }
 }

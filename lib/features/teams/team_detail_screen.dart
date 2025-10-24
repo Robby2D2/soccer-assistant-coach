@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../widgets/team_header.dart';
 import '../../core/team_theme_manager.dart';
 import '../../widgets/team_color_picker.dart';
@@ -85,6 +86,7 @@ class TeamDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final loc = AppLocalizations.of(context);
     final db = ref.watch(dbProvider);
 
     return TeamScaffold(
@@ -107,13 +109,13 @@ class TeamDetailScreen extends ConsumerWidget {
               margin: const EdgeInsets.only(bottom: 24),
               child: TeamBrandedHeader(
                 teamId: id,
-                subtitle: 'Team Management Hub',
+                subtitle: loc.teamManagementHub,
               ),
             ),
 
             // Management sections
             Text(
-              'Team Management',
+              loc.teamManagement,
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
@@ -131,8 +133,8 @@ class TeamDetailScreen extends ConsumerWidget {
                     _buildManagementCard(
                       context,
                       icon: Icons.people,
-                      title: 'Players',
-                      subtitle: 'Manage team roster and player status',
+                      title: loc.players,
+                      subtitle: loc.manageTeamRosterDescription,
                       color: Theme.of(context).colorScheme.primaryContainer,
                       iconColor: Theme.of(context).colorScheme.primary,
                       team: team,
@@ -144,8 +146,8 @@ class TeamDetailScreen extends ConsumerWidget {
                     _buildManagementCard(
                       context,
                       icon: Icons.grid_view_rounded,
-                      title: 'Formations',
-                      subtitle: 'Set up tactical formations and positions',
+                      title: loc.formations,
+                      subtitle: loc.setupTacticalFormationsDescription,
                       color: Theme.of(context).colorScheme.secondaryContainer,
                       iconColor: Theme.of(context).colorScheme.secondary,
                       team: team,
@@ -156,7 +158,7 @@ class TeamDetailScreen extends ConsumerWidget {
 
                     // Game management section
                     Text(
-                      'Game Management',
+                      loc.gameManagement,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -167,8 +169,8 @@ class TeamDetailScreen extends ConsumerWidget {
                     _buildManagementCard(
                       context,
                       icon: Icons.sports_soccer,
-                      title: 'Games',
-                      subtitle: 'Schedule games and track match history',
+                      title: loc.games,
+                      subtitle: loc.scheduleGamesDescription,
                       color: Theme.of(context).colorScheme.tertiaryContainer,
                       iconColor: Theme.of(context).colorScheme.tertiary,
                       team: team,
@@ -180,9 +182,8 @@ class TeamDetailScreen extends ConsumerWidget {
                     _buildManagementCard(
                       context,
                       icon: Icons.analytics,
-                      title: 'Team Metrics',
-                      subtitle:
-                          'View all-time player statistics and performance',
+                      title: loc.teamMetrics,
+                      subtitle: loc.viewPlayerStatisticsDescription,
                       color: Theme.of(context).colorScheme.surfaceContainerHigh,
                       iconColor: Theme.of(context).colorScheme.onSurface,
                       team: team,

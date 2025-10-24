@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../core/season_provider.dart';
+import '../../l10n/app_localizations.dart';
 
 import '../../widgets/team_panels.dart';
 import '../../core/team_theme_manager.dart';
@@ -19,6 +20,7 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
   bool _showArchived = false;
 
   Widget _buildEmptyState(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -40,7 +42,7 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              _showArchived ? 'No Archived Teams' : 'No Teams Yet',
+              _showArchived ? loc.noArchivedTeams : loc.noTeamsYet,
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
@@ -48,8 +50,8 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
             const SizedBox(height: 8),
             Text(
               _showArchived
-                  ? 'You don\'t have any archived teams.'
-                  : 'Create your first team to start managing players, formations, and games.',
+                  ? loc.noArchivedTeamsDescription
+                  : loc.noTeamsYetDescription,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -60,7 +62,7 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
               onPressed: () =>
                   _showCreateTeamDialog(context, ref.read(dbProvider)),
               icon: const Icon(Icons.add),
-              label: const Text('Create Team'),
+              label: Text(loc.createTeam),
             ),
           ],
         ),
@@ -69,17 +71,16 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
   }
 
   void _showCreateTeamDialog(BuildContext context, AppDb db) async {
+    final loc = AppLocalizations.of(context);
     // Get current season first
     final currentSeason = await db.getActiveSeason();
     if (currentSeason == null) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text(
-              'No active season found. Please create a season first.',
-            ),
+            content: Text(loc.noActiveSeasonFound),
             action: SnackBarAction(
-              label: 'Manage Seasons',
+              label: loc.manageSeasons,
               onPressed: () => context.push('/seasons'),
             ),
           ),
@@ -94,12 +95,12 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Create Team'),
+        title: Text(loc.createTeam),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Creating team for: ${currentSeason.name}',
+              loc.creatingTeamFor(currentSeason.name),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
               ),
@@ -107,14 +108,14 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: 'Team name'),
+              decoration: InputDecoration(labelText: loc.teamName),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(loc.cancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -124,7 +125,7 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
               if (!context.mounted) return;
               Navigator.of(context).pop();
             },
-            child: const Text('Create'),
+            child: Text(loc.create),
           ),
         ],
       ),
@@ -136,14 +137,15 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
     final db = ref.watch(dbProvider);
     final currentSeasonAsync = ref.watch(currentSeasonProvider);
 
+    final loc = AppLocalizations.of(context);
     return TeamScaffold(
       appBar: TeamAppBar(
-        titleText: 'Teams',
+        titleText: loc.teams,
         actions: StandardizedAppBarActions.createActionsWidgets(
           [],
           additionalMenuItems: [
             NavigationAction(
-              label: _showArchived ? 'Hide Archived' : 'Show Archived',
+              label: _showArchived ? loc.hideArchived : loc.showArchived,
               icon: _showArchived ? Icons.inventory_2 : Icons.archive,
               onPressed: () => setState(() => _showArchived = !_showArchived),
             ),
@@ -165,13 +167,13 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
                   children: [
                     const Icon(Icons.calendar_today, size: 64),
                     const SizedBox(height: 16),
-                    const Text('No Active Season'),
+                    Text(loc.noActiveSeason),
                     const SizedBox(height: 8),
-                    const Text('Create a season to start managing teams.'),
+                    Text(loc.createSeasonToManageTeams),
                     const SizedBox(height: 16),
                     FilledButton(
                       onPressed: () => context.push('/seasons'),
-                      child: const Text('Manage Seasons'),
+                      child: Text(loc.manageSeasons),
                     ),
                   ],
                 ),
@@ -188,8 +190,11 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
               }
 
               if (teamsSnapshot.hasError) {
+                final loc = AppLocalizations.of(context);
                 return Center(
-                  child: Text('Error loading teams: ${teamsSnapshot.error}'),
+                  child: Text(
+                    loc.errorLoadingTeams(teamsSnapshot.error.toString()),
+                  ),
                 );
               }
 
@@ -217,7 +222,7 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
                           icon: Icon(
                             archived ? Icons.unarchive : Icons.archive,
                           ),
-                          tooltip: archived ? 'Restore team' : 'Archive team',
+                          tooltip: archived ? loc.restoreTeam : loc.archiveTeam,
                           onPressed: () async {
                             await db.setTeamArchived(
                               team.id,
@@ -227,7 +232,7 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.edit_outlined),
-                          tooltip: 'Edit team',
+                          tooltip: loc.editTeam,
                           onPressed: () =>
                               context.push('/team/${team.id}/edit'),
                         ),
@@ -240,8 +245,10 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) =>
-            Center(child: Text('Error loading season: $error')),
+        error: (error, stack) {
+          final loc = AppLocalizations.of(context);
+          return Center(child: Text(loc.errorLoadingSeason(error.toString())));
+        },
       ),
     );
   }

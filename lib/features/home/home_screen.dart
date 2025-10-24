@@ -7,6 +7,7 @@ import '../../data/services/stopwatch_service.dart';
 import '../../../widgets/team_logo_widget.dart';
 import '../../widgets/team_color_picker.dart';
 import '../../utils/team_theme.dart'; // For TeamColorContrast
+import '../../l10n/app_localizations.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -14,19 +15,18 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(dbProvider);
+    final loc = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Soccer Assistant Coach'),
+        title: Text(loc.appTitle),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
-            onPressed: () => context.push('/settings'),
-          ),
           PopupMenuButton<String>(
             onSelected: (value) {
               switch (value) {
+                case 'settings':
+                  context.push('/settings');
+                  break;
                 case 'seasons':
                   context.push('/seasons');
                   break;
@@ -36,23 +36,33 @@ class HomeScreen extends ConsumerWidget {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'seasons',
+              PopupMenuItem(
+                value: 'settings',
                 child: Row(
                   children: [
-                    Icon(Icons.calendar_today),
-                    SizedBox(width: 8),
-                    Expanded(child: Text('Manage Seasons')),
+                    const Icon(Icons.settings),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(loc.settings)),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
+                value: 'seasons',
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(loc.manageSeasons)),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
                 value: 'debug',
                 child: Row(
                   children: [
-                    Icon(Icons.bug_report),
-                    SizedBox(width: 8),
-                    Expanded(child: Text('Database Diagnostics')),
+                    const Icon(Icons.bug_report),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(loc.databaseDiagnostics)),
                   ],
                 ),
               ),
@@ -87,7 +97,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Active Games',
+                      loc.activeGames,
                       style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(
                             color: Theme.of(context).colorScheme.primary,
@@ -138,7 +148,7 @@ class HomeScreen extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'No Active Games',
+                                    loc.noActiveGames,
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleMedium
@@ -149,7 +159,7 @@ class HomeScreen extends ConsumerWidget {
                                         ),
                                   ),
                                   Text(
-                                    'Start a game to see it here for quick access',
+                                    loc.startGameForQuickAccess,
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: Theme.of(
@@ -199,7 +209,7 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Quick Actions',
+                        loc.quickActions,
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w600),
                       ),
@@ -221,11 +231,11 @@ class HomeScreen extends ConsumerWidget {
                                   children: [
                                     const Icon(Icons.calendar_today, size: 48),
                                     const SizedBox(height: 16),
-                                    const Text('No Active Season'),
+                                    Text(loc.noActiveSeasons),
                                     const SizedBox(height: 16),
                                     FilledButton(
                                       onPressed: () => context.push('/seasons'),
-                                      child: const Text('Create Season'),
+                                      child: Text(loc.createSeason),
                                     ),
                                   ],
                                 ),
@@ -252,8 +262,9 @@ class HomeScreen extends ConsumerWidget {
                                     cards.add(
                                       _QuickActionCard(
                                         icon: Icons.groups_outlined,
-                                        title: 'Manage Teams',
-                                        subtitle: '${allTeams.length} teams',
+                                        title: loc.manageTeams,
+                                        subtitle:
+                                            '${allTeams.length} ${loc.teams.toLowerCase()}',
                                         onTap: () => context.push('/teams'),
                                       ),
                                     );

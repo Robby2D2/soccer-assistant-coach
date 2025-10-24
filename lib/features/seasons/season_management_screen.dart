@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/season_provider.dart';
 import '../../core/team_theme_manager.dart';
 
@@ -31,13 +32,13 @@ class _SeasonManagementScreenState
           showDialog(
             context: context,
             barrierDismissible: false,
-            builder: (context) => const AlertDialog(
+            builder: (context) => AlertDialog(
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Creating season...'),
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(AppLocalizations.of(context).creatingSeason),
                 ],
               ),
             ),
@@ -66,15 +67,23 @@ class _SeasonManagementScreenState
         if (mounted) {
           Navigator.of(context).pop(); // Close loading dialog
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Season created successfully!')),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context).seasonCreatedSuccessfully,
+              ),
+            ),
           );
         }
       } catch (e) {
         if (mounted) {
           Navigator.of(context).pop(); // Close loading dialog
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error creating season: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context).errorCreatingSeason(e.toString()),
+              ),
+            ),
+          );
         }
       }
     }
@@ -558,7 +567,7 @@ class _CreateSeasonDialogState extends State<_CreateSeasonDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Create New Season'),
+      title: Text(AppLocalizations.of(context).createNewSeason),
       content: SizedBox(
         width: 500,
         child: Column(
@@ -683,7 +692,7 @@ class _CreateSeasonDialogState extends State<_CreateSeasonDialog> {
                   'selectedTeamIds': _selectedTeamIds.toList(),
                 })
               : null,
-          child: const Text('Create'),
+          child: Text(AppLocalizations.of(context).create),
         ),
       ],
     );

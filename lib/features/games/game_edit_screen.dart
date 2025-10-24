@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../l10n/app_localizations.dart';
 import '../../core/game_scaffold.dart';
 import '../../core/team_theme_manager.dart';
 
@@ -77,8 +78,9 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
     super.dispose();
   }
 
-  String _formatDateTime(DateTime? value) {
-    if (value == null) return 'No date';
+  String _formatDateTime(DateTime? value, BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    if (value == null) return loc.noDate;
     final year = value.year.toString().padLeft(4, '0');
     final month = value.month.toString().padLeft(2, '0');
     final day = value.day.toString().padLeft(2, '0');
@@ -160,7 +162,7 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                       ),
                     )
                   : const Icon(Icons.save),
-              label: const Text('Save'),
+              label: Text(AppLocalizations.of(context).save),
             ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -170,13 +172,15 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                 children: [
                   TextField(
                     controller: _opp,
-                    decoration: const InputDecoration(labelText: 'Opponent'),
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(context).opponent,
+                    ),
                     enabled: !_saving,
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: Text(_formatDateTime(_start))),
+                      Expanded(child: Text(_formatDateTime(_start, context))),
                       TextButton(
                         onPressed: _saving
                             ? null
@@ -203,7 +207,7 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                                 );
                                 setState(() => _start = dt);
                               },
-                        child: const Text('Pick date/time'),
+                        child: Text(AppLocalizations.of(context).pickDateTime),
                       ),
                     ],
                   ),
@@ -236,9 +240,11 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                                 }();
                               }
                               final items = <DropdownMenuItem<int?>>[
-                                const DropdownMenuItem<int?>(
+                                DropdownMenuItem<int?>(
                                   value: null,
-                                  child: Text('No formation'),
+                                  child: Text(
+                                    AppLocalizations.of(context).noFormation,
+                                  ),
                                 ),
                                 ...formations.map(
                                   (f) => DropdownMenuItem<int?>(
@@ -248,9 +254,11 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                                 ),
                               ];
                               return InputDecorator(
-                                decoration: const InputDecoration(
-                                  labelText: 'Formation',
-                                  border: OutlineInputBorder(),
+                                decoration: InputDecoration(
+                                  labelText: AppLocalizations.of(
+                                    context,
+                                  ).formation,
+                                  border: const OutlineInputBorder(),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<int?>(
@@ -270,7 +278,9 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                         ),
                         const SizedBox(width: 8),
                         Tooltip(
-                          message: 'Manage formations',
+                          message: AppLocalizations.of(
+                            context,
+                          ).manageFormationsTooltip,
                           child: OutlinedButton.icon(
                             onPressed: _saving || _teamId == null
                                 ? null
@@ -278,7 +288,7 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                                     '/team/${_teamId!}/formations',
                                   ),
                             icon: const Icon(Icons.grid_view_rounded),
-                            label: const Text('Manage'),
+                            label: Text(AppLocalizations.of(context).manage),
                           ),
                         ),
                       ],
@@ -286,8 +296,12 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                   if (!widget.basicOnly)
                     Expanded(
                       child: _players.isEmpty
-                          ? const Center(
-                              child: Text('No players found for this team.'),
+                          ? Center(
+                              child: Text(
+                                AppLocalizations.of(
+                                  context,
+                                ).noPlayersFoundForTeam,
+                              ),
                             )
                           : ListView.separated(
                               itemCount: _players.length,
@@ -305,7 +319,9 @@ class _GameEditScreenState extends ConsumerState<GameEditScreen> {
                                     maxLines: 1,
                                   ),
                                   subtitle: Text(
-                                    'Player ID: ${player.id}',
+                                    AppLocalizations.of(
+                                      context,
+                                    ).playerIdLabel(player.id),
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 1,
                                   ),

@@ -544,7 +544,7 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
             CommonNavigationActions.viewMetrics(context, widget.gameId),
             CommonNavigationActions.inputMetrics(context, widget.gameId),
             CommonNavigationActions.attendance(context, widget.gameId),
-            CommonNavigationActions.reset(_resetTimer),
+            CommonNavigationActions.reset(context, _resetTimer),
             CommonNavigationActions.endGame(context, widget.gameId),
           ],
         ),
