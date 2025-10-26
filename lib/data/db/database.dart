@@ -2760,10 +2760,18 @@ extension AutoRotation on AppDb {
       // 1. Import teams first
       if (importData.containsKey('teams')) {
         final teams = importData['teams'] as List;
-        for (final teamData in teams) {
-          await into(
-            this.teams,
-          ).insert(Team.fromJson(teamData as Map<String, dynamic>));
+        for (var i = 0; i < teams.length; i++) {
+          final teamData = teams[i];
+          try {
+            await into(this.teams).insert(
+              Team.fromJson(teamData as Map<String, dynamic>),
+            );
+          } catch (e, st) {
+            debugPrint('❌ Failed to insert team at index $i: $teamData');
+            debugPrint('Error: $e');
+            debugPrint(st.toString());
+            rethrow;
+          }
         }
         debugPrint('✅ Imported ${teams.length} teams');
       }
@@ -2771,10 +2779,18 @@ extension AutoRotation on AppDb {
       // 2. Import players
       if (importData.containsKey('players')) {
         final players = importData['players'] as List;
-        for (final playerData in players) {
-          await into(
-            this.players,
-          ).insert(Player.fromJson(playerData as Map<String, dynamic>));
+        for (var i = 0; i < players.length; i++) {
+          final playerData = players[i];
+          try {
+            await into(this.players).insert(
+              Player.fromJson(playerData as Map<String, dynamic>),
+            );
+          } catch (e, st) {
+            debugPrint('❌ Failed to insert player at index $i: $playerData');
+            debugPrint('Error: $e');
+            debugPrint(st.toString());
+            rethrow;
+          }
         }
         debugPrint('✅ Imported ${players.length} players');
       }
@@ -2782,10 +2798,18 @@ extension AutoRotation on AppDb {
       // 3. Import formations
       if (importData.containsKey('formations')) {
         final formations = importData['formations'] as List;
-        for (final formationData in formations) {
-          await into(
-            this.formations,
-          ).insert(Formation.fromJson(formationData as Map<String, dynamic>));
+        for (var i = 0; i < formations.length; i++) {
+          final formationData = formations[i];
+          try {
+            await into(this.formations).insert(
+              Formation.fromJson(formationData as Map<String, dynamic>),
+            );
+          } catch (e, st) {
+            debugPrint('❌ Failed to insert formation at index $i: $formationData');
+            debugPrint('Error: $e');
+            debugPrint(st.toString());
+            rethrow;
+          }
         }
         debugPrint('✅ Imported ${formations.length} formations');
       }
@@ -2793,10 +2817,18 @@ extension AutoRotation on AppDb {
       // 4. Import formation positions
       if (importData.containsKey('formationPositions')) {
         final positions = importData['formationPositions'] as List;
-        for (final positionData in positions) {
-          await into(formationPositions).insert(
-            FormationPosition.fromJson(positionData as Map<String, dynamic>),
-          );
+        for (var i = 0; i < positions.length; i++) {
+          final positionData = positions[i];
+          try {
+            await into(formationPositions).insert(
+              FormationPosition.fromJson(positionData as Map<String, dynamic>),
+            );
+          } catch (e, st) {
+            debugPrint('❌ Failed to insert formationPosition at index $i: $positionData');
+            debugPrint('Error: $e');
+            debugPrint(st.toString());
+            rethrow;
+          }
         }
         debugPrint('✅ Imported ${positions.length} formation positions');
       }
@@ -2804,10 +2836,28 @@ extension AutoRotation on AppDb {
       // 5. Import games
       if (importData.containsKey('games')) {
         final games = importData['games'] as List;
-        for (final gameData in games) {
-          await into(
-            this.games,
-          ).insert(Game.fromJson(gameData as Map<String, dynamic>));
+        for (var i = 0; i < games.length; i++) {
+          final gameData = games[i];
+          // Normalize timestamp fields that may be exported as epoch millis
+          final g = Map<String, dynamic>.from(gameData as Map<String, dynamic>);
+          for (final key in ['startTime', 'timerStartTime', 'endTime']) {
+            if (g.containsKey(key) && g[key] is int) {
+              try {
+                g[key] = DateTime.fromMillisecondsSinceEpoch(g[key] as int).toIso8601String();
+              } catch (_) {
+                // leave as-is on failure
+              }
+            }
+          }
+
+          try {
+            await into(this.games).insert(Game.fromJson(g));
+          } catch (e, st) {
+            debugPrint('❌ Failed to insert game at index $i: $g');
+            debugPrint('Error: $e');
+            debugPrint(st.toString());
+            rethrow;
+          }
         }
         debugPrint('✅ Imported ${games.length} games');
       }
@@ -2815,10 +2865,18 @@ extension AutoRotation on AppDb {
       // 6. Import game players
       if (importData.containsKey('gamePlayers')) {
         final gamePlayers = importData['gamePlayers'] as List;
-        for (final gamePlayerData in gamePlayers) {
-          await into(
-            this.gamePlayers,
-          ).insert(GamePlayer.fromJson(gamePlayerData as Map<String, dynamic>));
+        for (var i = 0; i < gamePlayers.length; i++) {
+          final gamePlayerData = gamePlayers[i];
+          try {
+            await into(this.gamePlayers).insert(
+              GamePlayer.fromJson(gamePlayerData as Map<String, dynamic>),
+            );
+          } catch (e, st) {
+            debugPrint('❌ Failed to insert gamePlayer at index $i: $gamePlayerData');
+            debugPrint('Error: $e');
+            debugPrint(st.toString());
+            rethrow;
+          }
         }
         debugPrint('✅ Imported ${gamePlayers.length} game players');
       }
@@ -2826,10 +2884,18 @@ extension AutoRotation on AppDb {
       // 7. Import shifts
       if (importData.containsKey('shifts')) {
         final shifts = importData['shifts'] as List;
-        for (final shiftData in shifts) {
-          await into(
-            this.shifts,
-          ).insert(Shift.fromJson(shiftData as Map<String, dynamic>));
+        for (var i = 0; i < shifts.length; i++) {
+          final shiftData = shifts[i];
+          try {
+            await into(this.shifts).insert(
+              Shift.fromJson(shiftData as Map<String, dynamic>),
+            );
+          } catch (e, st) {
+            debugPrint('❌ Failed to insert shift at index $i: $shiftData');
+            debugPrint('Error: $e');
+            debugPrint(st.toString());
+            rethrow;
+          }
         }
         debugPrint('✅ Imported ${shifts.length} shifts');
       }
@@ -2837,10 +2903,18 @@ extension AutoRotation on AppDb {
       // 8. Import player shifts
       if (importData.containsKey('playerShifts')) {
         final playerShifts = importData['playerShifts'] as List;
-        for (final playerShiftData in playerShifts) {
-          await into(this.playerShifts).insert(
-            PlayerShift.fromJson(playerShiftData as Map<String, dynamic>),
-          );
+        for (var i = 0; i < playerShifts.length; i++) {
+          final playerShiftData = playerShifts[i];
+          try {
+            await into(this.playerShifts).insert(
+              PlayerShift.fromJson(playerShiftData as Map<String, dynamic>),
+            );
+          } catch (e, st) {
+            debugPrint('❌ Failed to insert playerShift at index $i: $playerShiftData');
+            debugPrint('Error: $e');
+            debugPrint(st.toString());
+            rethrow;
+          }
         }
         debugPrint('✅ Imported ${playerShifts.length} player shifts');
       }
@@ -2848,10 +2922,18 @@ extension AutoRotation on AppDb {
       // 9. Import player metrics
       if (importData.containsKey('playerMetrics')) {
         final playerMetrics = importData['playerMetrics'] as List;
-        for (final metricData in playerMetrics) {
-          await into(
-            this.playerMetrics,
-          ).insert(PlayerMetric.fromJson(metricData as Map<String, dynamic>));
+        for (var i = 0; i < playerMetrics.length; i++) {
+          final metricData = playerMetrics[i];
+          try {
+            await into(this.playerMetrics).insert(
+              PlayerMetric.fromJson(metricData as Map<String, dynamic>),
+            );
+          } catch (e, st) {
+            debugPrint('❌ Failed to insert playerMetric at index $i: $metricData');
+            debugPrint('Error: $e');
+            debugPrint(st.toString());
+            rethrow;
+          }
         }
         debugPrint('✅ Imported ${playerMetrics.length} player metrics');
       }
@@ -2859,10 +2941,18 @@ extension AutoRotation on AppDb {
       // 10. Import player position totals
       if (importData.containsKey('playerPositionTotals')) {
         final totals = importData['playerPositionTotals'] as List;
-        for (final totalData in totals) {
-          await into(playerPositionTotals).insert(
-            PlayerPositionTotal.fromJson(totalData as Map<String, dynamic>),
-          );
+        for (var i = 0; i < totals.length; i++) {
+          final totalData = totals[i];
+          try {
+            await into(playerPositionTotals).insert(
+              PlayerPositionTotal.fromJson(totalData as Map<String, dynamic>),
+            );
+          } catch (e, st) {
+            debugPrint('❌ Failed to insert playerPositionTotal at index $i: $totalData');
+            debugPrint('Error: $e');
+            debugPrint(st.toString());
+            rethrow;
+          }
         }
         debugPrint('✅ Imported ${totals.length} position totals');
       }
