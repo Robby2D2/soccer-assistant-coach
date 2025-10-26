@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Sitemap not provided. Add a sitemap entry below if desired:
+# Sitemap: https://Robby2D2.github.io/soccer-assistant-coach/sitemap.xml
