@@ -70,15 +70,5 @@ We may update this policy to reflect changes in the App or legal requirements. T
 Contact
 -------
 
-For questions about this privacy policy, please contact the developer at: your-email@example.com
+For questions about this privacy policy, please contact the developer at: developer@useunix.com
 
-Note about hosting this policy
-------------------------------
-
-Google Play requires a public URL for the privacy policy. You can host this file on:
-
-- your website (recommended), or
-- GitHub Pages / Raw GitHub URL (for example: https://raw.githubusercontent.com/<user>/<repo>/main/store/PRIVACY_POLICY.md), or
-- any other publicly accessible URL.
-
-If you'd like, I can create a simple HTML page and help you host it via GitHub Pages.
