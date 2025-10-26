@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Data Safety — Soccer Assistant Coach</title>
+    <style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:24px;color:#111;max-width:900px;margin-left:auto;margin-right:auto}h1{margin-bottom:6px}ul{line-height:1.5}</style>
+  </head>
+  <body>
+    <h1>Data Safety — Recommended answers</h1>
+    <p>This page mirrors the guidance in <code>store/DATA_SAFETY.md</code>. Review and adapt if you add analytics or cloud features.</p>
+
+    <h2>Summary</h2>
+    <ul>
+      <li><strong>Collects personal data:</strong> Yes — user-provided team/player names and notes are stored locally.</li>
+      <li><strong>Shared with third parties:</strong> No by default — data is only shared when the user explicitly exports or shares a file.</li>
+      <li><strong>Analytics / Ads:</strong> No (unless you add analytics SDKs later).</li>
+    </ul>
+
+    <h2>Types of data</h2>
+    <ul>
+      <li>Personal info: Yes — player and team names, notes entered by the user (stored locally).</li>
+      <li>Photos / Media: Optional — users can attach photos via the image picker; stored locally.</li>
+      <li>Files: Yes — CSV export/import files are created by the user.</li>
+    </ul>
+
+    <h2>Purposes</h2>
+    <ul>
+      <li>App functionality: Yes — used to provide core app features (rosters, lineups, exports).</li>
+      <li>Analytics: No</li>
+      <li>Advertising: No</li>
+    </ul>
+
+    <h2>Notes for Play Console</h2>
+    <p>In the Play Console, mark "Yes" for collects personal data and explain that the data is stored locally and only shared on user action (export/share). Mark "No" for ads and analytics if you have none.</p>
+
+    <footer style="margin-top:28px;color:#666">Hosted from the <a href="https://github.com/Robby2D2/soccer-assistant-coach">repo</a>. Update if you add server-side backups, analytics, or cloud sync.</footer>
+  </body>
+</html>
