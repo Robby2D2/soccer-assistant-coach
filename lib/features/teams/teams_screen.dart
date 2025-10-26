@@ -142,7 +142,11 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
       appBar: TeamAppBar(
         titleText: loc.teams,
         actions: StandardizedAppBarActions.createActionsWidgets(
-          [],
+          [
+            // Show Home as an icon and include it in the kebab menu for
+            // consistency with other screens.
+            CommonNavigationActions.home(context),
+          ],
           additionalMenuItems: [
             NavigationAction(
               label: _showArchived ? loc.hideArchived : loc.showArchived,
