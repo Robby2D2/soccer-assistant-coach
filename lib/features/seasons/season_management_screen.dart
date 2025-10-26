@@ -536,7 +536,7 @@ class _CreateSeasonDialogState extends State<_CreateSeasonDialog> {
   DateTime _startDate = DateTime.now();
   DateTime? _endDate;
   List<Team> _availableTeams = [];
-  Set<int> _selectedTeamIds = {};
+  final Set<int> _selectedTeamIds = {};
   bool _isLoadingTeams = true;
 
   @override

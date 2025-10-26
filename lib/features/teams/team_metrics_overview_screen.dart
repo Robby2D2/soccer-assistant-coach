@@ -101,7 +101,6 @@ class TeamMetricsOverviewScreen extends ConsumerWidget {
               ),
             );
           }
-          ;
           if (summary.playerMetrics.isEmpty) {
             return const Center(
               child: Column(

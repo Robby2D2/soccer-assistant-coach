@@ -1,9 +1,44 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'providers.dart';
 
+/// Determine season name (Winter, Spring, Summer, Fall) for a given date
+String _seasonNameForDate(DateTime d) {
+  final m = d.month;
+  if (m == 12 || m == 1 || m == 2) return 'Winter';
+  if (m >= 3 && m <= 5) return 'Spring';
+  if (m >= 6 && m <= 8) return 'Summer';
+  return 'Fall';
+}
+
+/// Ensures an active season exists; if not, creates one named like "Fall 2025".
+Future<void> _ensureActiveSeason(AppDb db) async {
+  try {
+    final active = await db.getActiveSeason();
+    if (active == null) {
+      final now = DateTime.now();
+      final seasonName = '${_seasonNameForDate(now)} ${now.year}';
+      // Use the first day of the current month as a reasonable start date
+      final startDate = DateTime(now.year, now.month, 1);
+      await db.createSeason(name: seasonName, startDate: startDate, isActive: true);
+    }
+  } catch (e) {
+    // Fail silently - provider consumers will handle a null season if creation fails
+    // but log for debugging
+    // ignore: avoid_print
+    print('Warning: could not ensure active season: $e');
+  }
+}
+
 /// Provider for the currently active season
 final currentSeasonProvider = StreamProvider<Season?>((ref) {
   final db = ref.watch(dbProvider);
+
+  // Kick off an async ensure in the background so that if no season exists
+  // we create one (first launch case). We intentionally don't await it here
+  // to avoid delaying the provider stream subscription.
+  // Launch ensure in the background without awaiting to avoid blocking
+  Future.microtask(() => _ensureActiveSeason(db));
+
   return db.watchActiveSeason();
 });
 
