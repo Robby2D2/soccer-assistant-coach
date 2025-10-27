@@ -2757,14 +2757,23 @@ extension AutoRotation on AppDb {
       // Import in correct order to respect foreign key constraints
       await customStatement('PRAGMA foreign_keys = OFF');
 
+      // Determine fallback season id (use active season if available)
+      final activeSeason = await getActiveSeason();
+      final fallbackSeasonId = activeSeason?.id ?? 1;
+
       // 1. Import teams first
       if (importData.containsKey('teams')) {
         final teams = importData['teams'] as List;
         for (var i = 0; i < teams.length; i++) {
-          final teamData = teams[i];
+          var teamData = teams[i];
           try {
+            // Ensure seasonId exists to satisfy generated Team.fromJson
+            final Map<String, dynamic> t = Map<String, dynamic>.from(teamData as Map<String, dynamic>);
+            if (!t.containsKey('seasonId') || t['seasonId'] == null) {
+              t['seasonId'] = fallbackSeasonId;
+            }
             await into(this.teams).insert(
-              Team.fromJson(teamData as Map<String, dynamic>),
+              Team.fromJson(t),
             );
           } catch (e, st) {
             debugPrint('❌ Failed to insert team at index $i: $teamData');
@@ -2782,8 +2791,13 @@ extension AutoRotation on AppDb {
         for (var i = 0; i < players.length; i++) {
           final playerData = players[i];
           try {
+            // Ensure seasonId exists for Player.fromJson
+            final Map<String, dynamic> p = Map<String, dynamic>.from(playerData as Map<String, dynamic>);
+            if (!p.containsKey('seasonId') || p['seasonId'] == null) {
+              p['seasonId'] = fallbackSeasonId;
+            }
             await into(this.players).insert(
-              Player.fromJson(playerData as Map<String, dynamic>),
+              Player.fromJson(p),
             );
           } catch (e, st) {
             debugPrint('❌ Failed to insert player at index $i: $playerData');
