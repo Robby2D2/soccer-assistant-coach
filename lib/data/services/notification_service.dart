@@ -563,18 +563,19 @@ class NotificationService {
 
   /// Cancels shift countdown and any associated timers
   Future<void> cancelShiftCountdown(int gameId) async {
-    if (!_initialized) await init();
-
-    // Cancel timer
+    // Cancel timer even if not initialized
     _activeShiftTimers[gameId]?.cancel();
     _activeShiftTimers.remove(gameId);
+
+    // Clear alarm state
+    _shiftAlarmsActive.remove(gameId);
+
+    // Only try to cancel notifications if initialized
+    if (!_initialized) return;
 
     // Cancel notifications
     await _plugin.cancel(_shiftCountdownNotifId + gameId);
     await _plugin.cancel(_shiftAlarmNotifId + gameId);
-
-    // Clear alarm state
-    _shiftAlarmsActive.remove(gameId);
   }
 
   /// Checks if a shift alarm is currently active for the game

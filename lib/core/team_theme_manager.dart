@@ -146,7 +146,8 @@ class _TitleRow extends ConsumerWidget {
                 child: CircleAvatar(
                   radius: 18,
                   backgroundColor: color.withOpacity(0.15),
-                  child: snapshot.data?.logoImagePath == null
+                  child: snapshot.data?.logoImagePath == null ||
+                          snapshot.data!.logoImagePath!.isEmpty
                       ? Icon(Icons.sports_soccer, color: color)
                       : Image.asset(
                           snapshot.data!.logoImagePath!,
@@ -227,14 +228,14 @@ class GameCompactTitle extends ConsumerWidget {
             return Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (team?.logoImagePath != null)
+                if (team?.logoImagePath != null && team!.logoImagePath!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: CircleAvatar(
                       radius: 14,
                       backgroundColor: colorScheme.onSurface.withOpacity(0.08),
                       child: Image.asset(
-                        team!.logoImagePath!,
+                        team.logoImagePath!,
                         errorBuilder: (c, e, st) => Icon(
                           Icons.sports_soccer,
                           size: 18,

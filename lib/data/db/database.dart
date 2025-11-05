@@ -1208,8 +1208,22 @@ extension GameQueries on AppDb {
     return query.watch();
   }
 
-  Future<Game?> getGame(int id) =>
-      (select(games)..where((g) => g.id.equals(id))).getSingleOrNull();
+  Future<Game?> getGame(int id) async {
+    try {
+      return await (select(games)..where((g) => g.id.equals(id)))
+          .getSingleOrNull()
+          .timeout(
+            const Duration(seconds: 5),
+            onTimeout: () {
+              print('WARNING: getGame($id) timed out after 5 seconds');
+              return null;
+            },
+          );
+    } catch (e) {
+      print('ERROR in getGame($id): $e');
+      return null;
+    }
+  }
   Future<void> updateGame({
     required int id,
     String? opponent,
@@ -1553,6 +1567,9 @@ extension ShiftQueries on AppDb {
 
   Stream<List<Shift>> watchGameShifts(int gameId) =>
       (select(shifts)..where((s) => s.gameId.equals(gameId))).watch();
+
+  Future<List<Shift>> getGameShifts(int gameId) =>
+      (select(shifts)..where((s) => s.gameId.equals(gameId))).get();
 
   Future<Shift?> getShift(int shiftId) =>
       (select(shifts)..where((s) => s.id.equals(shiftId))).getSingleOrNull();
