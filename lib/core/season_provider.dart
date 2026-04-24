@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'providers.dart';
 
@@ -22,10 +23,7 @@ Future<void> _ensureActiveSeason(AppDb db) async {
       await db.createSeason(name: seasonName, startDate: startDate, isActive: true);
     }
   } catch (e) {
-    // Fail silently - provider consumers will handle a null season if creation fails
-    // but log for debugging
-    // ignore: avoid_print
-    print('Warning: could not ensure active season: $e');
+    debugPrint('Warning: could not ensure active season: $e');
   }
 }
 

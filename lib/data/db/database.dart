@@ -1218,12 +1218,12 @@ extension GameQueries on AppDb {
           .timeout(
             const Duration(seconds: 5),
             onTimeout: () {
-              print('WARNING: getGame($id) timed out after 5 seconds');
+              debugPrint('WARNING: getGame($id) timed out after 5 seconds');
               return null;
             },
           );
     } catch (e) {
-      print('ERROR in getGame($id): $e');
+      debugPrint('ERROR in getGame($id): $e');
       return null;
     }
   }
