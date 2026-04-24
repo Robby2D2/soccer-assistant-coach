@@ -64,17 +64,27 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   @override
   void initState() {
     super.initState();
+    debugPrint('GameScreen.initState: START for gameId=${widget.gameId}');
+    
+    debugPrint('GameScreen.initState: Creating ValueNotifiers...');
     _secondsNotifier = ValueNotifier<int>(
       ref.read(stopwatchProvider(widget.gameId)),
     );
     _isRunningNotifier = ValueNotifier<bool>(false);
     _alertActiveNotifier = ValueNotifier<bool>(false);
     _lastTickSeconds = _secondsNotifier.value;
+    
+    debugPrint('GameScreen.initState: Calling _checkInitialRunningState...');
     _checkInitialRunningState();
+    
+    debugPrint('GameScreen.initState: Calling _loadFormationPositions...');
     _loadFormationPositions(); // Load formation abbreviations
 
+    debugPrint('GameScreen.initState: Calling _checkAndResetForNewGame...');
     // Check if this is a new game with no shifts and reset stopwatch if needed
     _checkAndResetForNewGame();
+    
+    debugPrint('GameScreen.initState: Setting up stopwatch subscription...');
     _stopwatchSubscription = ref.listenManual<int>(
       stopwatchProvider(widget.gameId),
       (previous, next) {
@@ -86,49 +96,118 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       },
       fireImmediately: false,
     );
+    
+    debugPrint('GameScreen.initState: COMPLETE');
   }
 
   Future<void> _checkInitialRunningState() async {
-    final prefs = await SharedPreferences.getInstance();
-    final startedAtKey = 'timer_started_at_${widget.gameId}';
-    final isRunning = prefs.getInt(startedAtKey) != null;
-    _isRunning = isRunning;
+    debugPrint('_checkInitialRunningState: START');
+    try {
+      debugPrint('_checkInitialRunningState: Getting SharedPreferences...');
+      final prefs = await SharedPreferences.getInstance();
+      debugPrint('_checkInitialRunningState: SharedPreferences obtained');
+      final startedAtKey = 'timer_started_at_${widget.gameId}';
+      final isRunning = prefs.getInt(startedAtKey) != null;
+      debugPrint('_checkInitialRunningState: isRunning=$isRunning');
+      if (mounted) {
+        _isRunning = isRunning;
+        debugPrint('_checkInitialRunningState: State updated');
+      }
+    } catch (e) {
+      debugPrint('_checkInitialRunningState: ERROR - $e');
+      // SharedPreferences might not be available (e.g., in tests)
+      // Default to not running
+      if (mounted) {
+        _isRunning = false;
+      }
+    }
+    debugPrint('_checkInitialRunningState: COMPLETE');
   }
 
   Future<void> _checkAndResetForNewGame() async {
-    final db = ref.read(dbProvider);
-    final shifts = await db.watchGameShifts(widget.gameId).first;
+    debugPrint('_checkAndResetForNewGame: START');
+    if (!mounted) {
+      debugPrint('_checkAndResetForNewGame: Not mounted, returning');
+      return;
+    }
+    try {
+      debugPrint('_checkAndResetForNewGame: Getting database...');
+      final db = ref.read(dbProvider);
+      debugPrint('_checkAndResetForNewGame: Fetching shifts...');
+      final shifts = await db.getGameShifts(widget.gameId);
+      debugPrint('_checkAndResetForNewGame: Got ${shifts.length} shifts');
 
-    // If the game has no shifts yet, reset the stopwatch to start fresh
-    if (shifts.isEmpty && !_isRunning) {
-      final stopwatchCtrl = ref.read(stopwatchProvider(widget.gameId).notifier);
-      await stopwatchCtrl.reset();
+      // If the game has no shifts yet, reset the stopwatch to start fresh
+      if (!mounted) {
+        debugPrint('_checkAndResetForNewGame: Not mounted after shifts fetch, returning');
+        return;
+      }
+      if (shifts.isEmpty && !_isRunning) {
+        debugPrint('_checkAndResetForNewGame: No shifts and not running, resetting stopwatch...');
+        final stopwatchCtrl = ref.read(stopwatchProvider(widget.gameId).notifier);
+        await stopwatchCtrl.reset();
+        debugPrint('_checkAndResetForNewGame: Stopwatch reset complete');
 
-      // Update the seconds notifier to 0
+        // Update the seconds notifier to 0
+        if (mounted) {
+          _secondsNotifier.value = 0;
+          _lastTickSeconds = 0;
+          debugPrint('_checkAndResetForNewGame: Notifier values reset');
+        }
+      }
+    } catch (e) {
+      // If we can't check shifts, just continue - not critical for initialization
+      debugPrint('_checkAndResetForNewGame: ERROR - $e');
       if (mounted) {
-        _secondsNotifier.value = 0;
-        _lastTickSeconds = 0;
+        debugPrint('Error checking shifts in _checkAndResetForNewGame: $e');
       }
     }
+    debugPrint('_checkAndResetForNewGame: COMPLETE');
   }
 
   Future<void> _loadFormationPositions() async {
-    if (_formationDataLoaded) return;
+    debugPrint('_loadFormationPositions: START');
+    if (_formationDataLoaded) {
+      debugPrint('_loadFormationPositions: Already loaded, returning');
+      return;
+    }
+    if (!mounted) {
+      debugPrint('_loadFormationPositions: Not mounted, returning');
+      return;
+    }
 
+    debugPrint('_loadFormationPositions: Getting database...');
     final db = ref.read(dbProvider);
     _positionAbbreviations.clear();
 
     try {
       // Get the game to find its formation
+      debugPrint('_loadFormationPositions: Fetching game...');
       final game = await db.getGame(widget.gameId);
-      if (game == null) return;
+      debugPrint('_loadFormationPositions: Game fetched: ${game?.id}');
+      if (game == null || !mounted) {
+        debugPrint('_loadFormationPositions: Game is null or not mounted, returning');
+        return;
+      }
 
       // Get formation for this game
+      debugPrint('_loadFormationPositions: Getting formation ID...');
       int? formationId = game.formationId;
       formationId ??= await db.mostUsedFormationIdForTeam(game.teamId);
+      debugPrint('_loadFormationPositions: Formation ID: $formationId');
 
+      if (!mounted) {
+        debugPrint('_loadFormationPositions: Not mounted after formation check, returning');
+        return;
+      }
       if (formationId != null) {
+        debugPrint('_loadFormationPositions: Fetching formation positions...');
         final positions = await db.getFormationPositions(formationId);
+        debugPrint('_loadFormationPositions: Got ${positions.length} positions');
+        if (!mounted) {
+          debugPrint('_loadFormationPositions: Not mounted after positions fetch, returning');
+          return;
+        }
         for (final position in positions) {
           _positionAbbreviations[position.positionName] = position.abbreviation;
         }
@@ -146,8 +225,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         });
       }
 
-      _formationDataLoaded = true;
+      if (mounted) {
+        _formationDataLoaded = true;
+        debugPrint('_loadFormationPositions: Data loaded successfully');
+      }
     } catch (e) {
+      debugPrint('_loadFormationPositions: ERROR - $e');
       // Fallback to default abbreviations on error
       _positionAbbreviations.addAll({
         'GOALIE': 'GK',
@@ -157,8 +240,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         'RIGHT_FORWARD': 'RF',
         'LEFT_FORWARD': 'LF',
       });
-      _formationDataLoaded = true;
+      if (mounted) {
+        _formationDataLoaded = true;
+        debugPrint('_loadFormationPositions: Fallback data loaded');
+      }
     }
+    debugPrint('_loadFormationPositions: COMPLETE');
   }
 
   /// Get position abbreviation for display, fallback to full name if not found
@@ -316,7 +403,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('GameScreen.build: START for gameId=${widget.gameId}');
     final db = ref.watch(dbProvider);
+    debugPrint('GameScreen.build: dbProvider obtained');
 
     return GameScaffold(
       gameId: widget.gameId,

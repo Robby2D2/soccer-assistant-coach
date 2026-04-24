@@ -1208,8 +1208,22 @@ extension GameQueries on AppDb {
     return query.watch();
   }
 
-  Future<Game?> getGame(int id) =>
-      (select(games)..where((g) => g.id.equals(id))).getSingleOrNull();
+  Future<Game?> getGame(int id) async {
+    try {
+      return await (select(games)..where((g) => g.id.equals(id)))
+          .getSingleOrNull()
+          .timeout(
+            const Duration(seconds: 5),
+            onTimeout: () {
+              print('WARNING: getGame($id) timed out after 5 seconds');
+              return null;
+            },
+          );
+    } catch (e) {
+      print('ERROR in getGame($id): $e');
+      return null;
+    }
+  }
   Future<void> updateGame({
     required int id,
     String? opponent,
@@ -1553,6 +1567,9 @@ extension ShiftQueries on AppDb {
 
   Stream<List<Shift>> watchGameShifts(int gameId) =>
       (select(shifts)..where((s) => s.gameId.equals(gameId))).watch();
+
+  Future<List<Shift>> getGameShifts(int gameId) =>
+      (select(shifts)..where((s) => s.gameId.equals(gameId))).get();
 
   Future<Shift?> getShift(int shiftId) =>
       (select(shifts)..where((s) => s.id.equals(shiftId))).getSingleOrNull();
@@ -2757,14 +2774,35 @@ extension AutoRotation on AppDb {
       // Import in correct order to respect foreign key constraints
       await customStatement('PRAGMA foreign_keys = OFF');
 
+      // Determine fallback season id (use active season if available)
+      final activeSeason = await getActiveSeason();
+      var fallbackSeasonId = activeSeason?.id ?? 1;
+
+      // If there are no seasons in a fresh DB, create a default season and use its id
+      final existingSeasons = await (select(seasons)).get();
+      if (existingSeasons.isEmpty) {
+        debugPrint('ℹ️ No seasons found in DB - creating a default season for import');
+        final newSeasonId = await createSeason(
+          name: 'Imported Default Season',
+          startDate: DateTime.now().subtract(const Duration(days: 365)),
+          endDate: DateTime.now().add(const Duration(days: 365)),
+        );
+        fallbackSeasonId = newSeasonId;
+      }
+
       // 1. Import teams first
       if (importData.containsKey('teams')) {
         final teams = importData['teams'] as List;
         for (var i = 0; i < teams.length; i++) {
-          final teamData = teams[i];
+          var teamData = teams[i];
           try {
+            // Ensure seasonId exists to satisfy generated Team.fromJson
+            final Map<String, dynamic> t = Map<String, dynamic>.from(teamData as Map<String, dynamic>);
+            if (!t.containsKey('seasonId') || t['seasonId'] == null) {
+              t['seasonId'] = fallbackSeasonId;
+            }
             await into(this.teams).insert(
-              Team.fromJson(teamData as Map<String, dynamic>),
+              Team.fromJson(t),
             );
           } catch (e, st) {
             debugPrint('❌ Failed to insert team at index $i: $teamData');
@@ -2782,8 +2820,13 @@ extension AutoRotation on AppDb {
         for (var i = 0; i < players.length; i++) {
           final playerData = players[i];
           try {
+            // Ensure seasonId exists for Player.fromJson
+            final Map<String, dynamic> p = Map<String, dynamic>.from(playerData as Map<String, dynamic>);
+            if (!p.containsKey('seasonId') || p['seasonId'] == null) {
+              p['seasonId'] = fallbackSeasonId;
+            }
             await into(this.players).insert(
-              Player.fromJson(playerData as Map<String, dynamic>),
+              Player.fromJson(p),
             );
           } catch (e, st) {
             debugPrint('❌ Failed to insert player at index $i: $playerData');
@@ -2799,10 +2842,14 @@ extension AutoRotation on AppDb {
       if (importData.containsKey('formations')) {
         final formations = importData['formations'] as List;
         for (var i = 0; i < formations.length; i++) {
-          final formationData = formations[i];
+          var formationData = formations[i];
           try {
+            final Map<String, dynamic> f = Map<String, dynamic>.from(formationData as Map<String, dynamic>);
+            if (!f.containsKey('seasonId') || f['seasonId'] == null) {
+              f['seasonId'] = fallbackSeasonId;
+            }
             await into(this.formations).insert(
-              Formation.fromJson(formationData as Map<String, dynamic>),
+              Formation.fromJson(f),
             );
           } catch (e, st) {
             debugPrint('❌ Failed to insert formation at index $i: $formationData');
@@ -2840,6 +2887,10 @@ extension AutoRotation on AppDb {
           final gameData = games[i];
           // Normalize timestamp fields that may be exported as epoch millis
           final g = Map<String, dynamic>.from(gameData as Map<String, dynamic>);
+          // Ensure seasonId exists for Game.fromJson
+          if (!g.containsKey('seasonId') || g['seasonId'] == null) {
+            g['seasonId'] = fallbackSeasonId;
+          }
           for (final key in ['startTime', 'timerStartTime', 'endTime']) {
             if (g.containsKey(key) && g[key] is int) {
               try {
