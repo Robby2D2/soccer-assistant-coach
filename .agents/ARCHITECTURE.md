@@ -116,3 +116,6 @@ Integration test: `test/import_json_test.dart`.
 | 2025-10 | `TeamColorContrast.onColorFor` utility | Light team colors caused near-white-on-white text in live game cards |
 | 2025 | `AppDb.test()` in-memory test helper | Real SQL behavior in tests caught issues that mocks missed |
 | 2025 | Default season creation on JSON import | Prevented foreign-key failures when importing legacy data without a season |
+| 2026-04 | `AppDb.forTesting(super.executor)` constructor | Allows file-backed NativeDatabase in migration tests so the test can seed a pre-migration schema file and open it via Drift to trigger migration |
+| 2026-04 | `ref.onDispose(() => _t?.cancel())` in `StopwatchCtrl.build()` | autoDispose does not auto-cancel Dart `Timer` objects; must be registered explicitly or the timer outlives the ProviderScope |
+| 2026-04 | `ios/Runner/PrivacyInfo.xcprivacy` | Apple requires a "required reason" manifest for any use of UserDefaults (`shared_preferences`) and file timestamps (`path_provider`) |
