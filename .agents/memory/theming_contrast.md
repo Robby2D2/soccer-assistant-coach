@@ -1,4 +1,4 @@
-# Contrast Improvements
+# Theming — Contrast Safety
 
 Date: 2025-10-17
 
@@ -21,13 +21,13 @@ Previously, some combinations (e.g., very light team primary color) produced low
 
 ## Future Improvements
 - Consider caching contrast results for performance if many dynamic paints occur (currently trivial cost).
-- Expand contrast selection to allow dynamic tone adjustment (not only black/white) for brand consistency while still passing contrast (e.g., shifting toward nearest accessible tone of the same hue).
+- Expand contrast selection to allow dynamic tone adjustment (not only black/white) for brand consistency while still passing contrast.
 - Add automated golden/widget tests validating contrast decisions for a matrix of colors.
-- Evaluate contrast in dark mode themes once implemented (current logic supports both, but broader QA recommended).
+- Evaluate contrast in dark mode themes once implemented.
 
 ## Testing
 - Ran `flutter analyze` (no new errors; only two pre-existing style infos).
 - Manual visual verification recommended across: very light (#F5F5F5), very dark (#101010), saturated (#FF0000, #00AEEF), and mid-tone colors.
 
 ## Notes
-If any remaining areas show poor readability (e.g., secondary widgets or panels not yet migrated), search for direct uses of `teamPrimaryColor` and wrap text/icon colors with `TeamColorContrast.onColorFor(backgroundColor)`.
+If any remaining areas show poor readability, search for direct uses of `teamPrimaryColor` and wrap text/icon colors with `TeamColorContrast.onColorFor(backgroundColor)`.
