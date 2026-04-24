@@ -74,7 +74,13 @@ class StopwatchCtrl extends Notifier<int> {
   }
 
   @override
-  int build() => 0; // Will be initialized via init() post-creation
+  int build() {
+    // Cancel the periodic tick timer when Riverpod disposes this notifier so
+    // the timer doesn't outlive the ProviderScope (important in tests and when
+    // the user navigates away while a game is running in the background).
+    ref.onDispose(() => _t?.cancel());
+    return 0;
+  }
 
   void init(int id) {
     gameId = id;
