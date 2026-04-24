@@ -42,6 +42,9 @@ class AppDb extends _$AppDb {
   AppDb() : super(createDatabaseConnection());
   // In-memory constructor for tests (avoids sqflite platform dependency)
   AppDb.test() : super(NativeDatabase.memory());
+  // File-backed constructor for migration tests where the same DB file must be
+  // opened twice (once at an older schema version, then again to trigger onUpgrade).
+  AppDb.forTesting(super.executor);
   @override
   int get schemaVersion => 18;
 

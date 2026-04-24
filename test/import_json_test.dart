@@ -9,15 +9,16 @@ void main() {
   test('import full_season_fixed_metrics.json into in-memory DB', () async {
     final db = AppDb.test();
     try {
-      final file = File('full_season_fixed_metrics.json');
-      expect(await file.exists(), isTrue, reason: 'JSON file must exist at repository root');
+      final file = File('test/fixtures/full_season_fixed_metrics.json');
+      expect(
+        await file.exists(),
+        isTrue,
+        reason: 'fixture must exist at test/fixtures/full_season_fixed_metrics.json',
+      );
 
       final jsonData = await file.readAsString();
 
       final result = await db.importDatabase(jsonData);
-
-      // Print result for visibility in logs
-      print('import result: $result');
 
       expect(result, isTrue, reason: 'Import should complete without errors');
     } finally {

@@ -43,3 +43,18 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local SQLite databases (use AppDb.test() in tests; production DB lives under app data dir)
+soccer_manager.db
+*.db-journal
+
+# Personal/scratch dev notes (kept locally, not tracked)
+notes.txt
+learnings.txt
+patch.sh
+flutter_01.png
+
+# Android signing keystore (NEVER commit; generated via keytool)
+android/key.properties
+android/app/*.keystore
+android/app/*.jks
