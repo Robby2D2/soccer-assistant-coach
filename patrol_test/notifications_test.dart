@@ -26,7 +26,7 @@ void main() {
 
     // Grant POST_NOTIFICATIONS / iOS alert permission natively.
     try {
-      await $.native.grantPermissionWhenInUse();
+      await $.platform.mobile.grantPermissionWhenInUse();
     } catch (_) {
       // No prompt was up — already granted or platform doesn't show one.
     }

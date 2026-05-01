@@ -33,8 +33,6 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  integration_test:
-    sdk: flutter
   flutter_lints: ^6.0.0
   build_runner: ^2.7.1 # Incompatible upgrade blocked by analyzer/test_api graph
   drift_dev: ^2.18.0
@@ -45,7 +43,7 @@ dev_dependencies:
   sqlite3: any
   # E2E tests with native (notification, permission) automation. Run via
   # `patrol test` after installing `dart pub global activate patrol_cli`.
-  patrol: ^3.15.2
+  patrol: ^4.5.0
 
 dependency_overrides:
   device_info_plus: ^12.1.0
