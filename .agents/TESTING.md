@@ -1,11 +1,13 @@
 # Testing Guide — Soccer Assistant Coach
 
-All tests live in `test/`. Run the full suite with:
-```
-flutter test
-```
+The project uses a **two-layer** test stack:
 
-Tests should be fast (< 2 s each). Use in-memory databases — never hit the on-disk `soccer_manager.db`.
+| Layer | Location | Speed | Run with | Use for |
+|---|---|---|---|---|
+| Widget / DB | `test/` | < 2 s each | `flutter test` | DB rules, controllers, models, screens that don't subscribe to Drift streams |
+| Patrol E2E | `integration_test/` | seconds–minutes | `patrol test` (Android emulator / iOS simulator) | Real notification firing, permissions, full UI journeys (shift alarm, halftime, JSON import) |
+
+See [`integration_test/README.md`](../integration_test/README.md) for Patrol setup. Use in-memory databases (`AppDb.test()`) at both layers — never hit the on-disk `soccer_manager.db`.
 
 ---
 
@@ -63,6 +65,7 @@ testWidgets('description of expected behavior', (tester) async {
 
 ## Existing Test Files
 
+### Widget / DB (`test/`)
 | File | Covers |
 |---|---|
 | `team_app_bar_test.dart` | `TeamAppBar` fallback title and team-name rendering |
@@ -73,6 +76,25 @@ testWidgets('description of expected behavior', (tester) async {
 | `import_json_test.dart` | JSON season import round-trip |
 | `database_migration_test.dart` | DB schema migration integrity |
 | `widget_test.dart` | Basic app smoke test |
+| `alarm_settings_test.dart` | `AlarmSettings` model + `AlarmSettingsNotifier` persistence |
+| `alert_service_test.dart` | `AlertService` gates on `shiftsEnabled` / `halftimeEnabled` |
+| `substitution_test.dart` | `setPlayerPosition` insert/replace, attendance rules, present-player filtering |
+| `team_config_test.dart` | Shift length / half duration getters, setters, defaults |
+| `shift_lifecycle_test.dart` | `incrementShiftDuration`, `watchActiveShift`, `watchGameShifts` |
+| `game_lifecycle_test.dart` | Game completion, `startGameTimer` / `pauseGameTimer`, export/import round-trip |
+| `stopwatch_ctrl_test.dart` | `StopwatchCtrl` meta persistence + restore on a fresh container |
+
+Shared fixture helpers in `test/helpers/fixtures.dart` (`seedTeam`, `seedPlayer`, `seedShift`).
+
+### Patrol E2E (`integration_test/`)
+| File | Flow |
+|---|---|
+| `smoke_test.dart` | App boots, navigates Home → Settings |
+| `settings_test.dart` | Shift / halftime alarm toggles persist across navigation |
+| `shift_alarm_journey_test.dart` | Seeded 3-second shift fires the alarm SnackBar; user acknowledges |
+| `halftime_journey_test.dart` | Seeded 6-second half advances `currentHalf` (traditional mode) |
+| `notifications_test.dart` | Notification permission + countdown plumbing on a real device |
+| `json_import_test.dart` | `AppDb.importDatabase` against the seeded fixture, on-device |
 
 ---
 

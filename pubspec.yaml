@@ -33,6 +33,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   flutter_lints: ^6.0.0
   build_runner: ^2.7.1 # Incompatible upgrade blocked by analyzer/test_api graph
   drift_dev: ^2.18.0
@@ -41,6 +43,9 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.4
   # Used by migration tests to seed an old-version DB file before Drift opens it.
   sqlite3: any
+  # E2E tests with native (notification, permission) automation. Run via
+  # `patrol test` after installing `dart pub global activate patrol_cli`.
+  patrol: ^3.15.2
 
 dependency_overrides:
   device_info_plus: ^12.1.0
@@ -60,3 +65,12 @@ flutter_launcher_icons:
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "soccer-assistant-coach.png"
   remove_alpha_ios: true
+
+# Patrol configuration. App ID and bundle ID must match the platform configs.
+# See: https://patrol.leancode.co/getting-started
+patrol:
+  app_name: "Soccer Assistant Coach"
+  android:
+    package_name: "com.useunix.soccerassistantcoach"
+  ios:
+    bundle_id: "com.useunix.soccerassistantcoach"

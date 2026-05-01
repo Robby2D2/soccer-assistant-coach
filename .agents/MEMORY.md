@@ -4,6 +4,48 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
+## Session: May 1, 2026 — Comprehensive E2E test coverage
+
+Date: 2026-05-01
+
+### What was done
+Added a layered automated test stack: 7 new widget/DB test files in `test/` (36 new tests) plus a full Patrol integration suite in `integration_test/` covering the flows that only make sense on a real device.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `pubspec.yaml` | Added `patrol: ^3.15.2` and `integration_test` (sdk: flutter) to dev_dependencies; added `patrol:` config block with Android package + iOS bundle id |
+| `test/helpers/fixtures.dart` | Shared `seedTeam` / `seedPlayer` / `seedShift` helpers |
+| `test/alarm_settings_test.dart` | Model defaults, copyWith, JSON round-trip, fresh-container restore |
+| `test/alert_service_test.dart` | Gates on `shiftsEnabled` / `halftimeEnabled`, double-trigger no-op, ack stops |
+| `test/substitution_test.dart` | DB-level: insert, replace, attendance-driven removal, present-player filter |
+| `test/team_config_test.dart` | Shift length / half duration getters, setters, defaults, mode round-trip |
+| `test/shift_lifecycle_test.dart` | `incrementShiftDuration`, `watchActiveShift`, `watchGameShifts` |
+| `test/game_lifecycle_test.dart` | Game completion, timer flips, JSON export/import round-trip |
+| `test/stopwatch_ctrl_test.dart` | `setMeta` persistence + fresh-container `_restore` |
+| `integration_test/smoke_test.dart` | App boots, nav to Settings |
+| `integration_test/settings_test.dart` | Toggling shift/halftime alarms persists |
+| `integration_test/shift_alarm_journey_test.dart` | Seeded 3-second shift fires alarm SnackBar |
+| `integration_test/halftime_journey_test.dart` | Seeded 6-second half advances `currentHalf` |
+| `integration_test/notifications_test.dart` | Notification plumbing + permission grant via Patrol native |
+| `integration_test/json_import_test.dart` | On-device `AppDb.importDatabase` |
+| `integration_test/helpers/app_harness.dart` | `initApp()` + `appUnderTest({AppDb? db})` for in-memory isolation |
+| `integration_test/README.md` | Patrol setup + run instructions for both platforms |
+| `android/app/build.gradle.kts` | `PatrolJUnitRunner` + orchestrator + `clearPackageData` |
+| `android/app/src/androidTest/.../MainActivityTest.java` | Parameterized JUnit shim that enumerates Dart tests |
+| `ios/RunnerUITests/RunnerUITests.m` | iOS Patrol runner stub (Xcode target wiring still requires `patrol bootstrap` on a Mac) |
+| `.agents/TESTING.md` + `.agents/ARCHITECTURE.md` | Documented the two-layer stack |
+
+### Key learnings
+- **`stopwatchProvider` is `NotifierProvider.autoDispose.family`** — `container.read(provider.notifier)` does *not* keep the provider alive. Subsequent calls on the captured controller throw "Cannot use the Ref ... after it has been disposed". Fix: `container.listen<int>(provider, (_, _) {})` to hold the listener open, then `read` the notifier.
+- **`StopwatchCtrl.start()` / `pause()` / `reset()` cannot be unit-tested** — they all call `NotificationService.cancelStopwatch`, which dereferences `FlutterLocalNotificationsPlatform.instance` (a `late` field that never gets initialized in the unit-test environment). LateInitializationError. These paths are exercised by the Patrol E2E suite instead.
+- **AssignPlayersScreen widget tests leave a Timer pending** even after `pumpWidget(SizedBox)` — the StreamBuilder + Drift stream subscription combo holds onto a timer past `_verifyInvariants`. Equivalent coverage moved to DB-level tests (`presentPlayersForGame`, `hasPresentPlayersForGame`) plus Patrol E2E.
+- **Patrol tests must use a real `ProviderScope` override**, not `bootstrapApp` returning `Widget` — the existing `Override` type from riverpod 3.0.3 is **not** in the public `show` list, so the harness exposes a typed `appUnderTest({AppDb? db})` helper instead of letting tests pass arbitrary overrides.
+- The shift / halftime alarm E2E tests use the team's **configurable** `shift_length_seconds` / `half_duration_seconds` (set to 3 s / 6 s for tests) rather than a debug fast-forward hook — this exercises the same code path production users run.
+
+---
+
 ## Session: April 24, 2026 — Production readiness pass
 
 Date: 2026-04-24
