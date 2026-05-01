@@ -6,6 +6,8 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ## Session: April 24, 2026 — Production readiness pass
 
+Date: 2026-04-24
+
 ### What was done
 Full pre-store audit and fixes to prepare the app for Apple App Store and Google Play Store submission.
 
@@ -36,6 +38,8 @@ Full pre-store audit and fixes to prepare the app for Apple App Store and Google
 ---
 
 ## Session: April 24, 2026 — Adopt .agents/ structure
+
+Date: 2026-04-24
 
 ### What was done
 Reorganized project documentation to follow the `.agents/` directory convention.
