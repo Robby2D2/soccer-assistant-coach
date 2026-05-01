@@ -4,6 +4,34 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
+## Session: May 1, 2026 — Patrol 4.x upgrade and PATH setup
+
+Date: 2026-05-01
+
+### What was done
+Upgraded patrol from 3.x to 4.5.0 (compatible with patrol_cli 4.3.1), added patrol_cli to the Windows PATH, confirmed the smoke test passes in ~4 s, and migrated tests from `integration_test/` to `patrol_test/`.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `pubspec.yaml` | `patrol: ^3.15.2` → `^4.5.0`; removed `integration_test: sdk: flutter` (no longer needed); removed `test_path: integration_test` override |
+| Tests moved | `integration_test/` → `patrol_test/` (patrol 4.x default); avoids Windows absolute-path bug in bundle generator |
+| `notifications_test.dart` | `$.native.grantPermissionWhenInUse()` → `$.platform.mobile.grantPermissionWhenInUse()` (patrol 4.x API) |
+| All Patrol tests | Added `timeout: Duration(seconds: N)` to every `pumpAndSettle()` call — without it, always-open Drift streams cause ~19-minute hangs |
+| Windows PATH | Added `%LOCALAPPDATA%\Pub\Cache\bin` to User PATH so `patrol` is callable from any terminal |
+| `.agents/TESTING.md` | Updated directory references from `integration_test/` to `patrol_test/`; added patrol_cli install note |
+| `.agents/ARCHITECTURE.md` | Added two decision rows for `pumpAndSettle` timeout requirement and Windows `patrol_test/` placement |
+| `patrol_test/README.md` | Fixed stale `-t integration_test/` run example |
+
+### Key learnings
+- **patrol_cli 4.x Windows bug**: when `test_path` in `pubspec.yaml` points outside `patrol_test/`, the CLI generates `import 'C:/Users/...'` with a drive letter — invalid Dart. Fix: use the default `patrol_test/` directory and omit `test_path`.
+- **`pumpAndSettle()` without timeout hangs**: Drift `StreamProvider`s are always-open; `pumpAndSettle` never settles. Always pass `timeout: const Duration(seconds: 5)` (or 3 s for post-tap settles).
+- **`patrol_test/test_bundle.dart` is generated** — delete it before re-running if it's stale; patrol regenerates it on the next `patrol test` invocation.
+- **`flutter clean` required** after moving test files — the incremental compiler caches old source paths in depfiles and fails even after the files are gone.
+
+---
+
 ## Session: May 1, 2026 — Comprehensive E2E test coverage
 
 Date: 2026-05-01

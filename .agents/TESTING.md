@@ -5,9 +5,11 @@ The project uses a **two-layer** test stack:
 | Layer | Location | Speed | Run with | Use for |
 |---|---|---|---|---|
 | Widget / DB | `test/` | < 2 s each | `flutter test` | DB rules, controllers, models, screens that don't subscribe to Drift streams |
-| Patrol E2E | `integration_test/` | seconds–minutes | `patrol test` (Android emulator / iOS simulator) | Real notification firing, permissions, full UI journeys (shift alarm, halftime, JSON import) |
+| Patrol E2E | `patrol_test/` | seconds–minutes | `patrol test` (Android emulator / iOS simulator) | Real notification firing, permissions, full UI journeys (shift alarm, halftime, JSON import) |
 
-See [`integration_test/README.md`](../integration_test/README.md) for Patrol setup. Use in-memory databases (`AppDb.test()`) at both layers — never hit the on-disk `soccer_manager.db`.
+See [`patrol_test/README.md`](../patrol_test/README.md) for Patrol setup. Use in-memory databases (`AppDb.test()`) at both layers — never hit the on-disk `soccer_manager.db`.
+
+> **patrol_cli install:** `dart pub global activate patrol_cli` — the binary lands in `%LOCALAPPDATA%\Pub\Cache\bin` which must be on PATH. Run once per machine.
 
 ---
 
@@ -86,7 +88,7 @@ testWidgets('description of expected behavior', (tester) async {
 
 Shared fixture helpers in `test/helpers/fixtures.dart` (`seedTeam`, `seedPlayer`, `seedShift`).
 
-### Patrol E2E (`integration_test/`)
+### Patrol E2E (`patrol_test/`)
 | File | Flow |
 |---|---|
 | `smoke_test.dart` | App boots, navigates Home → Settings |

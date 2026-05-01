@@ -55,7 +55,7 @@ extra setup needed beyond `patrol_cli` and a running emulator.
 patrol test
 
 # A single test file
-patrol test -t integration_test/smoke_test.dart
+patrol test -t patrol_test/smoke_test.dart
 
 # Pick a device (after `flutter devices`)
 patrol test -d emulator-5554
