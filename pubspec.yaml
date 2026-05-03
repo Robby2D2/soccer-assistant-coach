@@ -39,6 +39,11 @@ dev_dependencies:
   json_serializable: ^6.11.1
   # Upgraded for Riverpod v3 compatibility (analyzer/build graph)
   flutter_launcher_icons: ^0.14.4
+  # Used by migration tests to seed an old-version DB file before Drift opens it.
+  sqlite3: any
+  # E2E tests with native (notification, permission) automation. Run via
+  # `patrol test` after installing `dart pub global activate patrol_cli`.
+  patrol: ^4.5.0
 
 dependency_overrides:
   device_info_plus: ^12.1.0
@@ -49,8 +54,6 @@ dependency_overrides:
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/sounds/
   generate: true
 
 flutter_launcher_icons:
@@ -60,3 +63,12 @@ flutter_launcher_icons:
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "soccer-assistant-coach.png"
   remove_alpha_ios: true
+
+# Patrol configuration. App ID and bundle ID must match the platform configs.
+# See: https://patrol.leancode.co/getting-started
+patrol:
+  app_name: "Soccer Assistant Coach"
+  android:
+    package_name: "com.useunix.soccerassistantcoach"
+  ios:
+    bundle_id: "com.useunix.soccerassistantcoach"

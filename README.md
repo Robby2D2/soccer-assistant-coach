@@ -117,6 +117,34 @@ flutter test
 ```
 They should complete quickly (<2s locally) since the database is pure in‑memory.
 
+### End-to-End Tests (Patrol)
+
+Full UI / device-level journeys live in [`patrol_test/`](patrol_test/). They run on a real Android emulator or iOS simulator via `patrol test` and exercise routing, providers, the database, notifications, and platform plugins. See [`patrol_test/README.md`](patrol_test/README.md) for setup.
+
+Major user journeys covered:
+
+| Journey | File |
+|---|---|
+| Team management (create season, create team, open team detail) | `team_management_journey_test.dart` |
+| Player substitution (assign-players dropdown writes the position) | `substitution_journey_test.dart` |
+| Shift management (manual "Next Shift" advances `currentShiftId`) | `shift_management_journey_test.dart` |
+| Shift-end alarm (timer fires the shift SnackBar; user acknowledges) | `shift_alarm_journey_test.dart` |
+| Halftime alarm (traditional mode advances `currentHalf`) | `halftime_journey_test.dart` |
+| Notification permission + countdown plumbing | `notifications_test.dart` |
+| Start a new season with a team from a previous season | `season_clone_journey_test.dart` |
+| Settings: shift/halftime alarm toggles persist | `settings_test.dart` |
+| JSON import on a real device | `json_import_test.dart` |
+| App boot smoke test | `smoke_test.dart` |
+
+Run the suite:
+```
+patrol test                                          # whole suite
+patrol test -t patrol_test/smoke_test.dart           # one file
+patrol test -d emulator-5554                         # specific device
+```
+
+Each Patrol test seeds an isolated `AppDb.test()` (in-memory SQLite) and drives the production UI / GoRouter — no debug fast-forward hooks. Shift / halftime alarm tests use the team-configurable `shift_length_seconds` / `half_duration_seconds` shrunk to a few seconds so the timer-based path completes inside a normal test budget.
+
 ## Enhancement Ideas / Roadmap
 - Dark mode override toggle (user preference independent of system setting).
 - Animated transitions when switching between teams (e.g., cross-fade brand colors).

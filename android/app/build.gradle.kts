@@ -41,6 +41,15 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Patrol uses AndroidJUnitRunner to launch the integration test
+        // harness. The runner class is provided by the patrol package.
+        testInstrumentationRunner = "pl.leancode.patrol.PatrolJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
+    }
+
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 
     signingConfigs {
@@ -70,4 +79,7 @@ flutter {
 dependencies {
     // Desugar JDK libs for java.time & other newer APIs on older Android versions
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+
+    // Patrol native automation — required to run `patrol test`.
+    androidTestUtil("androidx.test:orchestrator:1.5.1")
 }
