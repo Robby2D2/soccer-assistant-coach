@@ -54,6 +54,9 @@ learnings.txt
 patch.sh
 flutter_01.png
 
+# Patrol generated test bundle (regenerated automatically on each `patrol test` run)
+patrol_test/test_bundle.dart
+
 # Android signing keystore (NEVER commit; generated via keytool)
 android/key.properties
 android/app/*.keystore
