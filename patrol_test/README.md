@@ -76,11 +76,22 @@ CI examples live at <https://patrol.leancode.co/ci/overview>.
 | `halftime_journey_test.dart` | Seeded 6-second half advances `currentHalf` (traditional mode) |
 | `notifications_test.dart` | Notification permission flow + countdown plumbing on a real device |
 | `json_import_test.dart` | `AppDb.importDatabase` against the seeded fixture, run on-device |
+| `team_management_journey_test.dart` | Home → Manage Teams → Create Team dialog → team appears in active season |
+| `substitution_journey_test.dart` | `/game/:id/assign/:shiftId` route assigns a present player to a position via the dropdown |
+| `shift_management_journey_test.dart` | Two queued shifts → "Next Shift" → confirmation dialog → `currentShiftId` advances |
+| `season_clone_journey_test.dart` | Home → Manage Seasons → Create New Season with a checked previous-season team → new season + cloned roster |
 
 The shift/halftime journeys deliberately use the team's
 **configurable shift / half length** (`shift_length_seconds`,
 `half_duration_seconds`) rather than a debug fast-forward hook, so the
 tests exercise the same path production users do.
+
+The journey tests cover the major user journeys end-to-end: team
+creation, player substitutions, shift lifecycle (manual + alarm-driven),
+halftime alarms, notification plumbing, and starting a new season from
+a previous season's roster. Each one seeds an isolated `AppDb.test()`
+and drives the production UI / production GoRouter — no debug hooks or
+private APIs.
 
 ---
 

@@ -4,6 +4,43 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
+## Session: May 3, 2026 — Patrol journey tests for major user flows
+
+Date: 2026-05-03
+
+### What was done
+Added four new Patrol E2E journey tests covering the major user flows that the original alarm-focused suite didn't reach: team creation, player substitution, manual shift advancement, and starting a new season from a previous season's roster.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `patrol_test/team_management_journey_test.dart` | Home → Manage Teams → Create Team dialog → assert team appears in active season |
+| `patrol_test/substitution_journey_test.dart` | Pushes the production GoRouter into `/game/:id/assign/:shiftId`, picks a position via dropdown, asserts the `player_shifts` row landed |
+| `patrol_test/shift_management_journey_test.dart` | Two queued shifts → tap "Next Shift" → confirm "Start next shift early?" dialog → assert `games.currentShiftId` advances |
+| `patrol_test/season_clone_journey_test.dart` | Manage Seasons → Create New Season with a previous-season team checked → assert new season + cloned roster |
+| `patrol_test/README.md` | Added the four new tests to the coverage table |
+| `.agents/TESTING.md` | Same coverage update in the testing guide |
+| `.agents/ARCHITECTURE.md` | Added two decision rows: Patrol substitution coverage uses the deep-link route, and the journey suite always ends with a DB assertion |
+| `README.md` | New "End-to-End Tests (Patrol)" section listing every journey + how to invoke `patrol test` |
+
+### Key learnings
+- **Substitution UI is fragmented across two screens** (`AssignPlayersScreen` route + the inline lineup builder used by the live game screen). Driving the deep-link route is much more deterministic for Patrol than driving the live game screen's auto-rotation/lineup-builder UI, and exercises the same `setPlayerPosition` code path.
+- **`router.push('/game/$id/assign/$shiftId')` works directly inside a Patrol test** because the harness already pumps `SoccerApp` (which uses `MaterialApp.router(routerConfig: router)`) — no separate `Navigator.of(context)` lookup needed.
+- **The `_handleStartNextShift` confirmation dialog** appears whenever there's still time on the current shift, so a Patrol test that seeds a fresh game (zero elapsed time) will always need to dismiss "Start next shift early?" before the shift actually advances.
+- **`cloneSelectedTeamsToSeason` is what the Create-New-Season dialog calls** when the user checks at least one existing team. The cloned team gets a new ID with the same name, and the player roster is duplicated into the new `seasonId'.
+- Every journey test ends with a DB-level assertion (`getAllTeams`, `watchAssignments`, `getGame`, `watchTeams(seasonId:)`, raw player select). This catches "tap succeeded but write was lost" regressions that pure UI assertions miss.
+- **Active-Games card on Home filters on `startTime IS NOT NULL`** (`watchActiveGames` in `database.dart`). Any Patrol test that drives navigation via the home dashboard's "vs <opponent>" card MUST seed `startTime: drift.Value(DateTime.now())` on the game — the schema column is nullable with no default. Caught when `shift_management_journey_test.dart` initially failed at the home-card lookup; the same fix was retro-applied to the older `shift_alarm_journey_test.dart` and `halftime_journey_test.dart` to unblock their first step. (Those two have additional pre-existing downstream issues — likely the `for ... pump(seconds:1)` loop not advancing the wall-clock-based `StopwatchCtrl` timer on a real device — out of scope for this session.)
+
+### Verified on emulator (emulator-5554, Android API 36)
+- `smoke_test.dart` ✅
+- `team_management_journey_test.dart` ✅
+- `substitution_journey_test.dart` ✅
+- `shift_management_journey_test.dart` ✅
+- `season_clone_journey_test.dart` ✅
+
+---
+
 ## Session: May 1, 2026 — Patrol 4.x upgrade and PATH setup
 
 Date: 2026-05-01

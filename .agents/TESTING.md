@@ -97,6 +97,10 @@ Shared fixture helpers in `test/helpers/fixtures.dart` (`seedTeam`, `seedPlayer`
 | `halftime_journey_test.dart` | Seeded 6-second half advances `currentHalf` (traditional mode) |
 | `notifications_test.dart` | Notification permission + countdown plumbing on a real device |
 | `json_import_test.dart` | `AppDb.importDatabase` against the seeded fixture, on-device |
+| `team_management_journey_test.dart` | Home → Manage Teams → Create Team dialog → new team in active season |
+| `substitution_journey_test.dart` | Direct route push to `/game/:id/assign/:shiftId` → dropdown writes a `player_shifts` row |
+| `shift_management_journey_test.dart` | Two queued shifts → "Next Shift" → confirmation → `currentShiftId` advances |
+| `season_clone_journey_test.dart` | Manage Seasons → Create New Season with a checked previous-season team → cloned roster lands in the new season |
 
 ---
 

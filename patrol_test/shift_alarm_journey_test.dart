@@ -47,6 +47,8 @@ void main() {
           seasonId: seasonId,
           opponent: const drift.Value('Test United'),
           gameStatus: const drift.Value('in-progress'),
+          // Active Games card on Home filters on startTime IS NOT NULL.
+          startTime: drift.Value(DateTime.now()),
         ),
       );
 
