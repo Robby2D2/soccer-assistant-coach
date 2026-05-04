@@ -3,7 +3,9 @@ default_platform(:android)
 platform :android do
   desc "Build a signed release AAB"
   lane :build do
-    sh("cd .. && flutter build appbundle --release")
+    # Strip Windows CRLF from the Flutter launcher so it runs correctly under WSL.
+    # flutter upgrade rewrites this script with CRLF; this is idempotent and harmless.
+    sh("flutter_bin=$(which flutter) && sed -i 's/\\r//' \"$flutter_bin\"; cd .. && flutter build appbundle --release")
   end
 
   desc "Upload AAB to Play Store. Pass track:\"internal\"|\"alpha\"|\"beta\"|\"production\" (default: internal)"
