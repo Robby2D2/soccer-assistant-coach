@@ -1,14 +1,12 @@
 default_platform(:android)
 
 platform :android do
-  desc "Build a signed release AAB"
+  desc "Build a signed release AAB. Run from a Windows terminal (PowerShell/Git Bash), NOT from WSL — the Flutter SDK shell scripts have Windows line endings that break under WSL."
   lane :build do
-    # Strip Windows CRLF from the Flutter launcher so it runs correctly under WSL.
-    # flutter upgrade rewrites this script with CRLF; this is idempotent and harmless.
-    sh("flutter_bin=$(which flutter) && sed -i 's/\\r//' \"$flutter_bin\"; cd .. && flutter build appbundle --release")
+    sh("cd .. && flutter build appbundle --release")
   end
 
-  desc "Upload AAB to Play Store. Pass track:\"internal\"|\"alpha\"|\"beta\"|\"production\" (default: internal)"
+  desc "Upload AAB to Play Store. Run from WSL. Pass track:\"internal\"|\"alpha\"|\"beta\"|\"production\" (default: internal)"
   lane :deploy do |options|
     upload_to_play_store(
       track: options[:track] || "internal",
@@ -22,9 +20,8 @@ platform :android do
     )
   end
 
-  desc "Build and upload to Play Store (default: internal track)"
+  desc "Upload the already-built AAB to Play Store (default: internal track). Run from WSL. Build the AAB first with: flutter build appbundle --release"
   lane :release do |options|
-    build
     deploy(options)
   end
 
