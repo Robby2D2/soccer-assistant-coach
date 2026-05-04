@@ -10,6 +10,7 @@ platform :android do
   lane :deploy do |options|
     upload_to_play_store(
       track: options[:track] || "internal",
+      release_status: "draft",
       aab: File.expand_path("../build/app/outputs/bundle/release/app-release.aab", __dir__),
       skip_upload_apk: true,
       skip_upload_metadata: true,
