@@ -393,7 +393,7 @@ class AppDb extends _$AppDb {
   Future<List<String>> listTables() async {
     try {
       final result = await customSelect(
-        'SELECT name FROM sqlite_master WHERE type="table"',
+        "SELECT name FROM sqlite_master WHERE type='table'",
       ).get();
       return result.map((row) => row.read<String>('name')).toList();
     } catch (e) {
