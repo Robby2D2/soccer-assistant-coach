@@ -32,7 +32,7 @@ platform :android do
     UI.user_error!("Pass version: e.g. version:1.0.5") unless version
     UI.user_error!("Pass build: e.g. build:5") unless build
 
-    pubspec_path = "../pubspec.yaml"
+    pubspec_path = File.expand_path("../pubspec.yaml", __dir__)
     pubspec = File.read(pubspec_path)
     updated = pubspec.sub(/^version: .+$/, "version: #{version}+#{build}")
     File.write(pubspec_path, updated)
