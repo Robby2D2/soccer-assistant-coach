@@ -145,6 +145,47 @@ patrol test -d emulator-5554                         # specific device
 
 Each Patrol test seeds an isolated `AppDb.test()` (in-memory SQLite) and drives the production UI / GoRouter — no debug fast-forward hooks. Shift / halftime alarm tests use the team-configurable `shift_length_seconds` / `half_duration_seconds` shrunk to a few seconds so the timer-based path completes inside a normal test budget.
 
+## Publishing a Release
+
+Fastlane is vendored in `vendor/bundle` and must be run from **WSL (Ubuntu)** — it does not work in PowerShell or Git Bash on this machine.
+
+### Steps
+
+```bash
+# 1. Open WSL and navigate to the project
+cd /mnt/c/Users/rdane/Documents/Projects/soccer-assistant-coach
+
+# 2. Commit your changes via git as normal (can be done from any terminal)
+
+# 3. Bump the version — updates pubspec.yaml, commits, creates a vX.Y.Z tag, and pushes
+bundle exec fastlane bump version:1.0.6 build:6
+
+# 4. Build the release AAB and upload to the Play Store internal track
+bundle exec fastlane release
+
+# To target a different track (alpha / beta / production):
+bundle exec fastlane deploy track:production
+```
+
+### Available Lanes
+
+| Lane | Description |
+|------|-------------|
+| `bundle exec fastlane build` | Build the signed release AAB |
+| `bundle exec fastlane deploy [track:internal]` | Upload an existing AAB to the Play Store |
+| `bundle exec fastlane release [track:internal]` | Build + deploy in one step |
+| `bundle exec fastlane bump version:X build:N` | Bump version in pubspec.yaml, commit, tag, push |
+
+### Play Store Listing Assets
+
+Mockup screenshots and the feature graphic live in `store/assets/`. To regenerate them:
+
+```bash
+python -X utf8 store/generate_assets.py
+```
+
+This produces PNG assets at the correct dimensions for phone, 7-inch tablet, and 10-inch tablet.
+
 ## Enhancement Ideas / Roadmap
 - Dark mode override toggle (user preference independent of system setting).
 - Animated transitions when switching between teams (e.g., cross-fade brand colors).

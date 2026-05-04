@@ -4,6 +4,31 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
+## Session: May 4, 2026 — Play Store compliance + store listing assets
+
+Date: 2026-05-04
+
+### What was done
+Removed the `USE_EXACT_ALARM` Android permission (restricted to alarm/calendar apps; Play Store rejected it). Generated Play Store listing assets. Documented the release process for agents and humans.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `android/app/src/main/AndroidManifest.xml` | Removed `USE_EXACT_ALARM`; kept `SCHEDULE_EXACT_ALARM` (user opt-in, allowed for any app). Existing fallback to inexact alarms in `notification_service.dart` handles the denied-permission case. |
+| `store/assets/` | Added feature graphic (1024×500) + 2 phone, 2 tablet-7", 2 tablet-10" screenshots |
+| `store/generate_assets.py` | Python/Pillow script to regenerate all store assets |
+| `AGENTS.md` | Added "Publishing a Release" section (WSL + `bundle exec fastlane`) |
+| `README.md` | Added "Publishing a Release" section with lane table and asset regen instructions |
+
+### Key learnings
+- **`USE_EXACT_ALARM`** is auto-granted but Play-Store-restricted to alarm/calendar apps. Any other app must use **`SCHEDULE_EXACT_ALARM`** (requires user opt-in) and handle the denied case with inexact fallback.
+- **Fastlane must be run from WSL** via `bundle exec fastlane <lane>` — it is vendored in `vendor/bundle/ruby/3.2.0` and not accessible from PowerShell or Git Bash on this machine.
+- WSL path to project: `/mnt/c/Users/rdane/Documents/Projects/soccer-assistant-coach`
+- Store assets can be regenerated any time with `python -X utf8 store/generate_assets.py` (Pillow required, already installed).
+
+---
+
 ## Session: May 3, 2026 — Patrol journey tests for major user flows
 
 Date: 2026-05-03
