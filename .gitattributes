@@ -1,0 +1,16 @@
+# Default: normalize to LF on commit, checkout as-is
+* text=auto
+
+# Shell scripts and Ruby files must always use LF
+*.sh text eol=lf
+Fastfile text eol=lf
+Gemfile text eol=lf
+Gemfile.lock text eol=lf
+*.rb text eol=lf
+
+# Binaries
+*.png binary
+*.jpg binary
+*.aab binary
+*.apk binary
+*.keystore binary
