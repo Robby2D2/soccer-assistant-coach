@@ -1,0 +1,2 @@
+json_key_file(ENV["PLAY_STORE_JSON_KEY"] || "fastlane/google-play-key.json")
+package_name("com.useunix.soccerassistantcoach")

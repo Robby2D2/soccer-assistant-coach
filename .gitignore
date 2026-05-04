@@ -61,3 +61,10 @@ patrol_test/test_bundle.dart
 android/key.properties
 android/app/*.keystore
 android/app/*.jks
+
+# Google Play API service account key (NEVER commit)
+fastlane/google-play-key.json
+
+# Bundler local gem cache and config
+vendor/bundle/
+.bundle/

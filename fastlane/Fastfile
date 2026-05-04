@@ -1,0 +1,46 @@
+default_platform(:android)
+
+platform :android do
+  desc "Build a signed release AAB"
+  lane :build do
+    sh("cd .. && flutter build appbundle --release")
+  end
+
+  desc "Upload AAB to Play Store. Pass track:\"internal\"|\"alpha\"|\"beta\"|\"production\" (default: internal)"
+  lane :deploy do |options|
+    upload_to_play_store(
+      track: options[:track] || "internal",
+      aab: "../build/app/outputs/bundle/release/app-release.aab",
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
+  end
+
+  desc "Build and upload to Play Store (default: internal track)"
+  lane :release do |options|
+    build
+    deploy(options)
+  end
+
+  desc "Bump pubspec.yaml version, commit, tag, and push to trigger CI. Usage: bump version:1.0.5 build:5"
+  lane :bump do |options|
+    version = options[:version]
+    build   = options[:build]
+    UI.user_error!("Pass version: e.g. version:1.0.5") unless version
+    UI.user_error!("Pass build: e.g. build:5") unless build
+
+    pubspec_path = "../pubspec.yaml"
+    pubspec = File.read(pubspec_path)
+    updated = pubspec.sub(/^version: .+$/, "version: #{version}+#{build}")
+    File.write(pubspec_path, updated)
+
+    git_commit(path: pubspec_path, message: "chore: bump version to #{version}+#{build}")
+    add_git_tag(tag: "v#{version}")
+    push_to_git_remote(tags: true)
+
+    UI.success("Tagged v#{version} — CI release workflow triggered.")
+  end
+end
