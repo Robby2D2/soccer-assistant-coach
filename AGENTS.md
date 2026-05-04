@@ -18,25 +18,30 @@ Always refer to `.agents/ARCHITECTURE.md` for information on project structure, 
 
 Fastlane must be run from **WSL (Ubuntu)** using Bundler — it is not available in PowerShell or Git Bash.
 
+The Flutter SDK shell scripts have Windows line endings (CRLF) that break under WSL, so **build and deploy run in different environments**.
+
+**Step 1 — Bump version** (WSL):
 ```bash
-# Open WSL and cd to the project
 cd /mnt/c/Users/rdane/Documents/Projects/soccer-assistant-coach
-
-# 1. Bump version — updates pubspec.yaml, commits, tags vX.Y.Z, and pushes
 bundle exec fastlane bump version:1.0.6 build:6
+```
+This updates `pubspec.yaml`, commits it, tags `vX.Y.Z`, and pushes.
 
-# 2. Build the release AAB and upload to Play Store (internal track by default)
-bundle exec fastlane release
+**Step 2 — Build the AAB** (Windows — PowerShell or Git Bash):
+```bash
+flutter build appbundle --release
+```
 
-# Or target a specific track
-bundle exec fastlane deploy track:production
+**Step 3 — Upload to Play Store** (WSL):
+```bash
+bundle exec fastlane deploy                   # internal track (default)
+bundle exec fastlane deploy track:production  # or any other track
 ```
 
 **Available lanes:**
-- `bundle exec fastlane build` — build signed release AAB only
-- `bundle exec fastlane deploy [track:internal|alpha|beta|production]` — upload existing AAB
-- `bundle exec fastlane release [track:...]` — build + deploy in one step
-- `bundle exec fastlane bump version:X.Y.Z build:N` — bump version, commit, tag, push
+- `bundle exec fastlane deploy [track:internal|alpha|beta|production]` — upload existing AAB (WSL)
+- `bundle exec fastlane bump version:X.Y.Z build:N` — bump version, commit, tag, push (WSL)
+- `fastlane build` — build signed release AAB (Windows terminal only, not WSL)
 
 **Play Store listing assets** live in `store/assets/` and can be regenerated with:
 ```bash

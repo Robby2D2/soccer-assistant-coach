@@ -149,32 +149,40 @@ Each Patrol test seeds an isolated `AppDb.test()` (in-memory SQLite) and drives 
 
 Fastlane is vendored in `vendor/bundle` and must be run from **WSL (Ubuntu)** — it does not work in PowerShell or Git Bash on this machine.
 
+The Flutter SDK shell scripts have Windows line endings (CRLF) that break under WSL, so build and upload run in different environments.
+
 ### Steps
 
+**1. Commit your changes** (any terminal):
 ```bash
-# 1. Open WSL and navigate to the project
+git add <files> && git commit -m "your message"
+```
+
+**2. Bump the version** (WSL):
+```bash
 cd /mnt/c/Users/rdane/Documents/Projects/soccer-assistant-coach
-
-# 2. Commit your changes via git as normal (can be done from any terminal)
-
-# 3. Bump the version — updates pubspec.yaml, commits, creates a vX.Y.Z tag, and pushes
 bundle exec fastlane bump version:1.0.6 build:6
+```
+This updates `pubspec.yaml`, commits it, tags `vX.Y.Z`, and pushes to GitHub.
 
-# 4. Build the release AAB and upload to the Play Store internal track
-bundle exec fastlane release
+**3. Build the AAB** (Windows — PowerShell or Git Bash, not WSL):
+```bash
+flutter build appbundle --release
+```
 
-# To target a different track (alpha / beta / production):
-bundle exec fastlane deploy track:production
+**4. Upload to Play Store** (WSL):
+```bash
+bundle exec fastlane deploy                    # internal track (default)
+bundle exec fastlane deploy track:production   # promote to production
 ```
 
 ### Available Lanes
 
-| Lane | Description |
-|------|-------------|
-| `bundle exec fastlane build` | Build the signed release AAB |
-| `bundle exec fastlane deploy [track:internal]` | Upload an existing AAB to the Play Store |
-| `bundle exec fastlane release [track:internal]` | Build + deploy in one step |
-| `bundle exec fastlane bump version:X build:N` | Bump version in pubspec.yaml, commit, tag, push |
+| Lane | Environment | Description |
+|------|-------------|-------------|
+| `bundle exec fastlane bump version:X build:N` | WSL | Bump version, commit, tag, push |
+| `bundle exec fastlane deploy [track:internal]` | WSL | Upload existing AAB to Play Store |
+| `fastlane build` | Windows only | Build signed release AAB |
 
 ### Play Store Listing Assets
 
