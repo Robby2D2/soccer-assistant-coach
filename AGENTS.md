@@ -18,30 +18,49 @@ Always refer to `.agents/ARCHITECTURE.md` for information on project structure, 
 
 Fastlane must be run from **WSL (Ubuntu)** using Bundler — it is not available in PowerShell or Git Bash.
 
-The Flutter SDK shell scripts have Windows line endings (CRLF) that break under WSL, so **build and deploy run in different environments**.
+The Flutter SDK shell scripts have Windows line endings (CRLF) that break under WSL, so **Android build and deploy run in different environments**. iOS builds run entirely in CI on a macOS runner.
 
-**Step 1 — Bump version** (WSL):
+#### Bumping the version (WSL) — triggers both Android and iOS CI
+
 ```bash
 cd /mnt/c/Users/rdane/Documents/Projects/soccer-assistant-coach
 bundle exec fastlane bump version:1.0.6 build:6
 ```
-This updates `pubspec.yaml`, commits it, tags `vX.Y.Z`, and pushes.
+This updates `pubspec.yaml`, commits it, tags `vX.Y.Z`, and pushes — which triggers both `release.yml` (Android) and `release-ios.yml` (iOS) in GitHub Actions.
 
-**Step 2 — Build the AAB** (Windows — PowerShell or Git Bash):
+#### Android — manual release
+
+**Step 1 — Build the AAB** (Windows — PowerShell or Git Bash):
 ```bash
 flutter build appbundle --release
 ```
 
-**Step 3 — Upload to Play Store** (WSL):
+**Step 2 — Upload to Play Store** (WSL):
 ```bash
-bundle exec fastlane deploy                   # internal track (default)
-bundle exec fastlane deploy track:production  # or any other track
+bundle exec fastlane android deploy                   # internal track (default)
+bundle exec fastlane android deploy track:production  # or any other track
 ```
 
-**Available lanes:**
-- `bundle exec fastlane deploy [track:internal|alpha|beta|production]` — upload existing AAB (WSL)
+#### iOS — CI only (macOS required)
+
+iOS releases run automatically via GitHub Actions (`release-ios.yml`) on every `v*` tag push. There is no supported local iOS build path from Windows/WSL.
+
+To trigger manually without a version bump: go to Actions → "Release to App Store" → Run workflow.
+
+**Available lanes (macOS only):**
+- `bundle exec fastlane ios release` — sync certs, build IPA, upload to TestFlight
+- `bundle exec fastlane ios build` — sync certs and build IPA only
+- `bundle exec fastlane ios deploy` — upload existing `build/ios/ipa/Runner.ipa` to TestFlight
+
+#### One-time iOS setup (do this before first iOS CI run)
+
+See the detailed checklist in `.agents/memory/ios_setup.md`.
+
+#### Available lanes summary
 - `bundle exec fastlane bump version:X.Y.Z build:N` — bump version, commit, tag, push (WSL)
-- `fastlane build` — build signed release AAB (Windows terminal only, not WSL)
+- `bundle exec fastlane android deploy [track:internal|alpha|beta|production]` — upload AAB (WSL)
+- `bundle exec fastlane android build` — build signed AAB (Windows terminal only)
+- `bundle exec fastlane ios release` — full iOS build + TestFlight upload (macOS only)
 
 **Play Store listing assets** live in `store/assets/` and can be regenerated with:
 ```bash

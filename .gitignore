@@ -68,3 +68,9 @@ fastlane/google-play-key.json
 # Bundler local gem cache and config
 vendor/bundle/
 .bundle/
+
+# Claude Code local settings (machine-specific permissions)
+.claude/settings.local.json
+
+# Fastlane auto-generated report
+fastlane/report.xml

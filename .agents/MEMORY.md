@@ -4,6 +4,31 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
+## Session: May 4, 2026 — iOS App Store CI/CD via Fastlane + GitHub Actions
+
+Date: 2026-05-04
+
+### What was done
+Added iOS release automation: a new `platform :ios` block in the Fastfile (using Match for code signing), a new `release-ios.yml` GitHub Actions workflow on `macos-latest`, and a `fastlane/Matchfile`. The `bump` lane was promoted from the Android platform block to a top-level shared lane so a single `fastlane bump` triggers both Android and iOS CI. A one-time setup checklist was written to `.agents/memory/ios_setup.md`.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `fastlane/Fastfile` | Promoted `bump` to top-level lane; added `platform :ios` block with `release`, `build`, `deploy`, and private `api_key` lanes |
+| `fastlane/Matchfile` | New file; reads `MATCH_GIT_URL` from env; `storage_mode("git")`, `type("appstore")`, bundle ID `com.useunix.soccerassistantcoach` |
+| `.github/workflows/release-ios.yml` | New workflow; `macos-latest` runner; triggered on `v*` tags + manual dispatch; runs `bundle exec fastlane ios release` |
+| `AGENTS.md` | Updated "Publishing a Release" section with iOS lanes and setup reference |
+| `.agents/memory/ios_setup.md` | New: step-by-step checklist for App Store Connect API key, Match repo, Match init, and GitHub secrets |
+
+### Key facts
+- iOS bundle ID: `com.useunix.soccerassistantcoach` — Team ID: `DPS86D59PK`
+- Match requires a private GitHub repo for certificate storage (not yet created)
+- 6 GitHub secrets needed before first iOS CI run: `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_KEY_CONTENT`, `MATCH_PASSWORD`, `MATCH_GIT_URL`, `MATCH_GIT_BASIC_AUTHORIZATION`
+- iOS builds must run on macOS — there is no local Windows/WSL build path for IPA
+
+---
+
 ## Session: May 4, 2026 — Play Store compliance + store listing assets
 
 Date: 2026-05-04

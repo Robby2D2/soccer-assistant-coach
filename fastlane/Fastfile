@@ -1,3 +1,22 @@
+desc "Bump pubspec.yaml version, commit, tag, and push to trigger CI. Usage: bump version:1.0.5 build:5"
+lane :bump do |options|
+  version = options[:version]
+  build   = options[:build]
+  UI.user_error!("Pass version: e.g. version:1.0.5") unless version
+  UI.user_error!("Pass build: e.g. build:5") unless build
+
+  pubspec_path = File.expand_path("../pubspec.yaml", __dir__)
+  pubspec = File.read(pubspec_path)
+  updated = pubspec.sub(/^version: .+$/, "version: #{version}+#{build}")
+  File.write(pubspec_path, updated)
+
+  git_commit(path: pubspec_path, message: "chore: bump version to #{version}+#{build}")
+  add_git_tag(tag: "v#{version}")
+  push_to_git_remote(tags: true)
+
+  UI.success("Tagged v#{version} — CI release workflows triggered.")
+end
+
 default_platform(:android)
 
 platform :android do
@@ -20,27 +39,75 @@ platform :android do
     )
   end
 
-  desc "Upload the already-built AAB to Play Store (default: internal track). Run from WSL. Build the AAB first with: flutter build appbundle --release"
+  desc "Upload the already-built AAB to Play Store (default: internal track). Run from WSL."
   lane :release do |options|
     deploy(options)
   end
 
-  desc "Bump pubspec.yaml version, commit, tag, and push to trigger CI. Usage: bump version:1.0.5 build:5"
-  lane :bump do |options|
-    version = options[:version]
-    build   = options[:build]
-    UI.user_error!("Pass version: e.g. version:1.0.5") unless version
-    UI.user_error!("Pass build: e.g. build:5") unless build
+  desc "Promote an existing release from one track to another. Run from WSL. Usage: promote from:internal to:beta"
+  lane :promote do |options|
+    from_track = options[:from] || "internal"
+    to_track   = options[:to]
+    UI.user_error!("Pass to: e.g. to:beta") unless to_track
+    upload_to_play_store(
+      track:              from_track,
+      track_promote_to:   to_track,
+      skip_upload_apk:    true,
+      skip_upload_aab:    true,
+      skip_upload_metadata:    true,
+      skip_upload_changelogs:  true,
+      skip_upload_images:      true,
+      skip_upload_screenshots: true,
+    )
+  end
+end
 
-    pubspec_path = File.expand_path("../pubspec.yaml", __dir__)
-    pubspec = File.read(pubspec_path)
-    updated = pubspec.sub(/^version: .+$/, "version: #{version}+#{build}")
-    File.write(pubspec_path, updated)
+platform :ios do
+  private_lane :api_key do
+    app_store_connect_api_key(
+      key_id:                ENV["APP_STORE_CONNECT_KEY_ID"],
+      issuer_id:             ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_content:           ENV["APP_STORE_CONNECT_KEY_CONTENT"],
+      is_key_content_base64: true,
+    )
+  end
 
-    git_commit(path: pubspec_path, message: "chore: bump version to #{version}+#{build}")
-    add_git_tag(tag: "v#{version}")
-    push_to_git_remote(tags: true)
+  desc "Sync certs via Match, build IPA, and upload to TestFlight. Run from macOS."
+  lane :release do
+    key = api_key
+    match(type: "appstore", readonly: true, api_key: key)
+    build_app(
+      workspace:        "ios/Runner.xcworkspace",
+      scheme:           "Runner",
+      export_method:    "app-store",
+      output_directory: "build/ios/ipa",
+      output_name:      "Runner.ipa",
+    )
+    upload_to_testflight(
+      api_key:                           key,
+      skip_waiting_for_build_processing: true,
+    )
+  end
 
-    UI.success("Tagged v#{version} — CI release workflow triggered.")
+  desc "Sync certs via Match and build IPA without uploading. Run from macOS."
+  lane :build do
+    key = api_key
+    match(type: "appstore", readonly: true, api_key: key)
+    build_app(
+      workspace:        "ios/Runner.xcworkspace",
+      scheme:           "Runner",
+      export_method:    "app-store",
+      output_directory: "build/ios/ipa",
+      output_name:      "Runner.ipa",
+    )
+  end
+
+  desc "Upload an existing IPA at build/ios/ipa/Runner.ipa to TestFlight."
+  lane :deploy do
+    upload_to_testflight(
+      api_key:                           api_key,
+      ipa:                               "build/ios/ipa/Runner.ipa",
+      skip_waiting_for_build_processing: true,
+    )
   end
 end
