@@ -90,15 +90,10 @@ platform :ios do
       profile_name: "match AppStore com.useunix.soccerassistantcoach",
       bundle_identifier: "com.useunix.soccerassistantcoach",
     )
-    build_app(
-      workspace:        "ios/Runner.xcworkspace",
-      scheme:           "Runner",
-      export_method:    "app-store",
-      output_directory: "build/ios/ipa",
-      output_name:      "Runner.ipa",
-    )
+    sh("cd .. && flutter build ipa --release --export-options-plist=ios/ExportOptions.plist")
     upload_to_testflight(
       api_key:                           key,
+      ipa:                               "../build/ios/ipa/Runner.ipa",
       skip_waiting_for_build_processing: true,
     )
   end
@@ -107,13 +102,15 @@ platform :ios do
   lane :build do
     key = api_key
     match(type: "appstore", readonly: true, api_key: key)
-    build_app(
-      workspace:        "ios/Runner.xcworkspace",
-      scheme:           "Runner",
-      export_method:    "app-store",
-      output_directory: "build/ios/ipa",
-      output_name:      "Runner.ipa",
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "ios/Runner.xcodeproj",
+      team_id: "DPS86D59PK",
+      code_sign_identity: "Apple Distribution",
+      profile_name: "match AppStore com.useunix.soccerassistantcoach",
+      bundle_identifier: "com.useunix.soccerassistantcoach",
     )
+    sh("cd .. && flutter build ipa --release --export-options-plist=ios/ExportOptions.plist")
   end
 
   desc "Upload an existing IPA at build/ios/ipa/Runner.ipa to TestFlight."
