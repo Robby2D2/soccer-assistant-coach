@@ -82,6 +82,14 @@ platform :ios do
   lane :release do
     key = api_key
     match(type: "appstore", readonly: true, api_key: key)
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "ios/Runner.xcodeproj",
+      team_id: "DPS86D59PK",
+      code_sign_identity: "Apple Distribution",
+      profile_name: "match AppStore com.useunix.soccerassistantcoach",
+      bundle_identifier: "com.useunix.soccerassistantcoach",
+    )
     build_app(
       workspace:        "ios/Runner.xcworkspace",
       scheme:           "Runner",
