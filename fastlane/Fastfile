@@ -72,6 +72,12 @@ platform :ios do
     )
   end
 
+  desc "One-time Match initialization — generates dist cert + App Store provisioning profile."
+  lane :init_match do
+    key = api_key
+    match(type: "appstore", readonly: false, api_key: key)
+  end
+
   desc "Sync certs via Match, build IPA, and upload to TestFlight. Run from macOS."
   lane :release do
     key = api_key
