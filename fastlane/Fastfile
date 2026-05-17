@@ -78,8 +78,8 @@ platform :ios do
     match(type: "appstore", readonly: false, api_key: key)
   end
 
-  desc "Sync certs via Match, build IPA, and upload to TestFlight. Run from macOS."
-  lane :release do
+  desc "Sync certs and configure signing. Called by CI before flutter build ipa."
+  lane :setup_signing do
     key = api_key
     match(type: "appstore", readonly: true, api_key: key)
     update_code_signing_settings(
@@ -90,15 +90,18 @@ platform :ios do
       profile_name: "match AppStore com.useunix.soccerassistantcoach",
       bundle_identifier: "com.useunix.soccerassistantcoach",
     )
-    sh("cd .. && flutter build ipa --release --export-options-plist=ios/ExportOptions.plist")
+  end
+
+  desc "Upload an existing IPA to TestFlight."
+  lane :release do
     upload_to_testflight(
-      api_key:                           key,
-      ipa:                               "../build/ios/ipa/Runner.ipa",
+      api_key:                           api_key,
+      ipa:                               "build/ios/ipa/Runner.ipa",
       skip_waiting_for_build_processing: true,
     )
   end
 
-  desc "Sync certs via Match and build IPA without uploading. Run from macOS."
+  desc "Sync certs and configure signing (local use). Run from macOS."
   lane :build do
     key = api_key
     match(type: "appstore", readonly: true, api_key: key)
@@ -110,7 +113,6 @@ platform :ios do
       profile_name: "match AppStore com.useunix.soccerassistantcoach",
       bundle_identifier: "com.useunix.soccerassistantcoach",
     )
-    sh("cd .. && flutter build ipa --release --export-options-plist=ios/ExportOptions.plist")
   end
 
   desc "Upload an existing IPA at build/ios/ipa/Runner.ipa to TestFlight."
