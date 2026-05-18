@@ -106,10 +106,11 @@ platform :ios do
     )
   end
 
-  desc "Upload an existing IPA to TestFlight."
+  desc "Upload an existing IPA to TestFlight. Set IPA_PATH env var or let it fall back to glob."
   lane :release do
-    ipa_path = Dir.glob("build/ios/ipa/*.ipa").first
-    UI.user_error!("No IPA found in build/ios/ipa/") unless ipa_path
+    ipa_path = ENV["IPA_PATH"].to_s.strip
+    ipa_path = Dir.glob("build/ios/ipa/*.ipa").first if ipa_path.empty?
+    UI.user_error!("No IPA found — set IPA_PATH or build first") unless ipa_path
     UI.message("Uploading #{ipa_path}")
     upload_to_testflight(
       api_key:                           api_key,

@@ -64,17 +64,16 @@ jobs:
             -exportOptionsPlist ios/ExportOptions.plist
         timeout-minutes: 10
 
-      - name: List build artifacts
-        if: always()
+      - name: Locate IPA
         run: |
-          echo "=== IPA search ==="
-          find build/ios/ipa -type f 2>/dev/null || echo "no ipa directory"
-          echo "=== xcarchive check ==="
-          ls build/ios/archive/ 2>/dev/null || echo "no archive directory"
+          IPA=$(find build/ios/ipa -name "*.ipa" -maxdepth 1 | head -1)
+          echo "Found IPA: $IPA"
+          echo "IPA_PATH=$IPA" >> $GITHUB_ENV
 
       - name: Upload to TestFlight
         env:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_KEY_CONTENT: ${{ secrets.APP_STORE_CONNECT_KEY_CONTENT }}
+          IPA_PATH: ${{ env.IPA_PATH }}
         run: bundle exec fastlane ios release
