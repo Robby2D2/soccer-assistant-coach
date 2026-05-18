@@ -108,7 +108,7 @@ platform :ios do
 
   desc "Upload an existing IPA to TestFlight."
   lane :release do
-    ipa_path = Dir.glob("build/ios/ipa/**/*.ipa").first
+    ipa_path = Dir.glob("build/ios/ipa/*.ipa").first
     UI.user_error!("No IPA found in build/ios/ipa/") unless ipa_path
     UI.message("Uploading #{ipa_path}")
     upload_to_testflight(
@@ -134,7 +134,7 @@ platform :ios do
 
   desc "Upload an existing IPA at build/ios/ipa/*.ipa to TestFlight."
   lane :deploy do
-    ipa_path = Dir.glob("build/ios/ipa/**/*.ipa").first
+    ipa_path = Dir.glob("build/ios/ipa/*.ipa").first
     UI.user_error!("No IPA found in build/ios/ipa/") unless ipa_path
     UI.message("Uploading #{ipa_path}")
     upload_to_testflight(
