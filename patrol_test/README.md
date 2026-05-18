@@ -80,6 +80,7 @@ CI examples live at <https://patrol.leancode.co/ci/overview>.
 | `substitution_journey_test.dart` | `/game/:id/assign/:shiftId` route assigns a present player to a position via the dropdown |
 | `shift_management_journey_test.dart` | Two queued shifts → "Next Shift" → confirmation dialog → `currentShiftId` advances |
 | `season_clone_journey_test.dart` | Home → Manage Seasons → Create New Season with a checked previous-season team → new season + cloned roster |
+| `roster_import_journey_test.dart` | `/team/:id/players/import` → paste CSV → confirm dialog shows add/update/archive counts → import writes correct DB state |
 
 The shift/halftime journeys deliberately use the team's
 **configurable shift / half length** (`shift_length_seconds`,

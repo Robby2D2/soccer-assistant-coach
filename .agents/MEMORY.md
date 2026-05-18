@@ -4,6 +4,33 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
+## Session: May 18, 2026 — CSV roster import upgrade (issue #6)
+
+Date: 2026-05-18
+
+### What was done
+Upgraded the roster import screen to support file upload in addition to paste-in text, and replaced blind INSERTs with upsert diff logic (add/update/archive) plus a confirmation dialog. Also documented the `gh` CLI path required for Claude Code tools.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `lib/utils/roster_diff.dart` | New utility: `diffRoster()` computes add/update/archive sets by matching on normalized firstName+lastName |
+| `lib/features/players/roster_import_screen.dart` | Added file picker button; both file and paste paths feed the same diff+confirm+execute flow; fixed `Scaffold` → `TeamScaffold` |
+| `lib/l10n/app_{en,es,fr}.arb` | Added 8 new localization strings for the new UI |
+| `test/roster_csv_import_test.dart` | 7 unit tests covering all diff cases |
+| `patrol_test/roster_import_journey_test.dart` | E2E: paste CSV → confirm dialog → DB assertions for add/update/archive |
+| `AGENTS.md` | Documented `gh` CLI path: `C:\Program Files\GitHub CLI\gh.exe` |
+| `.claude/commands/fix-issue.md` | New `/fix-issue` skill for automated issue → PR workflow |
+
+### Key learnings
+- **`gh` is not in the sandboxed PATH** — must invoke as `& "C:\Program Files\GitHub CLI\gh.exe"` from PowerShell tools; `gh` bare, `wsl bash -c "gh ..."`, etc. do not work.
+- **Patrol E2E cannot drive the OS file picker** — test the paste-text path instead; it exercises the same diff+confirm+write pipeline and is fully deterministic on an emulator.
+- **`flutter gen-l10n` must be run after ARB edits** before `flutter analyze` will pass, as the generated `app_localizations_*.dart` files are what the compiler sees.
+- **Generated l10n files are tracked in this repo** (`lib/l10n/app_localizations*.dart`) — commit them alongside ARB changes or a fresh checkout won't compile.
+
+---
+
 ## Session: May 18, 2026 — iOS CI debugging: keychain hang fix and runner choice
 
 Date: 2026-05-18
