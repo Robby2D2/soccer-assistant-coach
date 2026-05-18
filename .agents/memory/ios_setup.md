@@ -56,4 +56,10 @@ Ensure `com.useunix.soccerassistantcoach` is registered as an app in App Store C
 
 - Team ID: `DPS86D59PK`
 - Bundle ID: `com.useunix.soccerassistantcoach`
-- The `release-ios.yml` workflow runs on `macos-latest` and is triggered automatically on every `v*` tag push alongside the Android workflow
+- The `release-ios.yml` workflow runs on `macos-14` and is triggered automatically on every `v*` tag push alongside the Android workflow
+- **Do not use `macos-13`** — queue wait times exceed 45 minutes in practice
+- **Do not use `macos-latest` (macos-15)** — had persistent 6-hour hangs during testing
+- **Admin API key required** — the App Store Connect key must have Admin role (not Developer). Developer role cannot create Distribution certificates, causing Match to fail
+- All 6 secrets are configured in the repo: `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_KEY_CONTENT`, `MATCH_PASSWORD`, `MATCH_GIT_URL`, `MATCH_GIT_BASIC_AUTHORIZATION`
+- Match certificates repo is populated and ready
+- One-time steps are complete as of 2026-05-18

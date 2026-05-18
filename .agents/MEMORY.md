@@ -4,28 +4,50 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
-## Session: May 4, 2026 — iOS App Store CI/CD via Fastlane + GitHub Actions
+## Session: May 18, 2026 — iOS CI debugging: keychain hang fix and runner choice
 
-Date: 2026-05-04
+Date: 2026-05-18
 
 ### What was done
-Added iOS release automation: a new `platform :ios` block in the Fastfile (using Match for code signing), a new `release-ios.yml` GitHub Actions workflow on `macos-latest`, and a `fastlane/Matchfile`. The `bump` lane was promoted from the Android platform block to a top-level shared lane so a single `fastlane bump` triggers both Android and iOS CI. A one-time setup checklist was written to `.agents/memory/ios_setup.md`.
+Debugged and fixed a persistent hang in `flutter build ipa` on GitHub Actions macOS runners. All one-time setup steps (Match init, secrets, agreements) are now complete. Updated `.agents/memory/ios_setup.md` with current state.
 
 ### Changes made
 
 | Change | Detail |
 |--------|--------|
-| `fastlane/Fastfile` | Promoted `bump` to top-level lane; added `platform :ios` block with `release`, `build`, `deploy`, and private `api_key` lanes |
-| `fastlane/Matchfile` | New file; reads `MATCH_GIT_URL` from env; `storage_mode("git")`, `type("appstore")`, bundle ID `com.useunix.soccerassistantcoach` |
-| `.github/workflows/release-ios.yml` | New workflow; `macos-latest` runner; triggered on `v*` tags + manual dispatch; runs `bundle exec fastlane ios release` |
-| `AGENTS.md` | Updated "Publishing a Release" section with iOS lanes and setup reference |
-| `.agents/memory/ios_setup.md` | New: step-by-step checklist for App Store Connect API key, Match repo, Match init, and GitHub secrets |
+| `fastlane/Fastfile` `setup_signing` | Added `create_keychain` + passed `keychain_name`/`keychain_password` to `match` so the cert lands in a named, always-unlocked keychain |
+| `.github/workflows/release-ios.yml` | Added `security set-key-partition-list` step before `flutter build ipa`; runner changed from `macos-latest` → `macos-14` → `macos-13` → back to `macos-14` |
+| `ios/ExportOptions.plist` | Created for manual signing: `app-store` method, `DPS86D59PK`, profile `match AppStore com.useunix.soccerassistantcoach` |
+| `Gemfile.lock` | Added `arm64-darwin-23` to PLATFORMS so bundler works on macOS CI runners |
+| `.agents/memory/ios_setup.md` | Updated runner choice, Admin key requirement, and marked one-time steps complete |
 
-### Key facts
-- iOS bundle ID: `com.useunix.soccerassistantcoach` — Team ID: `DPS86D59PK`
-- Match requires a private GitHub repo for certificate storage (not yet created)
-- 6 GitHub secrets needed before first iOS CI run: `APP_STORE_CONNECT_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_KEY_CONTENT`, `MATCH_PASSWORD`, `MATCH_GIT_URL`, `MATCH_GIT_BASIC_AUTHORIZATION`
-- iOS builds must run on macOS — there is no local Windows/WSL build path for IPA
+### Key learnings
+
+**Runner choice — use `macos-14`**
+- `macos-13` (Intel): queue wait > 45 min in practice — not usable
+- `macos-latest` / `macos-15`: 6-hour silent hangs during testing — avoid
+- `macos-14` (Apple Silicon): picks up quickly, works correctly with the keychain fix
+
+**Why `flutter build ipa` hung silently**
+`flutter build ipa` invokes xcodebuild as a subprocess _outside_ of fastlane's session. When `match` installs the distribution cert into fastlane's ephemeral temp keychain, xcodebuild can't find it and waits indefinitely for a keychain prompt. Fix requires two things together:
+1. `create_keychain(name: "build.keychain", default_keychain: true, unlock: true, timeout: 3600)` in `setup_signing` — creates a persistent named keychain that stays unlocked
+2. `security set-key-partition-list -S apple-tool:,apple: -s -k buildpassword ~/Library/Keychains/build.keychain-db` — grants codesign direct access to the signing key with no UI prompts
+
+**Use `flutter build ipa`, not fastlane `build_app`**
+`fastlane build_app` (xcodebuild via fastlane) also hangs — same root cause, plus CocoaPods ruby environment conflicts when called from inside fastlane's `sh()`. `flutter build ipa --export-options-plist=ios/ExportOptions.plist` as a standalone workflow step avoids both issues.
+
+**Pipeline structure**
+```
+setup_signing (fastlane) → Allow codesign access (security cmd) → flutter build ipa → fastlane ios release (upload only)
+```
+
+**Admin API key required**
+App Store Connect API key must have **Admin** role. Developer role cannot create Distribution certificates — Match fails silently or with a misleading auth error.
+
+**One-time steps now complete**
+- Match certificates repo populated with dist cert + App Store provisioning profile
+- All 6 GitHub secrets set
+- Apple Developer Program and App Store Connect agreements accepted at both portals
 
 ---
 
@@ -192,31 +214,3 @@ Full pre-store audit and fixes to prepare the app for Apple App Store and Google
 - Riverpod `autoDispose` does NOT auto-cancel `Timer` objects held by a `Notifier`; must register `ref.onDispose(() => _t?.cancel())` explicitly in `build()`
 - To test DB migrations: use raw `sqlite3` package to seed old schema files, then open with `AppDb.forTesting(NativeDatabase(file))` — opening via `AppDb` itself would trigger `onCreate` first
 
----
-
-## Session: April 24, 2026 — Adopt .agents/ structure
-
-Date: 2026-04-24
-
-### What was done
-Reorganized project documentation to follow the `.agents/` directory convention.
-
-### Changes made
-
-| Change | Detail |
-|--------|--------|
-| Created `.agents/` directory | Now holds `ARCHITECTURE.md`, `TESTING.md`, `CODING.md`, `MEMORY.md` |
-| Moved `ARCHITECTURE.md` | Root → `.agents/ARCHITECTURE.md`; removed stale link to deleted `memory/contrast_notes.md` |
-| Moved `TEST.md` | Root → `.agents/TESTING.md`; renamed to match convention |
-| Created `.agents/CODING.md` | Extracted coding principles and Flutter rules from old root `AGENTS.md` |
-| Updated root `AGENTS.md` | Now an entry-point that references `.agents/` subdocs and includes Key Changes protocol |
-| Updated root `CLAUDE.md` | Simplified to `@AGENTS.md` |
-| Cleaned up `memory/MEMORY.md` | Removed stale entries for deleted files |
-
-### Key conventions
-- `.agents/MEMORY.md` — session-level task log (this file); prune to topic files in `.agents/memory/` when > 200 lines
-- `.agents/LONGTERM_MEMORY.md` — table of contents linking to files in `.agents/memory/`
-- `.agents/memory/<topic>.md` — individual long-term memory files by topic (theming, timer, etc.)
-- `memory/` directory — feature-level implementation notes; indexed by `memory/MEMORY.md`
-- Generated files (`*.g.dart`, `*.drift.dart`) must never be edited — always regenerate
-- `AppDb.test()` for all test DB access — never touch `soccer_manager.db` in tests
