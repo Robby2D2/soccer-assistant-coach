@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
 import 'package:soccer_assistant_coach/data/db/database.dart';
@@ -15,6 +14,11 @@ import 'helpers/app_harness.dart';
 /// into `AppDb.importDatabase`. The integration value here is that the call
 /// happens inside the running app with all platform plugins (path_provider,
 /// shared_preferences) initialized — closer to a real device run.
+///
+/// The fixture is bundled as a Flutter asset (pubspec.yaml) so it is
+/// available inside the APK on both emulator and physical devices via
+/// rootBundle — dart:io File paths are relative to the device filesystem,
+/// not the project root.
 void main() {
   patrolTest('importing the seeded fixture populates the running database', (
     PatrolIntegrationTester $,
@@ -27,14 +31,9 @@ void main() {
     await $.pumpWidget(appUnderTest(db: db));
     await $.pumpAndSettle(timeout: const Duration(seconds: 5));
 
-    final fixture = File('test/fixtures/full_season_fixed_metrics.json');
-    expect(
-      await fixture.exists(),
-      isTrue,
-      reason: 'The unit-test fixture must be present on disk for E2E reuse',
+    final json = await rootBundle.loadString(
+      'test/fixtures/full_season_fixed_metrics.json',
     );
-
-    final json = await fixture.readAsString();
     final imported = await db.importDatabase(json);
     expect(imported, isTrue);
 

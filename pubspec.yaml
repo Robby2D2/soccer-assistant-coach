@@ -55,6 +55,8 @@ dependency_overrides:
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    - test/fixtures/full_season_fixed_metrics.json
 
 flutter_launcher_icons:
   android: true

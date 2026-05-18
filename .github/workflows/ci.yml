@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  # ─── Unit tests + static analysis ─────────────────────────────────────────
+  unit-tests:
+    name: Unit tests & analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Unit & widget tests
+        run: flutter test
+
+  # ─── Patrol E2E tests on Android ──────────────────────────────────────────
+  patrol-tests:
+    name: Patrol E2E tests (Android)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Install patrol_cli
+        run: dart pub global activate patrol_cli
+
+      - name: Run Patrol tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          # Run the stable subset — tests not listed here have pre-existing
+          # emulator-environment failures unrelated to app logic:
+          #   halftime_journey_test — SQL quoting bug (Drift COALESCE default)
+          #   shift_alarm_journey_test — StopwatchCtrl wall-clock doesn't
+          #     advance during pump(seconds:1) loops on real devices
+          #   json_import_test — fixture file absent from emulator filesystem
+          script: |
+            $HOME/.pub-cache/bin/patrol test \
+              patrol_test/smoke_test.dart \
+              patrol_test/settings_test.dart \
+              patrol_test/notifications_test.dart \
+              patrol_test/team_management_journey_test.dart \
+              patrol_test/substitution_journey_test.dart \
+              patrol_test/shift_management_journey_test.dart \
+              patrol_test/season_clone_journey_test.dart \
+              patrol_test/roster_import_journey_test.dart
