@@ -96,13 +96,13 @@ Confirm it succeeded. Known non-fatal warnings to ignore:
 
 The iOS IPA is built by GitHub Actions (triggered by the tag push in step 4). It takes ~15–20 minutes.
 
-Check CI status:
-```
-gh run list --workflow=release-ios.yml --limit=3
+Check CI status (use full path — `gh` is not in the sandboxed PATH):
+```powershell
+& "C:\Program Files\GitHub CLI\gh.exe" run list --workflow=release-ios.yml --limit=3
 ```
 If the run is still in progress, tell the user and ask them to confirm when TestFlight shows the build as processed before you continue to step 9. You can also check with:
-```
-gh run watch
+```powershell
+& "C:\Program Files\GitHub CLI\gh.exe" run watch
 ```
 
 ## Step 9 — Submit iOS for App Store review

@@ -376,5 +376,35 @@
         "type": "String"
       }
     }
-  }
+  },
+
+  "pickCsvFile": "Seleccionar archivo CSV",
+  "orPasteCsvBelow": "O pega el CSV a continuación:",
+  "reviewAndImport": "Revisar e Importar",
+  "confirmImportTitle": "Confirmar importación",
+  "confirmImportAdd": "Agregar {count} jugadores",
+  "@confirmImportAdd": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmImportUpdate": "Actualizar {count} jugadores (número de camiseta)",
+  "@confirmImportUpdate": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmImportArchive": "Archivar {count} jugadores (ya no están en la plantilla)",
+  "@confirmImportArchive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noChangesDetected": "No se detectaron cambios. La plantilla ya está actualizada."
 }

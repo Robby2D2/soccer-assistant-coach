@@ -375,5 +375,35 @@
         "type": "String"
       }
     }
-  }
+  },
+
+  "pickCsvFile": "Pick CSV file",
+  "orPasteCsvBelow": "Or paste CSV below:",
+  "reviewAndImport": "Review & Import",
+  "confirmImportTitle": "Confirm import",
+  "confirmImportAdd": "Add {count} players",
+  "@confirmImportAdd": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmImportUpdate": "Update {count} players (jersey number)",
+  "@confirmImportUpdate": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmImportArchive": "Archive {count} players (no longer in roster)",
+  "@confirmImportArchive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noChangesDetected": "No changes detected. The roster is already up to date."
 }

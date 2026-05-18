@@ -1347,6 +1347,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clone \"{seasonName}\"'**
   String cloneSeasonTitle(String seasonName);
+
+  /// No description provided for @pickCsvFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick CSV file'**
+  String get pickCsvFile;
+
+  /// No description provided for @orPasteCsvBelow.
+  ///
+  /// In en, this message translates to:
+  /// **'Or paste CSV below:'**
+  String get orPasteCsvBelow;
+
+  /// No description provided for @reviewAndImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Review & Import'**
+  String get reviewAndImport;
+
+  /// No description provided for @confirmImportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm import'**
+  String get confirmImportTitle;
+
+  /// No description provided for @confirmImportAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add {count} players'**
+  String confirmImportAdd(int count);
+
+  /// No description provided for @confirmImportUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Update {count} players (jersey number)'**
+  String confirmImportUpdate(int count);
+
+  /// No description provided for @confirmImportArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive {count} players (no longer in roster)'**
+  String confirmImportArchive(int count);
+
+  /// No description provided for @noChangesDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'No changes detected. The roster is already up to date.'**
+  String get noChangesDetected;
 }
 
 class _AppLocalizationsDelegate
