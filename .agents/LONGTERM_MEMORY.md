@@ -7,6 +7,8 @@ This file is a table of contents. Each entry links to a topic-specific file in `
 | Date | Topic | File | Summary |
 |------|-------|------|---------|
 | 2026-05-18 | iOS CI/CD setup | [memory/ios_setup.md](memory/ios_setup.md) | One-time checklist complete. Runner: macos-14. Admin API key required. Keychain hang fix documented in MEMORY.md May 18 entry. |
+| 2026-05-18 | App Store submission | [memory/testing.md](memory/testing.md) | Patrol E2E suite: 4.x upgrade, journey tests (team mgmt, substitution, shift, season clone), key patterns |
+| 2026-04-24 | Production readiness | [memory/production_readiness.md](memory/production_readiness.md) | Pre-store audit: PrivacyInfo.xcprivacy, CFBundleName fix, Timer leak fix, migration tests, debugPrint cleanup |
 | 2025-10-17 | Theming & contrast safety | [memory/theming_contrast.md](memory/theming_contrast.md) | `TeamColorContrast.onColorFor()` utility — why it exists, where it's applied, future improvements |
 | 2025-10-13 | Home screen timer display | [memory/home_screen_timer.md](memory/home_screen_timer.md) | Switched to time-remaining format with `+MM:SS` overtime; removed "time ago" display |
 | 2025-10-10 | Background timer implementation | [memory/background_timer.md](memory/background_timer.md) | DateTime-based timer persistence across backgrounding and force-quit; manual test scenarios |

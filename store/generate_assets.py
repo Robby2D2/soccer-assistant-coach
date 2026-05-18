@@ -120,7 +120,7 @@ def make_feature_graphic():
 
 # ─── Teams Screen ────────────────────────────────────────────────────────────
 
-def make_teams_screen(IW, IH, fname):
+def make_teams_screen(IW, IH, fname, out_dir=None):
     img = Image.new('RGB', (IW, IH), S50)
     draw = ImageDraw.Draw(img)
     s = IW / 1080
@@ -252,7 +252,7 @@ def make_teams_screen(IW, IH, fname):
                int(12 * s), fill=G100)
         ct(draw, nx, ny + nav_h // 2, label, lf, lc)
 
-    img.save(os.path.join(OUT_DIR, fname), 'PNG')
+    img.save(os.path.join(out_dir or OUT_DIR, fname), 'PNG')
     print(f"✓ {fname}  ({IW}×{IH})")
 
 
@@ -293,7 +293,7 @@ def draw_field(draw, fx, fy, fw, fh, s):
         draw.arc([cx2 - ar, cy2 - ar, cx2 + ar, cy2 + ar], a1, a2, fill=FIELD_LINE, width=lw)
 
 
-def make_lineup_screen(IW, IH, fname):
+def make_lineup_screen(IW, IH, fname, out_dir=None):
     img = Image.new('RGB', (IW, IH), (24, 24, 24))
     draw = ImageDraw.Draw(img)
     s = IW / 1080
@@ -391,7 +391,7 @@ def make_lineup_screen(IW, IH, fname):
                int(12 * s), fill=(40, 68, 40))
         ct(draw, nx, ny + nav_h // 2, label, lf, lc)
 
-    img.save(os.path.join(OUT_DIR, fname), 'PNG')
+    img.save(os.path.join(out_dir or OUT_DIR, fname), 'PNG')
     print(f"✓ {fname}  ({IW}×{IH})")
 
 
@@ -410,3 +410,17 @@ if __name__ == '__main__':
     make_lineup_screen(1600, 2560, 'tablet10_02_lineup.png')
 
     print(f"\nAll assets saved to:\n{OUT_DIR}")
+
+    # iOS App Store screenshots
+    IOS_DIR = r'c:\Users\rdane\Documents\Projects\soccer-assistant-coach\fastlane\screenshots\en-US'
+    os.makedirs(IOS_DIR, exist_ok=True)
+
+    # iPhone 6.9" (required — iPhone 16 Pro Max): 1320×2868
+    make_teams_screen(1320, 2868, 'iphone69_01_teams.png', out_dir=IOS_DIR)
+    make_lineup_screen(1320, 2868, 'iphone69_02_lineup.png', out_dir=IOS_DIR)
+
+    # iPhone 6.7" (iPhone 14 Plus / 15 Plus / 16 Plus): 1290×2796
+    make_teams_screen(1290, 2796, 'iphone67_01_teams.png', out_dir=IOS_DIR)
+    make_lineup_screen(1290, 2796, 'iphone67_02_lineup.png', out_dir=IOS_DIR)
+
+    print(f"\nAll iOS screenshots saved to:\n{IOS_DIR}")

@@ -65,6 +65,10 @@ android/app/*.jks
 # Google Play API service account key (NEVER commit)
 fastlane/google-play-key.json
 
+# App Store Connect API key — local credentials (NEVER commit)
+fastlane/.env
+*.p8
+
 # Bundler local gem cache and config
 vendor/bundle/
 .bundle/

@@ -51,6 +51,32 @@ App Store Connect API key must have **Admin** role. Developer role cannot create
 
 ---
 
+## Session: May 18, 2026 — App Store submission tooling
+
+Date: 2026-05-18
+
+### What was done
+Set up the full App Store submission pipeline: iOS screenshots, App Store metadata, Fastlane deliver lanes, and verified the GitHub Pages privacy policy URL is live.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `store/generate_assets.py` | Added `out_dir` param to screenshot functions; added iOS screenshot generation for iPhone 6.9" (1320×2868) and 6.7" (1290×2796) |
+| `fastlane/screenshots/en-US/` | 4 iOS screenshots generated: `iphone69_01_teams`, `iphone69_02_lineup`, `iphone67_01_teams`, `iphone67_02_lineup` |
+| `fastlane/metadata/en-US/` | Created all required App Store text files: name, subtitle, description, keywords, release_notes, support_url, privacy_url |
+| `fastlane/Fastfile` | Added `ios metadata` lane (upload metadata + screenshots, no submit) and `ios submit` lane (metadata + submit for review) |
+| `AGENTS.md` | Updated available lanes summary with the two new iOS lanes |
+
+### Key learnings
+- **App Store submission is fully automated** via `bundle exec fastlane ios submit` (from WSL) — selects latest TestFlight build and submits for review
+- **Metadata-only updates** use `bundle exec fastlane ios metadata` (no submission)
+- **Privacy policy** is already live at `https://robby2d2.github.io/soccer-assistant-coach/privacy-policy` via existing `docs/` GitHub Pages setup
+- **Screenshot naming for deliver**: Fastlane's `upload_to_app_store` detects device size from filename; use `iphone69` and `iphone67` prefixes for 6.9" and 6.7" iPhone displays
+- **Submission answer**: export compliance `false` (standard HTTPS only), IDFA `false` (no ad tracking)
+
+---
+
 ## Session: May 4, 2026 — Play Store compliance + store listing assets
 
 Date: 2026-05-04
@@ -113,104 +139,4 @@ Added four new Patrol E2E journey tests covering the major user flows that the o
 
 ---
 
-## Session: May 1, 2026 — Patrol 4.x upgrade and PATH setup
-
-Date: 2026-05-01
-
-### What was done
-Upgraded patrol from 3.x to 4.5.0 (compatible with patrol_cli 4.3.1), added patrol_cli to the Windows PATH, confirmed the smoke test passes in ~4 s, and migrated tests from `integration_test/` to `patrol_test/`.
-
-### Changes made
-
-| Change | Detail |
-|--------|--------|
-| `pubspec.yaml` | `patrol: ^3.15.2` → `^4.5.0`; removed `integration_test: sdk: flutter` (no longer needed); removed `test_path: integration_test` override |
-| Tests moved | `integration_test/` → `patrol_test/` (patrol 4.x default); avoids Windows absolute-path bug in bundle generator |
-| `notifications_test.dart` | `$.native.grantPermissionWhenInUse()` → `$.platform.mobile.grantPermissionWhenInUse()` (patrol 4.x API) |
-| All Patrol tests | Added `timeout: Duration(seconds: N)` to every `pumpAndSettle()` call — without it, always-open Drift streams cause ~19-minute hangs |
-| Windows PATH | Added `%LOCALAPPDATA%\Pub\Cache\bin` to User PATH so `patrol` is callable from any terminal |
-| `.agents/TESTING.md` | Updated directory references from `integration_test/` to `patrol_test/`; added patrol_cli install note |
-| `.agents/ARCHITECTURE.md` | Added two decision rows for `pumpAndSettle` timeout requirement and Windows `patrol_test/` placement |
-| `patrol_test/README.md` | Fixed stale `-t integration_test/` run example |
-
-### Key learnings
-- **patrol_cli 4.x Windows bug**: when `test_path` in `pubspec.yaml` points outside `patrol_test/`, the CLI generates `import 'C:/Users/...'` with a drive letter — invalid Dart. Fix: use the default `patrol_test/` directory and omit `test_path`.
-- **`pumpAndSettle()` without timeout hangs**: Drift `StreamProvider`s are always-open; `pumpAndSettle` never settles. Always pass `timeout: const Duration(seconds: 5)` (or 3 s for post-tap settles).
-- **`patrol_test/test_bundle.dart` is generated** — delete it before re-running if it's stale; patrol regenerates it on the next `patrol test` invocation.
-- **`flutter clean` required** after moving test files — the incremental compiler caches old source paths in depfiles and fails even after the files are gone.
-
----
-
-## Session: May 1, 2026 — Comprehensive E2E test coverage
-
-Date: 2026-05-01
-
-### What was done
-Added a layered automated test stack: 7 new widget/DB test files in `test/` (36 new tests) plus a full Patrol integration suite in `integration_test/` covering the flows that only make sense on a real device.
-
-### Changes made
-
-| Change | Detail |
-|--------|--------|
-| `pubspec.yaml` | Added `patrol: ^3.15.2` and `integration_test` (sdk: flutter) to dev_dependencies; added `patrol:` config block with Android package + iOS bundle id |
-| `test/helpers/fixtures.dart` | Shared `seedTeam` / `seedPlayer` / `seedShift` helpers |
-| `test/alarm_settings_test.dart` | Model defaults, copyWith, JSON round-trip, fresh-container restore |
-| `test/alert_service_test.dart` | Gates on `shiftsEnabled` / `halftimeEnabled`, double-trigger no-op, ack stops |
-| `test/substitution_test.dart` | DB-level: insert, replace, attendance-driven removal, present-player filter |
-| `test/team_config_test.dart` | Shift length / half duration getters, setters, defaults, mode round-trip |
-| `test/shift_lifecycle_test.dart` | `incrementShiftDuration`, `watchActiveShift`, `watchGameShifts` |
-| `test/game_lifecycle_test.dart` | Game completion, timer flips, JSON export/import round-trip |
-| `test/stopwatch_ctrl_test.dart` | `setMeta` persistence + fresh-container `_restore` |
-| `integration_test/smoke_test.dart` | App boots, nav to Settings |
-| `integration_test/settings_test.dart` | Toggling shift/halftime alarms persists |
-| `integration_test/shift_alarm_journey_test.dart` | Seeded 3-second shift fires alarm SnackBar |
-| `integration_test/halftime_journey_test.dart` | Seeded 6-second half advances `currentHalf` |
-| `integration_test/notifications_test.dart` | Notification plumbing + permission grant via Patrol native |
-| `integration_test/json_import_test.dart` | On-device `AppDb.importDatabase` |
-| `integration_test/helpers/app_harness.dart` | `initApp()` + `appUnderTest({AppDb? db})` for in-memory isolation |
-| `integration_test/README.md` | Patrol setup + run instructions for both platforms |
-| `android/app/build.gradle.kts` | `PatrolJUnitRunner` + orchestrator + `clearPackageData` |
-| `android/app/src/androidTest/.../MainActivityTest.java` | Parameterized JUnit shim that enumerates Dart tests |
-| `ios/RunnerUITests/RunnerUITests.m` | iOS Patrol runner stub (Xcode target wiring still requires `patrol bootstrap` on a Mac) |
-| `.agents/TESTING.md` + `.agents/ARCHITECTURE.md` | Documented the two-layer stack |
-
-### Key learnings
-- **`stopwatchProvider` is `NotifierProvider.autoDispose.family`** — `container.read(provider.notifier)` does *not* keep the provider alive. Subsequent calls on the captured controller throw "Cannot use the Ref ... after it has been disposed". Fix: `container.listen<int>(provider, (_, _) {})` to hold the listener open, then `read` the notifier.
-- **`StopwatchCtrl.start()` / `pause()` / `reset()` cannot be unit-tested** — they all call `NotificationService.cancelStopwatch`, which dereferences `FlutterLocalNotificationsPlatform.instance` (a `late` field that never gets initialized in the unit-test environment). LateInitializationError. These paths are exercised by the Patrol E2E suite instead.
-- **AssignPlayersScreen widget tests leave a Timer pending** even after `pumpWidget(SizedBox)` — the StreamBuilder + Drift stream subscription combo holds onto a timer past `_verifyInvariants`. Equivalent coverage moved to DB-level tests (`presentPlayersForGame`, `hasPresentPlayersForGame`) plus Patrol E2E.
-- **Patrol tests must use a real `ProviderScope` override**, not `bootstrapApp` returning `Widget` — the existing `Override` type from riverpod 3.0.3 is **not** in the public `show` list, so the harness exposes a typed `appUnderTest({AppDb? db})` helper instead of letting tests pass arbitrary overrides.
-- The shift / halftime alarm E2E tests use the team's **configurable** `shift_length_seconds` / `half_duration_seconds` (set to 3 s / 6 s for tests) rather than a debug fast-forward hook — this exercises the same code path production users run.
-
----
-
-## Session: April 24, 2026 — Production readiness pass
-
-Date: 2026-04-24
-
-### What was done
-Full pre-store audit and fixes to prepare the app for Apple App Store and Google Play Store submission.
-
-### Changes made
-
-| Change | Detail |
-|--------|--------|
-| Removed `assets/sounds/` from pubspec.yaml | Directory was empty; sound service uses `SystemSound`, not file assets |
-| Added `ios/Runner/PrivacyInfo.xcprivacy` | Required by Apple for apps using `shared_preferences` (UserDefaults) and `path_provider` (file timestamps); prevents App Store rejection |
-| Fixed `CFBundleName` in `Info.plist` | Changed from `soccer_assistant_coach` to `Soccer Assistant Coach` |
-| Replaced `print()` with `debugPrint()` | In `database.dart` and `season_provider.dart` — no production log spam |
-| `.gitignore` additions | `soccer_manager.db`, `*.db-journal`, `notes.txt`, `learnings.txt`, loose PNG/scripts, `android/key.properties`, keystore files |
-| Moved `full_season_fixed_metrics.json` | Root → `test/fixtures/` |
-| Fixed fixture path in `import_json_test.dart` | Updated to `test/fixtures/full_season_fixed_metrics.json` |
-| Rewrote `test/database_migration_test.dart` | 5 real tests: fresh-install schema invariants + v17→v18 upgrade with data preservation |
-| Added `AppDb.forTesting(super.executor)` constructor | Enables file-backed test databases for migration tests |
-| Added `sqlite3: any` to dev_dependencies | Raw SQL seeding for pre-migration DB files in migration tests |
-| Fixed `StopwatchCtrl` Timer leak | Added `ref.onDispose(() => _t?.cancel())` in `build()` — periodic timer was outliving its ProviderScope |
-| Rewrote `game_screen_test.dart` | `navigateAway()` helper forces ProviderScope disposal before `_verifyInvariants`; removed `SharedPreferences.setMockInitialValues` (hung in fake-async zone) |
-| Stripped diagnostic `debugPrint` statements | Removed ~40 logging calls from `game_screen.dart` and `game_scaffold.dart` added during hang investigation |
-
-### Key learnings
-- `_verifyInvariants()` in flutter_test runs **before** widget tree disposal — any timer pending at that point causes test failure
-- `SharedPreferences.setMockInitialValues({})` registers a handler in the real async zone, causing `getInstance()` to hang inside flutter_test's fake-async zone — never call it in widget tests
-- Riverpod `autoDispose` does NOT auto-cancel `Timer` objects held by a `Notifier`; must register `ref.onDispose(() => _t?.cancel())` explicitly in `build()`
-- To test DB migrations: use raw `sqlite3` package to seed old schema files, then open with `AppDb.forTesting(NativeDatabase(file))` — opening via `AppDb` itself would trigger `onCreate` first
-
+<!-- Older entries moved to .agents/memory/testing.md and .agents/memory/production_readiness.md -->

@@ -1,0 +1,1 @@
+First release of Soccer Assistant Coach! Build lineups, manage rosters, track game metrics, and export your team data — all stored locally on your device.

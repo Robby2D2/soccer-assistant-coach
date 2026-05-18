@@ -1,0 +1,1 @@
+soccer,coach,football,lineup,roster,formation,team,manager,player,sport,tracker,season,game

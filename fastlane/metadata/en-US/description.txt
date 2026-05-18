@@ -1,0 +1,27 @@
+Soccer Assistant Coach helps coaches and team managers run their teams more efficiently — from practice planning to live game day.
+
+BUILD YOUR LINEUP
+Create starting lineups and formations in seconds. Choose from popular formations like 4-3-3, 4-4-2, 3-5-2, and more. Drag and assign players to any position on the pitch.
+
+MANAGE YOUR ROSTER
+Create and manage multiple teams with seasonal rosters. Add players, track positions, and keep your squad organized all season long.
+
+TRACK GAME METRICS
+Record simple in-game metrics and attendance during matches. Review performance data after the game to inform your next selection.
+
+ORGANIZE EVERYTHING
+Archive past teams and seasons, then restore them when needed. Export and import team data via CSV for easy backups or sharing between devices.
+
+LOCAL-FIRST DESIGN
+Your data stays on your device. No account required, no subscription, no data sent to the cloud — just you and your team.
+
+KEY FEATURES
+• Build lineups and formations quickly
+• Manage multiple teams and seasons
+• Track in-game metrics and attendance
+• Archive and restore past teams and seasons
+• Export and import team data via CSV
+• No account or subscription required
+• Local storage — your data stays private
+
+Perfect for recreational coaches, club coaches, youth team managers, and anyone who needs a simple, reliable tool for managing a soccer team.

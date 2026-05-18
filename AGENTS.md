@@ -61,11 +61,17 @@ See the detailed checklist in `.agents/memory/ios_setup.md`.
 - `bundle exec fastlane android deploy [track:internal|alpha|beta|production]` — upload AAB (WSL)
 - `bundle exec fastlane android build` — build signed AAB (Windows terminal only)
 - `bundle exec fastlane ios release` — full iOS build + TestFlight upload (macOS only)
+- `bundle exec fastlane ios metadata` — upload App Store metadata and screenshots (WSL, no submission)
+- `bundle exec fastlane ios submit` — upload metadata and submit latest build for App Store review (WSL)
 
-**Play Store listing assets** live in `store/assets/` and can be regenerated with:
+**Store listing assets** live in `store/assets/` (Android) and `fastlane/screenshots/en-US/` (iOS) and can be regenerated with:
 ```bash
 python -X utf8 store/generate_assets.py
 ```
+
+**App Store metadata** (title, description, keywords, etc.) lives in `fastlane/metadata/en-US/`.
+
+**Privacy policy** is hosted at `https://robby2d2.github.io/soccer-assistant-coach/privacy-policy` via GitHub Pages (`docs/` folder on `main` branch).
 
 ### Key Changes
 

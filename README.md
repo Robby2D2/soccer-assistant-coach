@@ -147,52 +147,70 @@ Each Patrol test seeds an isolated `AppDb.test()` (in-memory SQLite) and drives 
 
 ## Publishing a Release
 
-Fastlane is vendored in `vendor/bundle` and must be run from **WSL (Ubuntu)** — it does not work in PowerShell or Git Bash on this machine.
+Fastlane is vendored in `vendor/bundle` and must be run from **WSL (Ubuntu)** — it does not work in PowerShell or Git Bash.
 
-The Flutter SDK shell scripts have Windows line endings (CRLF) that break under WSL, so build and upload run in different environments.
+### Every release (Android + iOS)
 
-### Steps
+**1. Update the release notes** — edit `fastlane/metadata/en-US/release_notes.txt` to describe what changed.
 
-**1. Commit your changes** (any terminal):
-```bash
-git add <files> && git commit -m "your message"
-```
-
-**2. Bump the version** (WSL):
+**2. Bump the version** (WSL) — this commits, tags, and pushes, triggering both CI pipelines automatically:
 ```bash
 cd /mnt/c/Users/rdane/Documents/Projects/soccer-assistant-coach
-bundle exec fastlane bump version:1.0.6 build:6
+bundle exec fastlane bump version:X.Y.Z build:N
 ```
-This updates `pubspec.yaml`, commits it, tags `vX.Y.Z`, and pushes to GitHub.
 
-**3. Build the AAB** (Windows — PowerShell or Git Bash, not WSL):
+**3. Build the Android AAB** (Windows — PowerShell or Git Bash, not WSL):
 ```bash
 flutter build appbundle --release
 ```
 
 **4. Upload to Play Store** (WSL):
 ```bash
-bundle exec fastlane deploy                    # internal track (default)
-bundle exec fastlane deploy track:production   # promote to production
+bundle exec fastlane android deploy              # internal track (default)
+bundle exec fastlane android deploy track:production
+```
+Or promote an existing build between tracks:
+```bash
+bundle exec fastlane android promote from:internal to:production
 ```
 
-### Available Lanes
+**5. Upload iOS metadata and screenshots** (WSL) — only needed if description, keywords, or screenshots changed:
+```bash
+bundle exec fastlane ios metadata
+```
+
+**6. Submit iOS build for App Store review** (WSL) — CI uploads the IPA to TestFlight automatically on the tag push; once it finishes processing (~15 min), run:
+```bash
+bundle exec fastlane ios submit
+```
+Apple reviews in ~24–48h. When approved, go to App Store Connect and click **Release**.
+
+---
+
+### Available lanes
 
 | Lane | Environment | Description |
 |------|-------------|-------------|
-| `bundle exec fastlane bump version:X build:N` | WSL | Bump version, commit, tag, push |
-| `bundle exec fastlane deploy [track:internal]` | WSL | Upload existing AAB to Play Store |
-| `fastlane build` | Windows only | Build signed release AAB |
+| `bundle exec fastlane bump version:X.Y.Z build:N` | WSL | Bump version, commit, tag, push — triggers both CI pipelines |
+| `bundle exec fastlane android build` | Windows only | Build signed release AAB |
+| `bundle exec fastlane android deploy [track:T]` | WSL | Upload AAB to Play Store (default: internal) |
+| `bundle exec fastlane android promote from:A to:B` | WSL | Promote existing build between tracks |
+| `bundle exec fastlane ios metadata` | WSL | Upload App Store metadata and screenshots |
+| `bundle exec fastlane ios submit` | WSL | Submit latest TestFlight build for App Store review |
 
-### Play Store Listing Assets
+---
 
-Mockup screenshots and the feature graphic live in `store/assets/`. To regenerate them:
+### Store listing assets
 
+- **Android** screenshots and feature graphic: `store/assets/`
+- **iOS** screenshots: `fastlane/screenshots/en-US/`
+- **App Store metadata** (description, keywords, etc.): `fastlane/metadata/en-US/`
+- **Privacy policy**: hosted at `https://robby2d2.github.io/soccer-assistant-coach/privacy-policy` via `docs/` on `main`
+
+Regenerate all screenshots (Android + iOS) from Windows:
 ```bash
 python -X utf8 store/generate_assets.py
 ```
-
-This produces PNG assets at the correct dimensions for phone, 7-inch tablet, and 10-inch tablet.
 
 ## Enhancement Ideas / Roadmap
 - Dark mode override toggle (user preference independent of system setting).
