@@ -80,8 +80,22 @@ platform :ios do
 
   desc "Sync certs and configure signing. Called by CI before flutter build ipa."
   lane :setup_signing do
+    create_keychain(
+      name: "build.keychain",
+      password: "buildpassword",
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: false,
+    )
     key = api_key
-    match(type: "appstore", readonly: true, api_key: key)
+    match(
+      type: "appstore",
+      readonly: true,
+      api_key: key,
+      keychain_name: "build.keychain",
+      keychain_password: "buildpassword",
+    )
     update_code_signing_settings(
       use_automatic_signing: false,
       path: "ios/Runner.xcodeproj",

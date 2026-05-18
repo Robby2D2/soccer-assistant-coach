@@ -8,7 +8,7 @@ on:
 
 jobs:
   release-ios:
-    runs-on: macos-13
+    runs-on: macos-14
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -47,6 +47,10 @@ jobs:
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
           MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
         run: bundle exec fastlane ios setup_signing
+
+      - name: Allow codesign keychain access
+        run: |
+          security set-key-partition-list -S apple-tool:,apple: -s -k buildpassword ~/Library/Keychains/build.keychain-db
 
       - name: Build IPA
         run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist --verbose
