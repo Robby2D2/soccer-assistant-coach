@@ -53,11 +53,16 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k buildpassword ~/Library/Keychains/build.keychain-db
 
       - name: Build IPA
-        run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist --verbose
+        run: flutter build ipa --release --verbose
         timeout-minutes: 30
 
-      - name: List IPA output
-        run: find build/ios/ipa -type f 2>/dev/null || echo "build/ios/ipa directory not found"
+      - name: List build artifacts
+        if: always()
+        run: |
+          echo "=== build/ios/ tree ==="
+          find build/ios -maxdepth 4 \( -name "*.ipa" -o -name "*.xcarchive" -o -type d \) 2>/dev/null | head -60
+          echo "=== IPA search (whole workspace) ==="
+          find . -name "*.ipa" 2>/dev/null | head -20
 
       - name: Upload to TestFlight
         env:
