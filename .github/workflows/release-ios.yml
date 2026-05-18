@@ -56,6 +56,9 @@ jobs:
         run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist --verbose
         timeout-minutes: 30
 
+      - name: List IPA output
+        run: find build/ios/ipa -type f 2>/dev/null || echo "build/ios/ipa directory not found"
+
       - name: Upload to TestFlight
         env:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
