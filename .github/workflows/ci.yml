@@ -62,6 +62,9 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      - name: Install emulator system dependencies
+        run: sudo apt-get install -y libpulse0
+
       - name: Run Patrol tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
