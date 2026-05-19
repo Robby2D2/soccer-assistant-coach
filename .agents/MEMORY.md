@@ -4,6 +4,33 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
+## Session: May 19, 2026 — Patrol E2E test fixes: all 11 tests now green
+
+Date: 2026-05-19
+
+### What was done
+Fixed three previously-failing/excluded Patrol journey tests and updated CI to run all 11 tests.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `lib/data/db/database.dart` | SQL quoting fix: `"shift"` → `'shift'` in `getTeamMode` COALESCE query (double quotes = column name in SQLite, not string literal) |
+| `patrol_test/json_import_test.dart` | Switched from `dart:io File` (absent on device) to `rootBundle.loadString()` for test fixture |
+| `pubspec.yaml` | Declared `test/fixtures/full_season_fixed_metrics.json` as a Flutter asset so it bundles into the APK |
+| `lib/features/home/home_screen.dart` | Guarded `game.currentShiftId!` null crash for in-progress games with no current shift yet |
+| `patrol_test/shift_alarm_journey_test.dart` | Removed `setAttendance` call so `_ensureInitialShift` exits early → button stays "Start"; use `SettlePolicy.noSettle` + `Future.delayed` for timer-based alarm wait; clear SharedPreferences at test start |
+| `.github/workflows/ci.yml` | Added all three previously-excluded tests to the stable CI subset (all 11 now run) |
+
+### Key learnings
+- **SQLite double-quote quirk**: `"shift"` in a SQL string literal position is parsed as an identifier (column name), not a string. Always use single quotes for string literals in raw SQL.
+- **Patrol on real device — `pumpAndSettle` timeout not honored**: In integration test mode, `pumpAndSettle(timeout: ...)` may not respect the timeout. Use `SettlePolicy.noSettle` for taps when `Timer.periodic` is running; use `Future.delayed` for real wall-clock waits (not `pump()` loops).
+- **SharedPreferences persists across Patrol test runs**: In-memory DB always creates IDs from 1 — stale `timer_started_at_1` causes `_restore()` to auto-start the timer. Always `await prefs.clear()` at test start.
+- **`_ensureInitialShift` changes button text**: If any player is marked present, GameScreen auto-creates an initial shift on mount, making the button read "Resume" instead of "Start". Tests that tap "Start" by text must not seed present attendance.
+- **Use PowerShell tool, not Bash, for Windows commands**: Bash tool runs `/usr/bin/bash` (Unix) and exits 127 for `flutter`, `patrol`, `fvm`, etc. Always use PowerShell tool for Windows-native dev commands.
+
+---
+
 ## Session: May 18, 2026 — CSV roster import upgrade (issue #6)
 
 Date: 2026-05-18

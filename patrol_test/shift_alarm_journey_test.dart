@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:soccer_assistant_coach/data/db/database.dart';
 
 import 'helpers/app_harness.dart';
@@ -28,6 +29,13 @@ void main() {
     (PatrolIntegrationTester $) async {
       await initApp();
 
+      // Remove any stale StopwatchCtrl state saved by previous test runs.
+      // Without this, GameScreen._restore() picks up a stale start-time for
+      // gameId=1 (always the same in an in-memory DB), starts the timer
+      // immediately on mount, and prevents pumpAndSettle from ever settling.
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
       // 3-second shift = alarm fires within a normal test timeout.
       final db = AppDb.test();
       addTearDown(db.close);
@@ -41,7 +49,7 @@ void main() {
         name: 'Quick FC',
         shiftLengthSeconds: 3,
       );
-      final gameId = await db.addGame(
+      await db.addGame(
         GamesCompanion.insert(
           teamId: teamId,
           seasonId: seasonId,
@@ -52,41 +60,41 @@ void main() {
         ),
       );
 
-      // One present player so the screen has data to render.
-      final playerId = await db
-          .into(db.players)
-          .insert(
-            PlayersCompanion.insert(
-              teamId: teamId,
-              seasonId: seasonId,
-              firstName: 'Alex',
-              lastName: 'Striker',
-            ),
-          );
-      await db.setAttendance(
-        gameId: gameId,
-        playerId: playerId,
-        isPresent: true,
+      // Insert a player but do NOT mark them present — hasPresentPlayersForGame
+      // returns false, so _ensureInitialShift exits early and the button stays
+      // "Start" (not "Resume").
+      await db.into(db.players).insert(
+        PlayersCompanion.insert(
+          teamId: teamId,
+          seasonId: seasonId,
+          firstName: 'Alex',
+          lastName: 'Striker',
+        ),
       );
 
       await $.pumpWidget(appUnderTest(db: db));
+      // Home screen has no running timer yet — pumpAndSettle is safe here.
       await $.pumpAndSettle(timeout: const Duration(seconds: 5));
 
       // Active Games card on the home screen shows "vs Test United".
       expect($('vs Test United'), findsAtLeastNWidgets(1));
+      // Default settlePolicy (trySettle) properly settles the navigation
+      // animation. The StopwatchCtrl timer is NOT yet running (no SharedPrefs
+      // state, Start not pressed), so pumpAndSettle completes normally.
       await $('vs Test United').tap();
       await $.pumpAndSettle(timeout: const Duration(seconds: 5));
 
-      // Game screen has rendered. Press Start to begin the shift.
-      expect($('Start'), findsOneWidget);
-      await $('Start').tap();
-      await $.pumpAndSettle(timeout: const Duration(seconds: 3));
+      // Game screen has rendered with Start button.
+      // Use noSettle for the Start tap: once pressed the StopwatchCtrl
+      // Timer.periodic fires every second, so pumpAndSettle never settles.
+      await $('Start').tap(settlePolicy: SettlePolicy.noSettle);
+      await $.pump(const Duration(seconds: 2));
 
-      // Wait through the configured shift length plus a couple of ticks.
-      // We pump real frames so timers advance.
-      for (var i = 0; i < 6; i++) {
-        await $.pump(const Duration(seconds: 1));
-      }
+      // Wait real wall-clock time for the 3-second shift to elapse.
+      // StopwatchCtrl computes elapsed via DateTime.now(), so pump-frame
+      // loops don't advance its clock — only real time does.
+      await Future.delayed(const Duration(seconds: 5));
+      await $.pump(const Duration(seconds: 1));
 
       // The game screen surfaces the alarm via a SnackBar.
       expect(
@@ -96,8 +104,8 @@ void main() {
       );
 
       // Acknowledge.
-      await $('OK').tap();
-      await $.pumpAndSettle(timeout: const Duration(seconds: 3));
+      await $('OK').tap(settlePolicy: SettlePolicy.noSettle);
+      await $.pump(const Duration(seconds: 2));
     },
   );
 }
