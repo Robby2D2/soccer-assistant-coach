@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:soccer_assistant_coach/core/router.dart';
 import 'package:soccer_assistant_coach/data/db/database.dart';
 
@@ -25,6 +26,11 @@ void main() {
     'assigning a present player to a position writes the substitution to the DB',
     (PatrolIntegrationTester $) async {
       await initApp();
+
+      // Defensive clear: prior tests may leave timer_started_at_1 in prefs,
+      // causing GameScreen._restore() to auto-start the timer on mount.
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
 
       final db = AppDb.test();
       addTearDown(db.close);
