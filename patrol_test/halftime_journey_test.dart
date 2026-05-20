@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:soccer_assistant_coach/data/db/database.dart';
 
 import 'helpers/app_harness.dart';
@@ -24,6 +25,13 @@ void main() {
     'halftime alarm fires after the team-configured half duration elapses',
     (PatrolIntegrationTester $) async {
       await initApp();
+
+      // Remove stale StopwatchCtrl / timer state from previous runs.
+      // TraditionalGameScreen persists timer state in SharedPreferences keyed
+      // by gameId=1 (always 1 in an in-memory DB), so stale state auto-starts
+      // the timer on mount and prevents pumpAndSettle from ever settling.
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
 
       final db = AppDb.test();
       addTearDown(db.close);
@@ -78,21 +86,20 @@ void main() {
       await $('vs Old Schoolers').tap();
       await $.pumpAndSettle(timeout: const Duration(seconds: 5));
 
-      // Traditional screen exposes a play button labelled "Start" or "Resume"
-      // — tap whichever is visible.
+      // Use noSettle: once the game starts, StopwatchCtrl fires Timer.periodic
+      // every second — pumpAndSettle never settles.
       final startBtn = $('Start');
       if (startBtn.exists) {
-        await startBtn.tap();
+        await startBtn.tap(settlePolicy: SettlePolicy.noSettle);
       } else {
-        await $('Resume').tap();
+        await $('Resume').tap(settlePolicy: SettlePolicy.noSettle);
       }
-      await $.pumpAndSettle(timeout: const Duration(seconds: 3));
+      await $.pump(const Duration(seconds: 2));
 
-      // Wait through the configured half duration plus a couple of ticks so
-      // halftime detection runs.
-      for (var i = 0; i < 10; i++) {
-        await $.pump(const Duration(seconds: 1));
-      }
+      // Wait real wall-clock time: StopwatchCtrl uses DateTime.now() so only
+      // real time advances its clock, not pump-frame loops.
+      await Future.delayed(const Duration(seconds: 9)); // 6s half + buffer
+      await $.pump(const Duration(seconds: 1));
 
       // Once halftime is reached, currentHalf advances from 1 to 2.
       final game = await db.getGame(gameId);
