@@ -87,14 +87,14 @@ void main() {
       // Game screen has rendered with Start button.
       // Use noSettle for the Start tap: once pressed the StopwatchCtrl
       // Timer.periodic fires every second, so pumpAndSettle never settles.
+      // $.pump(Duration) hangs in Patrol/LiveTestWidgetsFlutterBinding when
+      // Timer.periodic is running. Use Future.delayed for all real-time waits.
       await $('Start').tap(settlePolicy: SettlePolicy.noSettle);
-      await $.pump(const Duration(seconds: 2));
 
       // Wait real wall-clock time for the 3-second shift to elapse.
       // StopwatchCtrl computes elapsed via DateTime.now(), so pump-frame
       // loops don't advance its clock — only real time does.
       await Future.delayed(const Duration(seconds: 5));
-      await $.pump(const Duration(seconds: 1));
 
       // The game screen surfaces the alarm via a SnackBar.
       expect(
@@ -105,7 +105,6 @@ void main() {
 
       // Acknowledge.
       await $('OK').tap(settlePolicy: SettlePolicy.noSettle);
-      await $.pump(const Duration(seconds: 2));
     },
   );
 }

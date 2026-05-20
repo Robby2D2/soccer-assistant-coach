@@ -94,12 +94,9 @@ void main() {
       } else {
         await $('Resume').tap(settlePolicy: SettlePolicy.noSettle);
       }
-      await $.pump(const Duration(seconds: 2));
-
-      // Wait real wall-clock time: StopwatchCtrl uses DateTime.now() so only
-      // real time advances its clock, not pump-frame loops.
+      // $.pump(Duration) hangs in Patrol/LiveTestWidgetsFlutterBinding when
+      // Timer.periodic is running. Use Future.delayed for all real-time waits.
       await Future.delayed(const Duration(seconds: 9)); // 6s half + buffer
-      await $.pump(const Duration(seconds: 1));
 
       // Once halftime is reached, currentHalf advances from 1 to 2.
       final game = await db.getGame(gameId);
