@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers/app_harness.dart';
 
@@ -12,6 +13,15 @@ void main() {
     PatrolIntegrationTester $,
   ) async {
     await initApp();
+
+    // Clear alarm_settings from SharedPreferences so the test starts from the
+    // default state (shiftsEnabled=true → Icons.alarm visible). If a previous
+    // run crashed before reaching the restore step at the end of this test,
+    // it could leave shiftsEnabled=false in prefs, in which case the screen
+    // shows Icons.alarm_off and the first `expect($(Icons.alarm))` fails.
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
     await $.pumpWidget(appUnderTest());
     await $.pumpAndSettle(timeout: const Duration(seconds: 5));
 

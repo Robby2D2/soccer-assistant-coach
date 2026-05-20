@@ -570,112 +570,114 @@ class _CreateSeasonDialogState extends State<_CreateSeasonDialog> {
       title: Text(AppLocalizations.of(context).createNewSeason),
       content: SizedBox(
         width: 500,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Season Name',
-                hintText: 'e.g., "2024 Spring Season"',
-              ),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Start Date'),
-              subtitle: Text(_formatDate(_startDate)),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate: _startDate,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2030),
-                );
-                if (date != null) {
-                  setState(() => _startDate = date);
-                }
-              },
-            ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('End Date (Optional)'),
-              subtitle: Text(
-                _endDate != null ? _formatDate(_endDate!) : 'No end date',
-              ),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: () async {
-                final date = await showDatePicker(
-                  context: context,
-                  initialDate:
-                      _endDate ?? _startDate.add(const Duration(days: 180)),
-                  firstDate: _startDate,
-                  lastDate: DateTime(2030),
-                );
-                setState(() => _endDate = date);
-              },
-            ),
-            const SizedBox(height: 16),
-            const Divider(),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Clone Teams (Optional)',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            const SizedBox(height: 8),
-            if (_isLoadingTeams)
-              const Center(child: CircularProgressIndicator())
-            else if (_availableTeams.isEmpty)
-              const Text('No existing teams to clone')
-            else
-              Container(
-                constraints: const BoxConstraints(maxHeight: 200),
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: _availableTeams.map((team) {
-                      return CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(team.name),
-                        subtitle: FutureBuilder<Season?>(
-                          future: widget.db.getSeason(team.seasonId),
-                          builder: (context, snapshot) {
-                            final season = snapshot.data;
-                            return Text(
-                              season?.name ?? 'Unknown Season',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            );
-                          },
-                        ),
-                        value: _selectedTeamIds.contains(team.id),
-                        onChanged: (selected) {
-                          setState(() {
-                            if (selected == true) {
-                              _selectedTeamIds.add(team.id);
-                            } else {
-                              _selectedTeamIds.remove(team.id);
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Season Name',
+                  hintText: 'e.g., "2024 Spring Season"',
                 ),
               ),
-            if (_selectedTeamIds.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Start Date'),
+                subtitle: Text(_formatDate(_startDate)),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: _startDate,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2030),
+                  );
+                  if (date != null) {
+                    setState(() => _startDate = date);
+                  }
+                },
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('End Date (Optional)'),
+                subtitle: Text(
+                  _endDate != null ? _formatDate(_endDate!) : 'No end date',
+                ),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate:
+                        _endDate ?? _startDate.add(const Duration(days: 180)),
+                    firstDate: _startDate,
+                    lastDate: DateTime(2030),
+                  );
+                  setState(() => _endDate = date);
+                },
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
                 child: Text(
-                  '${_selectedTeamIds.length} teams selected for cloning',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                  'Clone Teams (Optional)',
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-          ],
+              const SizedBox(height: 8),
+              if (_isLoadingTeams)
+                const Center(child: CircularProgressIndicator())
+              else if (_availableTeams.isEmpty)
+                const Text('No existing teams to clone')
+              else
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: _availableTeams.map((team) {
+                        return CheckboxListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(team.name),
+                          subtitle: FutureBuilder<Season?>(
+                            future: widget.db.getSeason(team.seasonId),
+                            builder: (context, snapshot) {
+                              final season = snapshot.data;
+                              return Text(
+                                season?.name ?? 'Unknown Season',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              );
+                            },
+                          ),
+                          value: _selectedTeamIds.contains(team.id),
+                          onChanged: (selected) {
+                            setState(() {
+                              if (selected == true) {
+                                _selectedTeamIds.add(team.id);
+                              } else {
+                                _selectedTeamIds.remove(team.id);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              if (_selectedTeamIds.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    '${_selectedTeamIds.length} teams selected for cloning',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
       actions: [

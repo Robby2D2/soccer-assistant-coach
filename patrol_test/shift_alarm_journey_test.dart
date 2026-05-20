@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:soccer_assistant_coach/core/router.dart';
 import 'package:soccer_assistant_coach/data/db/database.dart';
 
 import 'helpers/app_harness.dart';
@@ -105,6 +106,16 @@ void main() {
 
       // Acknowledge.
       await $('OK').tap(settlePolicy: SettlePolicy.noSettle);
+
+      // Navigate back to trigger GameScreen.dispose() which cancels the
+      // StopwatchCtrl + _startAlertStatusMonitoring timers. Without this,
+      // the StopwatchCtrl tick keeps calling db.incrementShiftDuration()
+      // every second, preventing db.close() in the teardown from draining
+      // Drift's executor queue and hanging the PatrolBinding teardown.
+      router.pop();
+
+      // Wait for the pop animation (~300 ms) and dispose() to complete.
+      await Future.delayed(const Duration(milliseconds: 600));
     },
   );
 }
