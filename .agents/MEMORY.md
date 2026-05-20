@@ -4,6 +4,33 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
+## Session: May 20, 2026 — Patrol E2E: fix halftime_journey_test 76-minute hang
+
+Date: 2026-05-20
+
+### What was done
+Diagnosed and fixed the root cause of `halftime_journey_test` blocking all subsequent Patrol tests for 76 minutes every CI run.
+
+### Root cause
+`_TraditionalGameScreenState._startTimer()` creates a `Timer.periodic` (1 s ticks) that calls `db.updateGameTime()` (unawaited) every 5 s. The test's `Future.delayed(const Duration(seconds: 9))` — intended to wait for a halftime alarm that is never fired by production code — combined with the running timer caused one of two failure modes: (a) the timer kept writing to Drift's executor queue while `db.close()` tried to drain it, or (b) the long `Future.delayed` itself became intertwined with the event loop state from the periodic timer. Either way, the test hung until the 90-minute CI timeout.
+
+Separately: `triggerHalftimeAlert()` in `AlertService` is **never called** from `TraditionalGameScreen`. The test comment claiming it would fire was incorrect — the 9-second wait served no purpose.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `patrol_test/halftime_journey_test.dart` | Removed `Future.delayed(9s)`; added `router.pop()` after Start tap + 600 ms `Future.delayed` so `dispose()` cancels `_gameTimer` before `db.close()` teardown runs; replaced `anyOf(2,1)` with `expect(isGameActive, isTrue)` |
+
+### Key learnings
+- **`_TraditionalGameScreenState._gameTimer` must be cancelled before `db.close()`**: If the periodic timer is still running when the teardown calls `db.close()`, new DB writes arrive at Drift's executor while it tries to process the close message, preventing the close from completing.
+- **Navigate back before test body ends**: Calling `router.pop()` triggers `dispose()` which cancels `_gameTimer`. Follow with `await Future.delayed(600ms)` to let the pop animation finish and dispose to run before DB close.
+- **`triggerHalftimeAlert()` is defined but never called by `TraditionalGameScreen`**: The screen does not auto-advance halftime or fire alerts; both require explicit user interaction ("2nd Half" button). Patrol tests cannot rely on this path — test `isGameActive` instead.
+- **Alphabetical CI ordering means halftime (#1) blocks everything**: Fix halftime before diagnosing other Patrol test failures.
+- **Commits in this session**: `b474c9a` (prefs.clear in shift_management + substitution), `dc5737b` (remove $.pump(Duration)), `ff20b71` (navigate-back fix for halftime).
+
+---
+
 ## Session: May 20, 2026 — Android CI toolchain: fix Gradle OOM, Jetifier OOM, and deprecation warnings
 
 Date: 2026-05-20
