@@ -72,6 +72,23 @@ jobs:
       - name: Install emulator system dependencies
         run: sudo apt-get install -y libpulse0
 
+      # Build the test APK before the emulator starts so Gradle's heavy
+      # Jetifier transforms run without competing with emulator memory.
+      - name: Build Patrol test APK
+        run: |
+          $HOME/.pub-cache/bin/patrol build android \
+            patrol_test/smoke_test.dart \
+            patrol_test/settings_test.dart \
+            patrol_test/notifications_test.dart \
+            patrol_test/halftime_journey_test.dart \
+            patrol_test/json_import_test.dart \
+            patrol_test/shift_alarm_journey_test.dart \
+            patrol_test/team_management_journey_test.dart \
+            patrol_test/substitution_journey_test.dart \
+            patrol_test/shift_management_journey_test.dart \
+            patrol_test/season_clone_journey_test.dart \
+            patrol_test/roster_import_journey_test.dart
+
       - name: Run Patrol tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
