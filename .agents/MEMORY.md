@@ -18,7 +18,7 @@ Fixed three cascading CI failures: Gradle heap OOM silently killing the runner, 
 | `android/gradle.properties` | Reduced `Xmx8G → Xmx2g`, `MaxMetaspaceSize=4G → 512m`; added `android.enableJetifier=false` |
 | `android/gradle/wrapper/gradle-wrapper.properties` | Gradle 8.12 → 8.13 (minimum required by AGP 8.11.1) |
 | `android/settings.gradle.kts` | AGP 8.9.1 → 8.11.1; Kotlin 2.1.0 → 2.2.20 |
-| `android/app/build.gradle.kts` | Removed `id("kotlin-android")` plugin; removed `kotlinOptions {}` block |
+| `android/app/build.gradle.kts` | Removed `id("kotlin-android")` plugin; removed `kotlinOptions {}` block; bumped `compileOptions` to `VERSION_17` |
 | `android/build.gradle.kts` | Removed `KotlinCompile` import and `tasks.withType<KotlinCompile>` block |
 | `.github/workflows/ci.yml` | Added `patrol build android` pre-build step; `target: default`; `timeout-minutes: 40` |
 
@@ -27,7 +27,8 @@ Fixed three cascading CI failures: Gradle heap OOM silently killing the runner, 
 - **`android.enableJetifier=true` OOM on Flutter projects**: Jetifier transforms Flutter's own already-AndroidX ARM64 engine JARs; even 2g heap can't handle `JetifyTransform` on these large JARs. Always set `android.enableJetifier=false` for Flutter projects — the engine is already AndroidX.
 - **Gradle version lookup**: AGP 8.11.1 requires Gradle 8.13 minimum. Gradle 8.14.0 does NOT exist at the distribution URL (404). Let the AGP build error message tell you the actual minimum required, then use that version.
 - **Flutter Built-in Kotlin migration**: Remove `id("kotlin-android")` from the app's plugins block — `dev.flutter.flutter-gradle-plugin` manages Kotlin internally. Remove `kotlinOptions {}` too (only valid when explicit kotlin-android plugin is present).
-- **Kotlin 2.2 breaking changes**: `kotlinOptions {}` DSL removed (use `compilerOptions {}`); `JvmTarget.JVM_1_6` enum value removed (Kotlin 2.2 requires JVM 8+ minimum, so the old "raise 1.6 to 1.8" guard is moot — delete the block).
+- **Kotlin 2.2 breaking changes**: `kotlinOptions {}` DSL removed from root `build.gradle.kts` `tasks.withType<KotlinCompile>` blocks; `JvmTarget.JVM_1_6` enum value removed — delete the whole block.
+- **JVM target mismatch after Built-in Kotlin migration**: Kotlin 2.2 defaults `jvmTarget` to the JDK version (17 in CI) when no explicit target is set. Removing `kotlinOptions { jvmTarget = "1.8" }` without updating `compileOptions` causes "Inconsistent JVM Target Compatibility" between `compileDebugJavaWithJavac` (1.8) and `compileDebugKotlin` (17). Fix: set `sourceCompatibility = JavaVersion.VERSION_17` and `targetCompatibility = JavaVersion.VERSION_17` in `compileOptions`. Desugaring (`isCoreLibraryDesugaringEnabled`) is unaffected — it operates at the D8/R8 level, not the compilation level.
 
 ---
 
