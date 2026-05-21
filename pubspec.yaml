@@ -41,9 +41,11 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.4
   # Used by migration tests to seed an old-version DB file before Drift opens it.
   sqlite3: any
-  # E2E tests with native (notification, permission) automation. Run via
-  # `patrol test` after installing `dart pub global activate patrol_cli`.
-  patrol: ^4.5.0
+  # E2E tests with native (notification, permission) automation. Pinned to
+  # exact version matching patrol_cli pinned in .github/workflows/ci.yml —
+  # patrol_cli strictly enforces matching versions and will fail the build
+  # if the package and CLI minor versions drift.
+  patrol: 4.4.0
 
 dependency_overrides:
   device_info_plus: ^12.1.0
