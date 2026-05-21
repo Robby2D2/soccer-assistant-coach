@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:soccer_assistant_coach/core/router.dart';
 import 'package:soccer_assistant_coach/data/db/database.dart';
 
 import 'helpers/app_harness.dart';
@@ -84,22 +85,26 @@ void main() {
       await $.pumpWidget(appUnderTest(db: db));
       await $.pumpAndSettle(timeout: const Duration(seconds: 5));
 
-      // Navigate via the active-games card on Home.
+      // Navigate via the active-games card on Home. Use noSettle here:
+      // GameScreen's many StreamBuilders watching always-open Drift streams
+      // make Patrol's pumpAndSettle hang on real devices (the timeout is not
+      // honored). Future.delayed gives the navigation animation and screen
+      // mount time to complete using wall-clock time.
       expect($('vs Substitutes United'), findsAtLeastNWidgets(1));
-      await $('vs Substitutes United').tap();
-      await $.pumpAndSettle(timeout: const Duration(seconds: 5));
+      await $('vs Substitutes United').tap(settlePolicy: SettlePolicy.noSettle);
+      await Future.delayed(const Duration(seconds: 2));
 
       // The "Next Shift" control appears because there's a shift queued
       // after the current one. Tap it.
       expect($('Next Shift'), findsAtLeastNWidgets(1));
-      await $('Next Shift').first.tap();
-      await $.pumpAndSettle(timeout: const Duration(seconds: 3));
+      await $('Next Shift').first.tap(settlePolicy: SettlePolicy.noSettle);
+      await Future.delayed(const Duration(seconds: 1));
 
       // Time is left on the current shift, so the confirmation dialog
       // surfaces. Confirm to advance.
       expect($('Start next shift early?'), findsOneWidget);
-      await $('Start Next Shift').tap();
-      await $.pumpAndSettle(timeout: const Duration(seconds: 5));
+      await $('Start Next Shift').tap(settlePolicy: SettlePolicy.noSettle);
+      await Future.delayed(const Duration(seconds: 1));
 
       // The queued shift is now current. Sanity-check both DB state and
       // that the prior shift ID is no longer the active one.
@@ -110,6 +115,11 @@ void main() {
         reason: 'Confirming Next Shift should promote the queued shift',
       );
       expect(game?.currentShiftId, isNot(firstShiftId));
+
+      // Navigate back to trigger GameScreen.dispose() so any pending
+      // StreamBuilder subscriptions cancel before db.close() teardown runs.
+      router.pop();
+      await Future.delayed(const Duration(milliseconds: 600));
     },
   );
 }
