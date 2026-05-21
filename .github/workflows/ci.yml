@@ -8,6 +8,14 @@ on:
 
 jobs:
   # ─── Unit tests + static analysis ─────────────────────────────────────────
+  # Patrol E2E tests are deliberately NOT in CI. Patrol's test orchestrator
+  # hangs unpredictably between tests on the Android emulator runner (the
+  # runner itself is reliable, but the JVM-bridge between native and Dart
+  # isolates is not). After many cycles of fixing individual tests, the
+  # orchestrator hang persisted. Patrol now lives in a manual workflow
+  # (.github/workflows/patrol-manual.yml) for on-demand runs and is invoked
+  # locally during development. Widget/unit tests cover the CSV upload diff
+  # and feature flows at the tier where they're fast and reliable.
   unit-tests:
     name: Unit tests & analysis
     runs-on: ubuntu-latest
@@ -29,89 +37,3 @@ jobs:
 
       - name: Unit & widget tests
         run: flutter test
-
-  # ─── Patrol E2E tests on Android ──────────────────────────────────────────
-  patrol-tests:
-    name: Patrol E2E tests (Android)
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: temurin
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Install patrol_cli
-        # Pinned to exact version that pairs with patrol package in pubspec.yaml.
-        # patrol_cli 4.4.0 (latest) is incompatible with patrol 4.4.0 AND 4.5.0;
-        # the working pair is patrol_cli 4.3.1 + patrol 4.5.0, validated in CI
-        # runs before patrol_cli 4.4.0 was published with stricter version checks.
-        run: dart pub global activate patrol_cli 4.3.1
-
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL
-          sudo apt-get clean
-          df -h
-
-      - name: Enable KVM group perms
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      - name: Install emulator system dependencies
-        run: sudo apt-get install -y libpulse0
-
-      # Build the test APK before the emulator starts so Gradle's heavy
-      # Jetifier transforms run without competing with emulator memory.
-      - name: Build Patrol test APK
-        run: |
-          $HOME/.pub-cache/bin/patrol build android \
-            patrol_test/smoke_test.dart \
-            patrol_test/settings_test.dart \
-            patrol_test/notifications_test.dart \
-            patrol_test/halftime_journey_test.dart \
-            patrol_test/json_import_test.dart \
-            patrol_test/shift_alarm_journey_test.dart \
-            patrol_test/team_management_journey_test.dart \
-            patrol_test/substitution_journey_test.dart \
-            patrol_test/shift_management_journey_test.dart \
-            patrol_test/season_clone_journey_test.dart \
-            patrol_test/roster_import_journey_test.dart
-
-      - name: Run Patrol tests
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 33
-          arch: x86_64
-          target: default
-          disable-animations: true
-          emulator-boot-timeout: 900
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -partition-size 4096
-          script: |
-            $HOME/.pub-cache/bin/patrol test \
-              patrol_test/smoke_test.dart \
-              patrol_test/settings_test.dart \
-              patrol_test/notifications_test.dart \
-              patrol_test/halftime_journey_test.dart \
-              patrol_test/json_import_test.dart \
-              patrol_test/shift_alarm_journey_test.dart \
-              patrol_test/team_management_journey_test.dart \
-              patrol_test/substitution_journey_test.dart \
-              patrol_test/shift_management_journey_test.dart \
-              patrol_test/season_clone_journey_test.dart \
-              patrol_test/roster_import_journey_test.dart
