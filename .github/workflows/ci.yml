@@ -55,9 +55,11 @@ jobs:
         run: flutter pub get
 
       - name: Install patrol_cli
-        # Pinned to exact version matching patrol package in pubspec.yaml —
-        # patrol_cli strictly enforces matching versions.
-        run: dart pub global activate patrol_cli 4.4.0
+        # Pinned to exact version that pairs with patrol package in pubspec.yaml.
+        # patrol_cli 4.4.0 (latest) is incompatible with patrol 4.4.0 AND 4.5.0;
+        # the working pair is patrol_cli 4.3.1 + patrol 4.5.0, validated in CI
+        # runs before patrol_cli 4.4.0 was published with stricter version checks.
+        run: dart pub global activate patrol_cli 4.3.1
 
       - name: Free disk space
         run: |

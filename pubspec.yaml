@@ -42,10 +42,11 @@ dev_dependencies:
   # Used by migration tests to seed an old-version DB file before Drift opens it.
   sqlite3: any
   # E2E tests with native (notification, permission) automation. Pinned to
-  # exact version matching patrol_cli pinned in .github/workflows/ci.yml —
-  # patrol_cli strictly enforces matching versions and will fail the build
-  # if the package and CLI minor versions drift.
-  patrol: 4.4.0
+  # exact version that pairs with patrol_cli pinned in .github/workflows/ci.yml.
+  # patrol_cli enforces a compatibility matrix between itself and the patrol
+  # package; both must be bumped together. The known-good pair below was
+  # validated in CI before patrol_cli 4.4.0 was published with stricter checks.
+  patrol: 4.5.0
 
 dependency_overrides:
   device_info_plus: ^12.1.0
