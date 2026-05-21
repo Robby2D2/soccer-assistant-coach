@@ -827,7 +827,7 @@ extension TeamQueries on AppDb {
 
   Future<String> getTeamMode(int teamId) async {
     final row = await customSelect(
-      'SELECT COALESCE(team_mode, "shift") AS tm FROM teams WHERE id = ?',
+      "SELECT COALESCE(team_mode, 'shift') AS tm FROM teams WHERE id = ?",
       variables: [Variable<int>(teamId)],
       readsFrom: {teams},
     ).getSingleOrNull();

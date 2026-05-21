@@ -600,7 +600,9 @@ class _HalfOrShiftDisplay extends ConsumerWidget {
     if (isShiftMode) {
       // Show shift number for shift-based games
       return FutureBuilder<int?>(
-        future: _getShiftNumber(db, game.currentShiftId!, game.id),
+        future: game.currentShiftId != null
+            ? _getShiftNumber(db, game.currentShiftId!, game.id)
+            : Future.value(null),
         builder: (context, snapshot) {
           final shiftNumber = snapshot.data;
           return Text(

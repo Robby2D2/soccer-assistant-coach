@@ -2,6 +2,20 @@
 
 This project is a Flutter app for managing soccer teams, seasons, players, and live games.
 
+### GitHub CLI (`gh`)
+
+`gh` is installed at `C:\Program Files\GitHub CLI\gh.exe` but is **not in the sandboxed PATH** used by Claude Code's Bash/PowerShell tools. Always invoke it with the full path in PowerShell:
+
+```powershell
+& "C:\Program Files\GitHub CLI\gh.exe" issue view 6
+& "C:\Program Files\GitHub CLI\gh.exe" pr create --title "..." --body "..."
+& "C:\Program Files\GitHub CLI\gh.exe" run list --workflow=release-ios.yml --limit=3
+```
+
+Do **not** use `gh` bare, `wsl bash -c "gh ..."`, or any other form — only the full Windows path works reliably from Claude Code tools.
+
+---
+
 ### Development
 
 Always refer to `.agents/CODING.md` for specific coding instructions and standards to follow.

@@ -3,8 +3,8 @@ import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // The Flutter Gradle Plugin must be applied after the Android plugin.
+    // Kotlin is managed by Flutter's built-in Kotlin support (no explicit kotlin-android needed).
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -20,15 +20,9 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        // Revert to Java 1.8 for widest plugin compatibility (suppresses mismatches); desugaring still enables newer APIs.
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
         isCoreLibraryDesugaringEnabled = true
-    }
-
-    kotlinOptions {
-        // Keep Kotlin bytecode at 1.8 to match Java compile target.
-        jvmTarget = JavaVersion.VERSION_1_8.toString()
     }
 
 

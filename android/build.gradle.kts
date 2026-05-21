@@ -1,5 +1,4 @@
 import org.gradle.api.tasks.compile.JavaCompile
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 allprojects {
     repositories {
@@ -34,11 +33,6 @@ subprojects {
     if (targetCompatibility == "1.6" || targetCompatibility == "6") targetCompatibility = "1.8"
     // Suppress warnings about obsolete Java options
     options.compilerArgs.add("-Xlint:-options")
-    }
-    tasks.withType<KotlinCompile>().configureEach {
-        kotlinOptions {
-            if (jvmTarget == "1.6") jvmTarget = "1.8"
-        }
     }
 }
 

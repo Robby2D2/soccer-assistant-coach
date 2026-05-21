@@ -375,5 +375,35 @@
         "type": "String"
       }
     }
-  }
+  },
+
+  "pickCsvFile": "Choisir un fichier CSV",
+  "orPasteCsvBelow": "Ou coller le CSV ci-dessous :",
+  "reviewAndImport": "Vérifier et Importer",
+  "confirmImportTitle": "Confirmer l'importation",
+  "confirmImportAdd": "Ajouter {count} joueurs",
+  "@confirmImportAdd": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmImportUpdate": "Mettre à jour {count} joueurs (numéro de maillot)",
+  "@confirmImportUpdate": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "confirmImportArchive": "Archiver {count} joueurs (plus dans l'effectif)",
+  "@confirmImportArchive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noChangesDetected": "Aucun changement détecté. L'effectif est déjà à jour."
 }

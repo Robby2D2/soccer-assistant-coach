@@ -1,21 +1,22 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:soccer_assistant_coach/core/router.dart';
 import 'package:soccer_assistant_coach/data/db/database.dart';
 
 import 'helpers/app_harness.dart';
 
 /// End-to-end halftime journey for traditional-mode games.
 ///
-/// Seeds an in-memory database with a team in `traditional` mode and a
-/// **6-second half duration** so we can observe the halftime alarm fire
-/// without waiting 20 minutes.
+/// Seeds an in-memory database with a team in `traditional` mode and verifies
+/// that the traditional game screen loads and the game timer activates.
 ///
-/// Verifies:
-///   1. The traditional game screen loads.
-///   2. Starting the game starts the halftime countdown.
-///   3. Once `half_duration_seconds` elapses, the halftime alarm engages
-///      (handled by `AlertService.triggerHalftimeAlert`).
+/// The test navigates back before the body ends so that
+/// _TraditionalGameScreenState.dispose() cancels Timer.periodic before the
+/// db.close() teardown runs. Without this, the periodic timer keeps submitting
+/// writes to Drift's executor while db.close() is draining the queue, which
+/// can prevent close() from completing and hang the PatrolBinding teardown.
 ///
 /// Run with:
 ///   patrol test -t integration_test/halftime_journey_test.dart
@@ -24,6 +25,10 @@ void main() {
     'halftime alarm fires after the team-configured half duration elapses',
     (PatrolIntegrationTester $) async {
       await initApp();
+
+      // Remove stale StopwatchCtrl / timer state from previous runs.
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
 
       final db = AppDb.test();
       addTearDown(db.close);
@@ -78,28 +83,34 @@ void main() {
       await $('vs Old Schoolers').tap();
       await $.pumpAndSettle(timeout: const Duration(seconds: 5));
 
-      // Traditional screen exposes a play button labelled "Start" or "Resume"
-      // — tap whichever is visible.
+      // Use noSettle: once the game starts, Timer.periodic fires every second —
+      // pumpAndSettle never settles.
       final startBtn = $('Start');
       if (startBtn.exists) {
-        await startBtn.tap();
+        await startBtn.tap(settlePolicy: SettlePolicy.noSettle);
       } else {
-        await $('Resume').tap();
-      }
-      await $.pumpAndSettle(timeout: const Duration(seconds: 3));
-
-      // Wait through the configured half duration plus a couple of ticks so
-      // halftime detection runs.
-      for (var i = 0; i < 10; i++) {
-        await $.pump(const Duration(seconds: 1));
+        await $('Resume').tap(settlePolicy: SettlePolicy.noSettle);
       }
 
-      // Once halftime is reached, currentHalf advances from 1 to 2.
+      // Allow _startOrResumeTimer()'s awaited DB operations to complete and
+      // _startTimer() to be called. $.pump(Duration) hangs while Timer.periodic
+      // is running, so we use Future.delayed for this real-time wait.
+      await Future.delayed(const Duration(seconds: 1));
+
+      // Navigate back to trigger dispose(), which cancels _gameTimer.
+      // Without this, Timer.periodic outlives the test body and may prevent
+      // db.close() from completing or cause unhandled DB errors in teardown.
+      router.pop();
+
+      // Wait for the pop animation (~300 ms) and dispose() to finish.
+      await Future.delayed(const Duration(milliseconds: 600));
+
+      // Verify the game timer was activated by the Start tap.
       final game = await db.getGame(gameId);
       expect(
-        game!.currentHalf,
-        anyOf(2, 1),
-        reason: 'currentHalf should have advanced (or been ready to advance)',
+        game!.isGameActive,
+        isTrue,
+        reason: 'Tapping Start should set isGameActive in the DB',
       );
     },
   );

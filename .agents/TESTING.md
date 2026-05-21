@@ -101,6 +101,7 @@ Shared fixture helpers in `test/helpers/fixtures.dart` (`seedTeam`, `seedPlayer`
 | `substitution_journey_test.dart` | Direct route push to `/game/:id/assign/:shiftId` → dropdown writes a `player_shifts` row |
 | `shift_management_journey_test.dart` | Two queued shifts → "Next Shift" → confirmation → `currentShiftId` advances |
 | `season_clone_journey_test.dart` | Manage Seasons → Create New Season with a checked previous-season team → cloned roster lands in the new season |
+| `roster_import_journey_test.dart` | Paste CSV into import screen → confirmation dialog shows add/update/archive → import writes correct DB state (add, update jersey, archive) |
 
 ---
 

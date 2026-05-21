@@ -696,4 +696,35 @@ class AppLocalizationsEs extends AppLocalizations {
   String cloneSeasonTitle(String seasonName) {
     return 'Clonar \"$seasonName\"';
   }
+
+  @override
+  String get pickCsvFile => 'Seleccionar archivo CSV';
+
+  @override
+  String get orPasteCsvBelow => 'O pega el CSV a continuación:';
+
+  @override
+  String get reviewAndImport => 'Revisar e Importar';
+
+  @override
+  String get confirmImportTitle => 'Confirmar importación';
+
+  @override
+  String confirmImportAdd(int count) {
+    return 'Agregar $count jugadores';
+  }
+
+  @override
+  String confirmImportUpdate(int count) {
+    return 'Actualizar $count jugadores (número de camiseta)';
+  }
+
+  @override
+  String confirmImportArchive(int count) {
+    return 'Archivar $count jugadores (ya no están en la plantilla)';
+  }
+
+  @override
+  String get noChangesDetected =>
+      'No se detectaron cambios. La plantilla ya está actualizada.';
 }

@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  # ─── Unit tests + static analysis ─────────────────────────────────────────
+  # Patrol E2E tests are deliberately NOT in CI. Patrol's test orchestrator
+  # hangs unpredictably between tests on the Android emulator runner (the
+  # runner itself is reliable, but the JVM-bridge between native and Dart
+  # isolates is not). After many cycles of fixing individual tests, the
+  # orchestrator hang persisted. Patrol now lives in a manual workflow
+  # (.github/workflows/patrol-manual.yml) for on-demand runs and is invoked
+  # locally during development. Widget/unit tests cover the CSV upload diff
+  # and feature flows at the tier where they're fast and reliable.
+  unit-tests:
+    name: Unit tests & analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Unit & widget tests
+        run: flutter test
