@@ -149,41 +149,44 @@ Each Patrol test seeds an isolated `AppDb.test()` (in-memory SQLite) and drives 
 
 Fastlane is vendored in `vendor/bundle` and must be run from **WSL (Ubuntu)** — it does not work in PowerShell or Git Bash.
 
-### Every release (Android + iOS)
+The release pipeline is **two commands**: one to cut a beta release, one to promote it to production.
 
-**1. Update the release notes** — edit `fastlane/metadata/en-US/release_notes.txt` to describe what changed.
+### 1. Cut a beta release
 
-**2. Bump the version** (WSL) — this commits, tags, and pushes, triggering both CI pipelines automatically:
+**a. Update the release notes** — edit `fastlane/metadata/en-US/release_notes.txt` to describe what changed.
+
+**b. Cut the release** (WSL):
 ```bash
 cd /mnt/c/Users/rdane/Documents/Projects/soccer-assistant-coach
-bundle exec fastlane bump version:X.Y.Z build:N
+bundle exec fastlane create_release version:X.Y.Z build:N
 ```
 
-**3. Build the Android AAB** (Windows — PowerShell or Git Bash, not WSL):
-```bash
-flutter build appbundle --release
+This bumps `pubspec.yaml`, commits, tags `vX.Y.Z`, and pushes — triggering both CI pipelines, which:
+- Build a signed AAB and upload to **Play Store beta track** (as a draft)
+- Build an IPA and upload to **TestFlight**
+
+**c. Verify the push reached GitHub** (PowerShell — see the WSL credential-manager gotcha below):
+```powershell
+git ls-remote --tags origin vX.Y.Z
+```
+If the output is empty, push from PowerShell to recover:
+```powershell
+git push origin main
+git push origin vX.Y.Z
 ```
 
-**4. Upload to Play Store** (WSL):
+**d. Test on beta** — testers can install the build via TestFlight and the Play Store beta channel. CI runs take ~15 min (Android) and ~25 min (iOS).
+
+### 2. Promote to production
+
+After beta passes QA:
 ```bash
-bundle exec fastlane android deploy              # internal track (default)
-bundle exec fastlane android deploy track:production
-```
-Or promote an existing build between tracks:
-```bash
-bundle exec fastlane android promote from:internal to:production
+bundle exec fastlane promote_release version:X.Y.Z
 ```
 
-**5. Upload iOS metadata and screenshots** (WSL) — only needed if description, keywords, or screenshots changed:
-```bash
-bundle exec fastlane ios metadata
-```
-
-**6. Submit iOS build for App Store review** (WSL) — CI uploads the IPA to TestFlight automatically on the tag push; once it finishes processing (~15 min), run:
-```bash
-bundle exec fastlane ios submit
-```
-Apple reviews in ~24–48h. When approved, go to App Store Connect and click **Release**.
+This:
+- **Android**: promotes the Play Store beta release to the **production** track — live within minutes.
+- **iOS**: submits the TestFlight build to Apple for App Store review. Apple reviews in ~24–48h; you'll receive an email when approved. Then click **Release this version** in App Store Connect to ship.
 
 ---
 
@@ -191,12 +194,34 @@ Apple reviews in ~24–48h. When approved, go to App Store Connect and click **R
 
 | Lane | Environment | Description |
 |------|-------------|-------------|
-| `bundle exec fastlane bump version:X.Y.Z build:N` | WSL | Bump version, commit, tag, push — triggers both CI pipelines |
-| `bundle exec fastlane android build` | Windows only | Build signed release AAB |
-| `bundle exec fastlane android deploy [track:T]` | WSL | Upload AAB to Play Store (default: internal) |
-| `bundle exec fastlane android promote from:A to:B` | WSL | Promote existing build between tracks |
-| `bundle exec fastlane ios metadata` | WSL | Upload App Store metadata and screenshots |
+| `bundle exec fastlane create_release version:X.Y.Z build:N` | WSL | Bump + tag + push; CI ships to Play beta + TestFlight |
+| `bundle exec fastlane promote_release version:X.Y.Z` | WSL | Play beta → production + submit iOS for App Store review |
+| `bundle exec fastlane bump version:X.Y.Z build:N` | WSL | Bump + tag + push only (no banner messages — backwards-compat) |
+| `bundle exec fastlane android promote from:A to:B` | WSL | Promote existing AAB between any two Play tracks |
+| `bundle exec fastlane android deploy [track:T]` | WSL | Upload existing AAB to a specific Play track |
+| `bundle exec fastlane android build` | Windows only | Build a signed AAB locally |
+| `bundle exec fastlane ios metadata` | WSL | Upload App Store metadata and screenshots (no submission) |
 | `bundle exec fastlane ios submit` | WSL | Submit latest TestFlight build for App Store review |
+
+---
+
+### Known gotcha: WSL silently fails the `git push` step
+
+When fastlane invokes `git push` from WSL, it calls `git-credential-manager.exe` at `/mnt/c/Program Files/Git/mingw64/bin/...`. The space in `/Program Files/` is treated as a word boundary by the WSL shell, so the helper invocation fails with `/mnt/c/Program: not found` — but the local commit and tag are already created, and fastlane reports "Successfully committed".
+
+If you don't notice, the tag never reaches GitHub and **no release workflow fires**.
+
+**To detect**: after running `create_release`, check from PowerShell:
+```powershell
+git ls-remote --tags origin vX.Y.Z   # should output a SHA + the ref
+```
+If empty, push manually from PowerShell (which uses Windows-native git + working credentials):
+```powershell
+git push origin main
+git push origin vX.Y.Z
+```
+
+For a permanent fix to this bug, see [`docs/wsl-git-credentials.md`](docs/wsl-git-credentials.md).
 
 ---
 

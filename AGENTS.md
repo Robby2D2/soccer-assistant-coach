@@ -56,6 +56,8 @@ bundle exec fastlane promote_release version:1.0.9
 > git push origin v1.0.9    # this is the push that actually triggers the release workflows
 > ```
 > Verify both CI releases kicked off: `gh run list --workflow=release.yml` and `gh run list --workflow=release-ios.yml`.
+>
+> **For a permanent fix** (one-time WSL setup using `$GITHUB_TOKEN`), see [`docs/wsl-git-credentials.md`](docs/wsl-git-credentials.md). After that setup, `fastlane create_release` pushes work end-to-end without manual recovery.
 
 #### What happens during `create_release`
 
