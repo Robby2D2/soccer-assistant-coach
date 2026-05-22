@@ -42,6 +42,13 @@ bundle exec fastlane bump version:1.0.6 build:6
 ```
 This updates `pubspec.yaml`, commits it, tags `vX.Y.Z`, and pushes — which triggers both `release.yml` (Android) and `release-ios.yml` (iOS) in GitHub Actions.
 
+> **Heads up — fastlane's `git push` from WSL fails silently on this machine.** When fastlane invokes `git push` from WSL, git tries to call `git-credential-manager.exe` under `/mnt/c/Program Files/...`, and the space in `/Program Files/` is treated as a word boundary by the WSL shell. The push errors with `/mnt/c/Program: not found` and exits, but the local commit + tag are already created. You'll see "Successfully committed" but the tag never reaches GitHub and no release workflow fires. **Workaround:** after running `fastlane bump`, push from PowerShell where Windows-native git uses Windows credentials:
+> ```powershell
+> git push origin main
+> git push origin v1.0.7   # this is the push that actually triggers the release workflows
+> ```
+> Verify both releases started with `gh run list --workflow=release.yml` and `gh run list --workflow=release-ios.yml`.
+
 #### Android — manual release
 
 **Step 1 — Build the AAB** (Windows — PowerShell or Git Bash):
