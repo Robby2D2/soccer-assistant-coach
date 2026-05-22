@@ -415,12 +415,29 @@ if __name__ == '__main__':
     IOS_DIR = r'c:\Users\rdane\Documents\Projects\soccer-assistant-coach\fastlane\screenshots\en-US'
     os.makedirs(IOS_DIR, exist_ok=True)
 
+    # iPhone screenshots are REAL captures from the running app (committed
+    # in 48cbc71). Do NOT regenerate them synthetically — uncomment only if
+    # you want to fall back to synthetic placeholders.
+    #
     # iPhone 6.9" (required — iPhone 16 Pro Max): 1320×2868
-    make_teams_screen(1320, 2868, 'iphone69_01_teams.png', out_dir=IOS_DIR)
-    make_lineup_screen(1320, 2868, 'iphone69_02_lineup.png', out_dir=IOS_DIR)
-
+    # make_teams_screen(1320, 2868, 'iphone69_01_teams.png', out_dir=IOS_DIR)
+    # make_lineup_screen(1320, 2868, 'iphone69_02_lineup.png', out_dir=IOS_DIR)
+    #
     # iPhone 6.7" (iPhone 14 Plus / 15 Plus / 16 Plus): 1290×2796
-    make_teams_screen(1290, 2796, 'iphone67_01_teams.png', out_dir=IOS_DIR)
-    make_lineup_screen(1290, 2796, 'iphone67_02_lineup.png', out_dir=IOS_DIR)
+    # make_teams_screen(1290, 2796, 'iphone67_01_teams.png', out_dir=IOS_DIR)
+    # make_lineup_screen(1290, 2796, 'iphone67_02_lineup.png', out_dir=IOS_DIR)
+
+    # iPad Pro 12.9" 3rd gen (required when app declares iPad support):
+    # 2048×2732 portrait. App Store Connect device type: APP_IPAD_PRO_3GEN_129.
+    # The filename prefix ipadPro129_ matches fastlane deliver's device detection.
+    make_teams_screen(2048, 2732, 'ipadPro129_01_teams.png', out_dir=IOS_DIR)
+    make_lineup_screen(2048, 2732, 'ipadPro129_02_lineup.png', out_dir=IOS_DIR)
+
+    # iPad Pro 13" (M4) — Apple's newest iPad Pro, 2064×2752 portrait.
+    # Some App Store Connect configurations now require this in addition to
+    # the 3rd-gen 12.9". Device type: APP_IPAD_PRO_129. Cheap to generate
+    # given the script is fully responsive.
+    make_teams_screen(2064, 2752, 'ipadPro13_01_teams.png', out_dir=IOS_DIR)
+    make_lineup_screen(2064, 2752, 'ipadPro13_02_lineup.png', out_dir=IOS_DIR)
 
     print(f"\nAll iOS screenshots saved to:\n{IOS_DIR}")

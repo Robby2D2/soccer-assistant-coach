@@ -29,26 +29,16 @@ lane :create_release do |options|
   UI.important("If empty, push from PowerShell: git push origin main && git push origin v#{options[:version]}")
 end
 
-desc "Promote v.X.Y.Z to production: Play Store production track + submit iOS TestFlight build for App Store review. Usage: promote_release version:1.0.9"
+desc "Promote v.X.Y.Z to production: submit iOS TestFlight build to Apple review, THEN promote Play Store beta to production. Usage: promote_release version:1.0.9"
 lane :promote_release do |options|
   version = options[:version]
   UI.user_error!("Pass version: e.g. version:1.0.9") unless version
 
-  # ─── Android: promote beta → production ────────────────────────────────────
-  UI.header("Android — promoting beta to production")
-  upload_to_play_store(
-    track:                   "beta",
-    track_promote_to:        "production",
-    skip_upload_apk:         true,
-    skip_upload_aab:         true,
-    skip_upload_metadata:    true,
-    skip_upload_changelogs:  true,
-    skip_upload_images:      true,
-    skip_upload_screenshots: true,
-  )
-  UI.success("Android v#{version} live on Play Store production track.")
-
-  # ─── iOS: submit TestFlight build for App Store review ─────────────────────
+  # ─── iOS FIRST: submit for App Store review ────────────────────────────────
+  # iOS submission is much more likely to fail (missing screenshots, App Privacy
+  # not published, metadata issues). If it fails AFTER we promote Android, you'd
+  # have Android live on production but iOS still on TestFlight — confusing and
+  # hard to roll back. Submit iOS first; only promote Android if iOS succeeded.
   UI.header("iOS — submitting TestFlight build for App Store review")
   ios_key = app_store_connect_api_key(
     key_id:                ENV["APP_STORE_CONNECT_KEY_ID"],
@@ -72,7 +62,61 @@ lane :promote_release do |options|
   )
   UI.success("iOS v#{version} submitted for App Store review (1-2 day Apple review window).")
 
-  UI.success("✅ v#{version} promotion complete. Watch Apple email for review status; click Release in App Store Connect when approved.")
+  # ─── Android: promote beta → production (only if iOS submission succeeded) ─
+  UI.header("Android — promoting beta to production")
+  upload_to_play_store(
+    track:                   "beta",
+    track_promote_to:        "production",
+    skip_upload_apk:         true,
+    skip_upload_aab:         true,
+    skip_upload_metadata:    true,
+    skip_upload_changelogs:  true,
+    skip_upload_images:      true,
+    skip_upload_screenshots: true,
+  )
+  UI.success("Android v#{version} live on Play Store production track.")
+
+  UI.success("✅ v#{version} promotion complete. Watch Apple email for review status; click Release in App Store Connect when approved. Android is already live on Play Store production.")
+end
+
+desc "Promote ONLY Android beta to production (useful for partial recovery if a previous promote_release succeeded iOS but failed Android, or to roll Android forward independently). Usage: promote_release_android"
+lane :promote_release_android do
+  upload_to_play_store(
+    track:                   "beta",
+    track_promote_to:        "production",
+    skip_upload_apk:         true,
+    skip_upload_aab:         true,
+    skip_upload_metadata:    true,
+    skip_upload_changelogs:  true,
+    skip_upload_images:      true,
+    skip_upload_screenshots: true,
+  )
+  UI.success("Android promoted from beta → production track.")
+end
+
+desc "Submit ONLY iOS TestFlight build for App Store review (useful for retrying iOS-only after fixing metadata/screenshot issues). Usage: promote_release_ios"
+lane :promote_release_ios do
+  ios_key = app_store_connect_api_key(
+    key_id:                ENV["APP_STORE_CONNECT_KEY_ID"],
+    issuer_id:             ENV["APP_STORE_CONNECT_ISSUER_ID"],
+    key_content:           ENV["APP_STORE_CONNECT_KEY_CONTENT"],
+    is_key_content_base64: true,
+  )
+  upload_to_app_store(
+    api_key:                           ios_key,
+    skip_binary_upload:                true,
+    screenshots_path:                  "fastlane/screenshots",
+    metadata_path:                     "fastlane/metadata",
+    submit_for_review:                 true,
+    automatic_release:                 false,
+    force:                             true,
+    precheck_include_in_app_purchases: false,
+    submission_information: {
+      export_compliance_uses_encryption: false,
+      add_id_info_uses_idfa:             false,
+    },
+  )
+  UI.success("iOS submitted for App Store review (1-2 day Apple review window).")
 end
 
 default_platform(:android)
