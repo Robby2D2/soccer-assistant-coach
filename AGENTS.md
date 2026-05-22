@@ -34,20 +34,49 @@ Fastlane must be run from **WSL (Ubuntu)** using Bundler — it is not available
 
 The Flutter SDK shell scripts have Windows line endings (CRLF) that break under WSL, so **Android build and deploy run in different environments**. iOS builds run entirely in CI on a macOS runner.
 
-#### Bumping the version (WSL) — triggers both Android and iOS CI
+#### The two-command release flow
 
 ```bash
-cd /mnt/c/Users/rdane/Documents/Projects/soccer-assistant-coach
-bundle exec fastlane bump version:1.0.6 build:6
-```
-This updates `pubspec.yaml`, commits it, tags `vX.Y.Z`, and pushes — which triggers both `release.yml` (Android) and `release-ios.yml` (iOS) in GitHub Actions.
+# 1. Cut a release. Bumps pubspec, tags, pushes — CI ships to Play beta + TestFlight.
+bundle exec fastlane create_release version:1.0.9 build:10
 
-> **Heads up — fastlane's `git push` from WSL fails silently on this machine.** When fastlane invokes `git push` from WSL, git tries to call `git-credential-manager.exe` under `/mnt/c/Program Files/...`, and the space in `/Program Files/` is treated as a word boundary by the WSL shell. The push errors with `/mnt/c/Program: not found` and exits, but the local commit + tag are already created. You'll see "Successfully committed" but the tag never reaches GitHub and no release workflow fires. **Workaround:** after running `fastlane bump`, push from PowerShell where Windows-native git uses Windows credentials:
+# 2. After QA on beta/TestFlight, promote to production.
+#    Android → Play Store production track (live immediately).
+#    iOS → submitted to Apple for App Store review (1-2 day review window).
+bundle exec fastlane promote_release version:1.0.9
+```
+
+> **Heads up — fastlane's `git push` from WSL fails silently on this machine.** When fastlane invokes `git push` from WSL, git tries to call `git-credential-manager.exe` under `/mnt/c/Program Files/...`, and the space in `/Program Files/` is treated as a word boundary by the WSL shell. The push errors with `/mnt/c/Program: not found` and exits, but the local commit + tag are already created. You'll see "Successfully committed" but the tag never reaches GitHub and no release workflow fires. **Workaround:** after running `fastlane create_release` (or `fastlane bump`), verify the tag pushed and recover if needed:
 > ```powershell
+> # Verify (from PowerShell)
+> git ls-remote --tags origin v1.0.9
+>
+> # If empty, push manually:
 > git push origin main
-> git push origin v1.0.7   # this is the push that actually triggers the release workflows
+> git push origin v1.0.9    # this is the push that actually triggers the release workflows
 > ```
-> Verify both releases started with `gh run list --workflow=release.yml` and `gh run list --workflow=release-ios.yml`.
+> Verify both CI releases kicked off: `gh run list --workflow=release.yml` and `gh run list --workflow=release-ios.yml`.
+
+#### What happens during `create_release`
+
+1. Updates `pubspec.yaml` to the new version + build number
+2. Commits `chore: bump version to X.Y.Z+N`
+3. Tags `vX.Y.Z` and pushes the commit + tag
+4. Tag push fires `release.yml` and `release-ios.yml` on GitHub Actions:
+   - Android: builds signed AAB → uploads to Play Store **beta** track as draft
+   - iOS: builds IPA → uploads to **TestFlight**
+
+#### What happens during `promote_release`
+
+1. **Android**: calls `upload_to_play_store` with `track_promote_to: production` → live on Play Store production track within minutes
+2. **iOS**: calls `upload_to_app_store` with `submit_for_review: true, automatic_release: false` → enters Apple's review queue. Apple reviews 1-2 days; you'll get an email when approved, then click "Release this version" in App Store Connect
+
+#### Lower-level lanes (still useful)
+
+- `bundle exec fastlane bump version:X.Y.Z build:N` — alias for the bump-and-tag part of `create_release`
+- `bundle exec fastlane android promote from:beta to:production` — Play Store promote only
+- `bundle exec fastlane android deploy track:internal` — upload existing AAB to a specific track
+- `bundle exec fastlane ios submit` — iOS App Store review submission only
 
 #### Android — manual release
 
@@ -78,9 +107,12 @@ To trigger manually without a version bump: go to Actions → "Release to App St
 See the detailed checklist in `.agents/memory/ios_setup.md`.
 
 #### Available lanes summary
-- `bundle exec fastlane bump version:X.Y.Z build:N` — bump version, commit, tag, push (WSL)
-- `bundle exec fastlane android deploy [track:internal|alpha|beta|production]` — upload AAB (WSL)
-- `bundle exec fastlane android build` — build signed AAB (Windows terminal only)
+- **`bundle exec fastlane create_release version:X.Y.Z build:N`** — bump + tag + push; CI ships to Play beta + TestFlight (WSL)
+- **`bundle exec fastlane promote_release version:X.Y.Z`** — Play beta → production + submit iOS for App Store review (WSL)
+- `bundle exec fastlane bump version:X.Y.Z build:N` — bump + tag + push only (no convenience messages)
+- `bundle exec fastlane android promote from:beta to:production` — Play Store promote between tracks (WSL)
+- `bundle exec fastlane android deploy [track:internal|alpha|beta|production]` — upload existing AAB (WSL)
+- `bundle exec fastlane android build` — build signed AAB locally (Windows terminal only)
 - `bundle exec fastlane ios release` — full iOS build + TestFlight upload (macOS only)
 - `bundle exec fastlane ios metadata` — upload App Store metadata and screenshots (WSL, no submission)
 - `bundle exec fastlane ios submit` — upload metadata and submit latest build for App Store review (WSL)

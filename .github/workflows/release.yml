@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       track:
-        description: 'Play Store track'
+        description: 'Play Store track (create_release defaults to beta; choose internal/alpha for early testing)'
         required: true
-        default: 'internal'
+        default: 'beta'
         type: choice
         options:
           - internal
@@ -63,4 +63,4 @@ jobs:
         run: flutter pub get
 
       - name: Run Fastlane
-        run: bundle exec fastlane release track:${{ inputs.track || 'internal' }}
+        run: bundle exec fastlane release track:${{ inputs.track || 'beta' }}

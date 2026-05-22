@@ -17,6 +17,64 @@ lane :bump do |options|
   UI.success("Tagged v#{version} — CI release workflows triggered.")
 end
 
+desc "Create a new release: bump version, tag, push. CI builds and ships to Play Store beta + TestFlight. Usage: create_release version:1.0.9 build:10"
+lane :create_release do |options|
+  bump(options)
+  UI.success("v#{options[:version]} created.")
+  UI.message("Android: AAB will land on Play Store beta track once release.yml completes.")
+  UI.message("iOS: IPA will land on TestFlight once release-ios.yml completes.")
+  UI.message("When ready, promote both with: bundle exec fastlane promote_release version:#{options[:version]}")
+  UI.important("⚠️  After fastlane bump pushes locally, the push may fail silently from WSL. Verify with:")
+  UI.important("    git ls-remote --tags origin v#{options[:version]}")
+  UI.important("If empty, push from PowerShell: git push origin main && git push origin v#{options[:version]}")
+end
+
+desc "Promote v.X.Y.Z to production: Play Store production track + submit iOS TestFlight build for App Store review. Usage: promote_release version:1.0.9"
+lane :promote_release do |options|
+  version = options[:version]
+  UI.user_error!("Pass version: e.g. version:1.0.9") unless version
+
+  # ─── Android: promote beta → production ────────────────────────────────────
+  UI.header("Android — promoting beta to production")
+  upload_to_play_store(
+    track:                   "beta",
+    track_promote_to:        "production",
+    skip_upload_apk:         true,
+    skip_upload_aab:         true,
+    skip_upload_metadata:    true,
+    skip_upload_changelogs:  true,
+    skip_upload_images:      true,
+    skip_upload_screenshots: true,
+  )
+  UI.success("Android v#{version} live on Play Store production track.")
+
+  # ─── iOS: submit TestFlight build for App Store review ─────────────────────
+  UI.header("iOS — submitting TestFlight build for App Store review")
+  ios_key = app_store_connect_api_key(
+    key_id:                ENV["APP_STORE_CONNECT_KEY_ID"],
+    issuer_id:             ENV["APP_STORE_CONNECT_ISSUER_ID"],
+    key_content:           ENV["APP_STORE_CONNECT_KEY_CONTENT"],
+    is_key_content_base64: true,
+  )
+  upload_to_app_store(
+    api_key:                           ios_key,
+    skip_binary_upload:                true,
+    screenshots_path:                  "fastlane/screenshots",
+    metadata_path:                     "fastlane/metadata",
+    submit_for_review:                 true,
+    automatic_release:                 false,
+    force:                             true,
+    precheck_include_in_app_purchases: false,
+    submission_information: {
+      export_compliance_uses_encryption: false,
+      add_id_info_uses_idfa:             false,
+    },
+  )
+  UI.success("iOS v#{version} submitted for App Store review (1-2 day Apple review window).")
+
+  UI.success("✅ v#{version} promotion complete. Watch Apple email for review status; click Release in App Store Connect when approved.")
+end
+
 default_platform(:android)
 
 platform :android do
