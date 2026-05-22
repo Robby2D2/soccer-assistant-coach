@@ -4,6 +4,27 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
+## Session: May 22, 2026 — v1.0.7 release: fastlane bump push silent failure + Fastfile :release lane never built AAB
+
+Date: 2026-05-22
+
+### What was done
+Shipped v1.0.7 (CSV upload feature) to both stores after debugging two release pipeline bugs.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `AGENTS.md` | Documented that `fastlane bump`'s `git push` step fails silently from WSL because git-credential-manager.exe lives in `/mnt/c/Program Files/...` and the space breaks the WSL shell. Workaround: push from PowerShell after the bump. |
+| `fastlane/Fastfile` | Android `:release` lane chained `build` before `deploy`. Was calling `deploy` directly which expected a pre-built AAB. CI's `release.yml` invokes `fastlane release` on tag push with no separate build step, so the lane must do the build itself. |
+
+### Key learnings
+- **fastlane bump's push step fails silently from WSL on this machine**: WSL invokes `git-credential-manager.exe` at `/mnt/c/Program Files/Git/mingw64/bin/...` and the space in the path is treated as a word boundary. Fastlane reports "Successfully committed" and exits, but the commit + tag stay local. The tag never reaches GitHub, so no release workflow fires. Always verify with `git ls-remote --tags origin v<version>` from PowerShell. If empty, push the commit + tag manually from PowerShell where Windows-native git uses Windows credentials.
+- **Fastfile Android `:release` lane must build the AAB itself**: The lane is the entry point for CI (called via `bundle exec fastlane release track:internal` on tag push). It previously only called `deploy` which expected the AAB at `build/app/outputs/bundle/release/app-release.aab` to already exist. Failure mode: every release silently failed with "Could not find aab file at path". Fix: `lane :release { build; deploy(options) }`.
+- **iOS release lane was correct** because it uses `:release` to call `upload_to_testflight` which doesn't need a build (CI uses a separate macOS workflow that builds the IPA as a workflow step before fastlane runs). Asymmetry between platforms is normal here because the iOS build environment is fundamentally different (needs Xcode/macOS) and is structured as separate workflow steps; Android can build on the Linux runner inside the same lane.
+
+---
+
 ## Session: May 21, 2026 — Patrol removed from CI; lives in manual workflow
 
 Date: 2026-05-21
