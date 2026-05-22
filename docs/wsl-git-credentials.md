@@ -18,11 +18,23 @@ Replace the Windows credential helper with one that reads a Personal Access Toke
 
 ### Step 1: create a GitHub PAT
 
+**Fine-grained** (recommended — scoped to one repo, granular permissions):
+
+1. Go to https://github.com/settings/personal-access-tokens/new
+2. **Token name**: `WSL git push (soccer-assistant-coach)`
+3. **Expiration**: whatever fits your rotation policy (90 days is GitHub's default cap; you can extend)
+4. **Repository access**: → "Only select repositories" → `Robby2D2/soccer-assistant-coach`
+5. **Repository permissions**:
+   - **Contents**: Read and write — push commits + tags
+   - **Workflows**: Read and write — required for any push that touches `.github/workflows/*.yml`, otherwise GitHub rejects the push with `refusing to allow a Personal Access Token to create or update workflow ... without workflow scope`
+   - Leave everything else at "No access"
+6. **Generate token** → copy the `github_pat_...` string immediately (you won't see it again)
+
+**Classic** (fallback — works the same way, broader scope):
+
 1. Go to https://github.com/settings/tokens/new
-2. **Note**: `WSL git push (soccer-assistant-coach)`
-3. **Expiration**: 1 year (or whatever fits your rotation policy)
-4. **Scopes**: check `repo` (full control of private repositories)
-5. **Generate token** → copy the `ghp_...` string immediately (you won't see it again)
+2. **Scopes**: check both `repo` (full repo control) AND `workflow` (since 2021 GitHub split workflow out of repo; you need both)
+3. **Generate token** → copy the `ghp_...` string
 
 ### Step 2: store the token in WSL
 
