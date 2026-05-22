@@ -39,8 +39,9 @@ platform :android do
     )
   end
 
-  desc "Upload the already-built AAB to Play Store (default: internal track). Run from WSL."
+  desc "Build a signed AAB and upload to Play Store (default: internal track). Used by release.yml CI on tag push; runs end-to-end on the ubuntu-latest runner where Flutter SDK shell scripts have UNIX line endings."
   lane :release do |options|
+    build
     deploy(options)
   end
 
