@@ -60,6 +60,7 @@ flutter:
   generate: true
   assets:
     - test/fixtures/full_season_fixed_metrics.json
+    - test/fixtures/marketing_screenshots.json
 
 flutter_launcher_icons:
   android: true

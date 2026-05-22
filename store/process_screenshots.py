@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+"""Resize/pad raw emulator screencaps to each store target size.
+
+Reads PNGs from `store/raw/<name>.png` (produced by capture_screenshots.ps1)
+and writes:
+
+  Play Store (store/assets/):
+    phone_<i>_<name>.png        1080 x 1920
+    tablet7_<i>_<name>.png      1200 x 1920
+    tablet10_<i>_<name>.png     1600 x 2560
+
+  App Store (fastlane/screenshots/en-US/):
+    iphone67_<i>_<name>.png     1290 x 2796
+    iphone69_<i>_<name>.png     1320 x 2868
+
+Each raw capture is contained-fit into the target dimension on a brand-green
+background — preserves the actual app pixels rather than stretching/cropping.
+"""
+
+from PIL import Image
+import os
+
+ROOT       = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RAW_DIR    = os.path.join(ROOT, 'store', 'raw')
+PLAY_DIR   = os.path.join(ROOT, 'store', 'assets')
+IOS_DIR    = os.path.join(ROOT, 'fastlane', 'screenshots', 'en-US')
+
+# Match the brand bands in the existing PIL mockups so the padding looks
+# intentional rather than letterboxed.
+BG_COLOR   = (27, 94, 32)  # G900
+
+# Captured in the order the patrol test produces them.
+SCREENS = [
+    'teams',
+    'formations',
+    'live_game',
+    'roster',
+    'stats',
+]
+
+PLAY_TARGETS = [
+    ('phone',    1080, 1920),
+    ('tablet7',  1200, 1920),
+    ('tablet10', 1600, 2560),
+]
+
+IOS_TARGETS = [
+    ('iphone67', 1290, 2796),
+    ('iphone69', 1320, 2868),
+]
+
+
+def fit_onto(src: Image.Image, w: int, h: int) -> Image.Image:
+    """Aspect-fit `src` into a `w`x`h` canvas filled with BG_COLOR."""
+    sw, sh = src.size
+    scale = min(w / sw, h / sh)
+    new_w, new_h = max(1, int(round(sw * scale))), max(1, int(round(sh * scale)))
+    resized = src.resize((new_w, new_h), Image.LANCZOS)
+    canvas = Image.new('RGB', (w, h), BG_COLOR)
+    canvas.paste(resized, ((w - new_w) // 2, (h - new_h) // 2))
+    return canvas
+
+
+def main() -> None:
+    if not os.path.isdir(RAW_DIR):
+        raise SystemExit(f'No raw captures found at {RAW_DIR}. '
+                         f'Run capture_screenshots.ps1 first.')
+
+    os.makedirs(PLAY_DIR, exist_ok=True)
+    os.makedirs(IOS_DIR, exist_ok=True)
+
+    found = []
+    for i, name in enumerate(SCREENS, start=1):
+        src_path = os.path.join(RAW_DIR, f'{name}.png')
+        if not os.path.isfile(src_path):
+            print(f'  ! missing {src_path} — skipping')
+            continue
+        found.append((i, name, src_path))
+
+    if not found:
+        raise SystemExit('No raw screenshots to process.')
+
+    for i, name, src_path in found:
+        src = Image.open(src_path).convert('RGB')
+        for prefix, w, h in PLAY_TARGETS:
+            out = os.path.join(PLAY_DIR, f'{prefix}_{i:02d}_{name}.png')
+            fit_onto(src, w, h).save(out, 'PNG')
+            print(f'  PLAY  {out}  ({w}x{h})')
+        for prefix, w, h in IOS_TARGETS:
+            out = os.path.join(IOS_DIR, f'{prefix}_{i:02d}_{name}.png')
+            fit_onto(src, w, h).save(out, 'PNG')
+            print(f'  IOS   {out}  ({w}x{h})')
+
+
+if __name__ == '__main__':
+    main()

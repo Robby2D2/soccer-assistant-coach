@@ -3,8 +3,12 @@ import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
+    // Kotlin must be explicitly applied — without it the MainActivity Kotlin
+    // class isn't packaged in the APK and the app crashes at launch with
+    // ClassNotFoundException. The Flutter Gradle plugin used to apply this
+    // implicitly but doesn't on the current toolchain.
+    id("org.jetbrains.kotlin.android")
     // The Flutter Gradle Plugin must be applied after the Android plugin.
-    // Kotlin is managed by Flutter's built-in Kotlin support (no explicit kotlin-android needed).
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -23,6 +27,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
         isCoreLibraryDesugaringEnabled = true
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
 
