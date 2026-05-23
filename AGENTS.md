@@ -130,6 +130,7 @@ python -X utf8 store/generate_assets.py
 
 ```powershell
 scp docs/*.html docs/robots.txt www@192.168.2.1:/var/www/html/soccer-assistant-coach/
+scp -r docs/screenshots www@192.168.2.1:/var/www/html/soccer-assistant-coach/
 ```
 
 The `www` user is in the `www-data` group, so no `sudo` is needed. The webserver is reachable from any machine on the LAN; SSH key auth is already configured for the current developer.

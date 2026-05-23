@@ -21,6 +21,38 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 Bump pubspec.yaml version, commit, tag, and push to trigger CI. Usage: bump version:1.0.5 build:5
 
+### create_release
+
+```sh
+[bundle exec] fastlane create_release
+```
+
+Create a new release: bump version, tag, push. CI builds and ships to Play Store beta + TestFlight. Usage: create_release version:1.0.9 build:10
+
+### promote_release
+
+```sh
+[bundle exec] fastlane promote_release
+```
+
+Promote v.X.Y.Z to production: submit iOS TestFlight build to Apple review, THEN promote Play Store beta to production. Usage: promote_release version:1.0.9
+
+### promote_release_android
+
+```sh
+[bundle exec] fastlane promote_release_android
+```
+
+Promote ONLY Android beta to production (useful for partial recovery if a previous promote_release succeeded iOS but failed Android, or to roll Android forward independently). Usage: promote_release_android
+
+### promote_release_ios
+
+```sh
+[bundle exec] fastlane promote_release_ios
+```
+
+Submit ONLY iOS TestFlight build for App Store review (useful for retrying iOS-only after fixing metadata/screenshot issues). Usage: promote_release_ios
+
 ----
 
 
@@ -48,7 +80,7 @@ Upload AAB to Play Store. Run from WSL. Pass track:"internal"|"alpha"|"beta"|"pr
 [bundle exec] fastlane android release
 ```
 
-Upload the already-built AAB to Play Store (default: internal track). Run from WSL.
+Build a signed AAB and upload to Play Store (default: internal track). Used by release.yml CI on tag push; runs end-to-end on the ubuntu-latest runner where Flutter SDK shell scripts have UNIX line endings.
 
 ### android promote
 
@@ -63,13 +95,29 @@ Promote an existing release from one track to another. Run from WSL. Usage: prom
 
 ## iOS
 
+### ios init_match
+
+```sh
+[bundle exec] fastlane ios init_match
+```
+
+One-time Match initialization — generates dist cert + App Store provisioning profile.
+
+### ios setup_signing
+
+```sh
+[bundle exec] fastlane ios setup_signing
+```
+
+Sync certs and configure signing. Called by CI before flutter build ipa.
+
 ### ios release
 
 ```sh
 [bundle exec] fastlane ios release
 ```
 
-Sync certs via Match, build IPA, and upload to TestFlight. Run from macOS.
+Upload an existing IPA to TestFlight. Set IPA_PATH env var or let it fall back to glob.
 
 ### ios build
 
@@ -77,7 +125,7 @@ Sync certs via Match, build IPA, and upload to TestFlight. Run from macOS.
 [bundle exec] fastlane ios build
 ```
 
-Sync certs via Match and build IPA without uploading. Run from macOS.
+Sync certs and configure signing (local use). Run from macOS.
 
 ### ios deploy
 
@@ -85,7 +133,23 @@ Sync certs via Match and build IPA without uploading. Run from macOS.
 [bundle exec] fastlane ios deploy
 ```
 
-Upload an existing IPA at build/ios/ipa/Runner.ipa to TestFlight.
+Upload an existing IPA at build/ios/ipa/*.ipa to TestFlight.
+
+### ios metadata
+
+```sh
+[bundle exec] fastlane ios metadata
+```
+
+Upload metadata and screenshots to App Store Connect without submitting for review. Run from WSL.
+
+### ios submit
+
+```sh
+[bundle exec] fastlane ios submit
+```
+
+Upload metadata, screenshots, and submit the latest TestFlight build for App Store review. Run from WSL.
 
 ----
 
