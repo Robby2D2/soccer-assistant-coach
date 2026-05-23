@@ -180,5 +180,6 @@ Idle — every open issue is waiting on a human or done, and every open PR is aw
 ## Notes
 
 - The orchestrator never edits code, posts GitHub comments, or modifies labels itself (except the one-time label creation in Step 2). Everything else is the subagents' job.
-- Agent comment markers (`<!-- pm-agent:spec -->`, `<!-- pm-agent:question -->`, `<!-- dev-agent:plan -->`, `<!-- dev-agent:question -->`, `<!-- dev-agent:done -->`, `<!-- qa-agent:approved -->`, `<!-- qa-agent:review -->`, `<!-- qa-agent:bounce -->`) are the state machine — keep them stable across edits to this skill.
+- Agent comment markers (`<!-- pm-agent:spec -->`, `<!-- pm-agent:question -->`, `<!-- pm-agent:closed -->`, `<!-- dev-agent:plan -->`, `<!-- dev-agent:question -->`, `<!-- dev-agent:done -->`, `<!-- qa-agent:approved -->`, `<!-- qa-agent:review -->`, `<!-- qa-agent:bounce -->`) are the state machine — keep them stable across edits to this skill.
+- `pm-agent:closed` marks a PM decision to close as not planned (mission-fit decline). A human reopening such an issue will fall into the PM (new) bucket on the next sweep — the PM is instructed not to re-close in that case.
 - If a subagent reports a hard failure (e.g., "PR already exists but issue still has dev_ready"), surface it in the final report rather than retrying automatically.
