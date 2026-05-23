@@ -126,6 +126,18 @@ class _FormationEditScreenState extends ConsumerState<FormationEditScreen> {
         return 'Modern tactical formation';
       case '2-2-1':
         return 'Small-sided game formation';
+      case '7v7 - 2-3-1':
+        return 'Balanced 7v7 with midfield control';
+      case '7v7 - 3-2-1':
+        return 'Defensive 7v7 with three at the back';
+      case '7v7 - 2-1-2-1':
+        return 'Diamond 7v7 with split midfield';
+      case '9v9 - 3-2-3':
+        return 'Attacking 9v9 with front three';
+      case '9v9 - 3-3-2':
+        return 'Balanced 9v9 with strong midfield';
+      case '9v9 - 2-3-3':
+        return 'Attacking 9v9 with two at the back';
       default:
         return 'Custom formation';
     }
