@@ -1,18 +1,344 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Soccer Assistant Coach — Legal & Support</title>
-    <style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:24px;color:#111;max-width:900px;margin-left:auto;margin-right:auto}a{color:#0b63d6}</style>
-  </head>
-  <body>
-    <h1>Soccer Assistant Coach — Legal & Support</h1>
-    <p>Welcome — use the links below for privacy, data safety, and support information required by stores.</p>
-    <ul>
-      <li><a href="/soccer-assistant-coach/privacy-policy.html">Privacy Policy</a></li>
-      <li><a href="/soccer-assistant-coach/data-safety.html">Data safety details</a></li>
-      <li><a href="/soccer-assistant-coach/contact.html">Contact / Support</a></li>
-    </ul>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Soccer Assistant Coach — Lineups, Rosters & Game Tools</title>
+  <meta name="description" content="Soccer Assistant Coach helps coaches run their teams — lineups, formations, rosters, and live game tracking. Free. No account required.">
+  <style>
+    :root {
+      --green-dark:  #1b4d1b;
+      --green-mid:   #2e7d32;
+      --green-light: #4caf50;
+      --green-pale:  #f0f7f0;
+      --text:        #1a1a1a;
+      --text-muted:  #5a6a5a;
+      --radius:      14px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+      background: #fff;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(150deg, var(--green-dark) 0%, #2e5f2e 55%, var(--green-mid) 100%);
+      color: #fff;
+      text-align: center;
+      padding: 72px 24px 64px;
+    }
+
+    .hero-ball {
+      font-size: 56px;
+      display: block;
+      margin-bottom: 20px;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,.35));
+    }
+
+    .hero h1 {
+      font-size: clamp(2rem, 6vw, 3.6rem);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      margin-bottom: 14px;
+      line-height: 1.1;
+    }
+
+    .hero .tagline {
+      font-size: clamp(1rem, 2.5vw, 1.2rem);
+      opacity: .85;
+      max-width: 500px;
+      margin: 0 auto 40px;
+    }
+
+    .store-buttons {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .store-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      background: rgba(255,255,255,.12);
+      border: 2px solid rgba(255,255,255,.45);
+      color: #fff;
+      text-decoration: none;
+      padding: 13px 22px;
+      border-radius: 11px;
+      transition: background .18s, border-color .18s, transform .12s;
+    }
+
+    .store-btn:hover {
+      background: rgba(255,255,255,.22);
+      border-color: #fff;
+      transform: translateY(-2px);
+    }
+
+    .store-btn svg { width: 26px; height: 26px; flex-shrink: 0; fill: currentColor; }
+
+    .btn-sub   { display: block; font-size: .68rem; opacity: .8; letter-spacing: .3px; }
+    .btn-label { display: block; font-size: 1.05rem; font-weight: 700; letter-spacing: -.3px; }
+
+    /* ── SCREENSHOTS ── */
+    .screenshots {
+      background: var(--green-pale);
+      padding: 64px 0;
+      text-align: center;
+    }
+
+    .section-header { padding: 0 24px; margin-bottom: 36px; }
+
+    .section-title {
+      font-size: clamp(1.4rem, 4vw, 2rem);
+      font-weight: 700;
+      color: var(--green-dark);
+      margin-bottom: 6px;
+    }
+
+    .section-sub {
+      color: var(--text-muted);
+      font-size: .95rem;
+    }
+
+    .screenshots-track {
+      display: flex;
+      gap: 24px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding: 8px 32px 24px;
+      scrollbar-width: none;
+    }
+
+    .screenshots-track::-webkit-scrollbar { display: none; }
+
+    .screenshot-item {
+      flex: 0 0 auto;
+      scroll-snap-align: center;
+      text-align: center;
+    }
+
+    .screenshot-item img {
+      height: 500px;
+      width: auto;
+      border-radius: 22px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.2), 0 2px 8px rgba(0,0,0,.12);
+      display: block;
+    }
+
+    .screenshot-caption {
+      margin-top: 12px;
+      font-size: .83rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: .2px;
+    }
+
+    /* ── FEATURES ── */
+    .features {
+      padding: 72px 24px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .features .section-header { padding: 0; margin-bottom: 48px; }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      padding: 26px 24px;
+      border: 1.5px solid #dde8dd;
+      border-radius: var(--radius);
+      background: #fff;
+      transition: box-shadow .18s, transform .12s;
+    }
+
+    .feature-card:hover {
+      box-shadow: 0 6px 24px rgba(46,125,50,.1);
+      transform: translateY(-3px);
+    }
+
+    .feature-icon { font-size: 1.9rem; margin-bottom: 12px; }
+
+    .feature-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--green-dark);
+      margin-bottom: 7px;
+    }
+
+    .feature-card p {
+      font-size: .88rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ── LEGAL ── */
+    .legal {
+      background: var(--green-pale);
+      padding: 52px 24px;
+      text-align: center;
+    }
+
+    .legal .section-title { margin-bottom: 28px; }
+
+    .links-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .links-row a {
+      color: var(--green-mid);
+      font-weight: 600;
+      font-size: .9rem;
+      text-decoration: none;
+      padding: 9px 18px;
+      border: 1.5px solid var(--green-mid);
+      border-radius: 8px;
+      transition: background .15s, color .15s;
+    }
+
+    .links-row a:hover {
+      background: var(--green-mid);
+      color: #fff;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--green-dark);
+      color: rgba(255,255,255,.65);
+      text-align: center;
+      padding: 32px 24px;
+      font-size: .84rem;
+      line-height: 2;
+    }
+
+    footer strong { color: rgba(255,255,255,.9); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <!-- HERO -->
+  <section class="hero">
+    <span class="hero-ball">⚽</span>
+    <h1>Soccer Assistant Coach</h1>
+    <p class="tagline">Lineups, rosters, and live game tools — so you can focus on coaching.</p>
+    <div class="store-buttons">
+      <a class="store-btn" href="https://apps.apple.com/app/id6754180392">
+        <svg viewBox="0 0 24 24">
+          <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+        </svg>
+        <span>
+          <span class="btn-sub">Download on the</span>
+          <span class="btn-label">App Store</span>
+        </span>
+      </a>
+      <a class="store-btn" href="https://play.google.com/store/apps/details?id=com.useunix.soccerassistantcoach">
+        <svg viewBox="0 0 24 24">
+          <path d="M3.61 1.814a1 1 0 0 0-1.61.79v18.792a1 1 0 0 0 1.61.79l10.182-9.396a1 1 0 0 0 0-1.58L3.61 1.814zM14.5 10.72l2.09-1.93 2.37 1.33a1 1 0 0 1 0 1.76l-2.37 1.33L14.5 11.28v-.56zM5 4.17l7.5 4.34-2.04 1.88L5 4.17zm0 15.66 5.46-6.22L13 15.49 5 19.83z"/>
+        </svg>
+        <span>
+          <span class="btn-sub">Get it on</span>
+          <span class="btn-label">Google Play</span>
+        </span>
+      </a>
+    </div>
+  </section>
+
+  <!-- SCREENSHOTS -->
+  <section class="screenshots">
+    <div class="section-header">
+      <h2 class="section-title">See it in action</h2>
+      <p class="section-sub">Everything you need to run your team, right in your pocket.</p>
+    </div>
+    <div class="screenshots-track">
+      <div class="screenshot-item">
+        <img src="screenshots/phone_01_teams.png" alt="Teams overview screen showing multiple teams and stats">
+        <p class="screenshot-caption">Your Teams at a Glance</p>
+      </div>
+      <div class="screenshot-item">
+        <img src="screenshots/phone_02_lineup.png" alt="Lineup builder with soccer pitch and player positions">
+        <p class="screenshot-caption">Build Lineups Instantly</p>
+      </div>
+      <div class="screenshot-item">
+        <img src="screenshots/phone_03_live_game.png" alt="Live game tracking with shifts and timer">
+        <p class="screenshot-caption">Track Live Games</p>
+      </div>
+      <div class="screenshot-item">
+        <img src="screenshots/phone_04_roster.png" alt="Roster management screen with player list">
+        <p class="screenshot-caption">Manage Your Roster</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features">
+    <div class="section-header" style="text-align:center">
+      <h2 class="section-title">Built for coaches</h2>
+      <p class="section-sub">Simple, fast, and works entirely offline. No account required.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📋</div>
+        <h3>Build Lineups Fast</h3>
+        <p>Choose from popular formations — 4-3-3, 4-4-2, 3-5-2, and more. Assign players to any position in seconds.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👥</div>
+        <h3>Manage Your Roster</h3>
+        <p>Create multiple teams with seasonal rosters. Add players, track positions, and stay organized all season long.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⏱️</div>
+        <h3>Track Live Games</h3>
+        <p>Record shifts, metrics, and attendance during matches. Review performance data after the final whistle.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Private by Design</h3>
+        <p>Your data stays on your device. No account, no subscription, no data sent to the cloud — ever.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📦</div>
+        <h3>Archive & Export</h3>
+        <p>Archive past teams and seasons, restore them when needed. Export and import via CSV for easy backups.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Fast & Offline</h3>
+        <p>Works without internet. Everything loads instantly — no waiting, no spinners, no surprises on game day.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEGAL & SUPPORT -->
+  <section class="legal">
+    <h2 class="section-title">Legal &amp; Support</h2>
+    <div class="links-row">
+      <a href="/soccer-assistant-coach/privacy-policy.html">Privacy Policy</a>
+      <a href="/soccer-assistant-coach/data-safety.html">Data Safety</a>
+      <a href="/soccer-assistant-coach/contact.html">Contact &amp; Support</a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>&copy; 2026 Soccer Assistant Coach. All rights reserved.</p>
+    <p>Brought to you by <strong>Danek Consulting Company</strong></p>
+  </footer>
+
+</body>
 </html>
