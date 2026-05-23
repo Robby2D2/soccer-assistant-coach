@@ -126,7 +126,13 @@ python -X utf8 store/generate_assets.py
 
 **App Store metadata** (title, description, keywords, etc.) lives in `fastlane/metadata/en-US/`.
 
-**Privacy policy** is hosted at `https://robby2d2.github.io/soccer-assistant-coach/privacy-policy` via GitHub Pages (`docs/` folder on `main` branch).
+**Privacy policy + support pages** are hosted at `https://www.useunix.com/soccer-assistant-coach/` on the user's self-hosted nginx box (LAN address `192.168.2.1`, served at `/var/www/html/`). The source files live in [`docs/`](docs/) — `privacy-policy.html`, `contact.html`, `data-safety.html`, `index.html`, `robots.txt`. Redeploy after editing any of them:
+
+```powershell
+scp docs/*.html docs/robots.txt www@192.168.2.1:/var/www/html/soccer-assistant-coach/
+```
+
+The `www` user is in the `www-data` group, so no `sudo` is needed. The webserver is reachable from any machine on the LAN; SSH key auth is already configured for the current developer.
 
 ### Key Changes
 

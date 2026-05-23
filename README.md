@@ -205,6 +205,31 @@ This:
 
 ---
 
+### Privacy policy + support pages
+
+The privacy policy and support pages referenced by App Store metadata are hosted at `https://www.useunix.com/soccer-assistant-coach/`. The source files live in [`docs/`](docs/):
+
+- `privacy-policy.html` → `https://www.useunix.com/soccer-assistant-coach/privacy-policy.html`
+- `contact.html` → `https://www.useunix.com/soccer-assistant-coach/contact.html`
+- `data-safety.html` → `https://www.useunix.com/soccer-assistant-coach/data-safety.html`
+- `index.html`, `robots.txt`
+
+These are served from `/var/www/html/soccer-assistant-coach/` on the LAN nginx box at `192.168.2.1`. To redeploy after editing any of them:
+
+```powershell
+scp docs/*.html docs/robots.txt www@192.168.2.1:/var/www/html/soccer-assistant-coach/
+```
+
+The `www` user is in the `www-data` group, so no `sudo` is needed. SSH key auth is already configured. Verify the upload landed by hitting one of the URLs in a browser, or:
+
+```powershell
+Invoke-WebRequest -Uri "https://www.useunix.com/soccer-assistant-coach/privacy-policy.html" -UseBasicParsing -Method Head
+```
+
+> **Why not GitHub Pages?** This repo is private. GitHub Pages requires either a public repo (which would expose the source code) or a paid GitHub Pro plan. Self-hosting on the LAN box is free and keeps the source private.
+
+---
+
 ### Known gotcha: WSL silently fails the `git push` step
 
 When fastlane invokes `git push` from WSL, it calls `git-credential-manager.exe` at `/mnt/c/Program Files/Git/mingw64/bin/...`. The space in `/Program Files/` is treated as a word boundary by the WSL shell, so the helper invocation fails with `/mnt/c/Program: not found` — but the local commit and tag are already created, and fastlane reports "Successfully committed".
