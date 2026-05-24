@@ -51,7 +51,7 @@ class _TeamsScreenState extends ConsumerState<TeamsScreen> {
             Text(
               _showArchived
                   ? loc.noArchivedTeamsDescription
-                  : loc.noTeamsYetDescription,
+                  : loc.noTeamsYetDescriptionOnboarding,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),

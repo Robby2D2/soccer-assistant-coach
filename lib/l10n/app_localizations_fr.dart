@@ -726,4 +726,42 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get noChangesDetected =>
       'Aucun changement détecté. L\'effectif est déjà à jour.';
+
+  @override
+  String get onboardingWelcomeTitle =>
+      'Bienvenue dans Entraîneur Assistant de Football';
+
+  @override
+  String get onboardingWelcomeSubtitle => 'Commencez en trois étapes :';
+
+  @override
+  String get onboardingStep1 => '1. Créez une saison';
+
+  @override
+  String get onboardingStep2 => '2. Ajoutez votre équipe et vos joueurs';
+
+  @override
+  String get onboardingStep3 => '3. Démarrez votre premier match';
+
+  @override
+  String get onboardingGetStarted => 'Créez votre première saison';
+
+  @override
+  String get onboardingNoTeamsTitle => 'Vous êtes presque prêt !';
+
+  @override
+  String get onboardingNoTeamsSubtitle =>
+      'Appuyez sur + pour créer votre première équipe, puis ajoutez des joueurs et programmez un match.';
+
+  @override
+  String get noTeamsYetDescriptionOnboarding =>
+      'Commencez : créez votre première équipe, ajoutez des joueurs, puis programmez un match.';
+
+  @override
+  String get noPlayersYetDescriptionOnboarding =>
+      'Ajoutez des joueurs à votre effectif. Une fois prêt, allez dans l\'onglet Matchs pour programmer une rencontre.';
+
+  @override
+  String get noGamesYetDescriptionOnboarding =>
+      'Programmez votre premier match. Assurez-vous d\'avoir ajouté des joueurs à l\'effectif d\'abord.';
 }

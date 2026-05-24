@@ -727,4 +727,42 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get noChangesDetected =>
       'No se detectaron cambios. La plantilla ya está actualizada.';
+
+  @override
+  String get onboardingWelcomeTitle =>
+      'Bienvenido a Entrenador Asistente de Fútbol';
+
+  @override
+  String get onboardingWelcomeSubtitle => 'Comienza en tres pasos:';
+
+  @override
+  String get onboardingStep1 => '1. Crea una temporada';
+
+  @override
+  String get onboardingStep2 => '2. Agrega tu equipo y jugadores';
+
+  @override
+  String get onboardingStep3 => '3. Comienza tu primer juego';
+
+  @override
+  String get onboardingGetStarted => 'Crea tu primera temporada';
+
+  @override
+  String get onboardingNoTeamsTitle => '¡Ya casi estás listo!';
+
+  @override
+  String get onboardingNoTeamsSubtitle =>
+      'Toca + para crear tu primer equipo, luego agrega jugadores y programa un juego.';
+
+  @override
+  String get noTeamsYetDescriptionOnboarding =>
+      'Comienza: crea tu primer equipo, agrega jugadores y luego programa un juego.';
+
+  @override
+  String get noPlayersYetDescriptionOnboarding =>
+      'Agrega jugadores a tu plantilla. Una vez lista, ve a la pestaña de Juegos para programar un partido.';
+
+  @override
+  String get noGamesYetDescriptionOnboarding =>
+      'Programa tu primer juego. Asegúrate de haber agregado jugadores a la plantilla primero.';
 }

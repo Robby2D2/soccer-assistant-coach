@@ -123,7 +123,7 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
             Text(
               _showArchived
                   ? loc.noArchivedGamesDescription
-                  : loc.noGamesYetDescription,
+                  : loc.noGamesYetDescriptionOnboarding,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),

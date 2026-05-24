@@ -405,5 +405,17 @@
       }
     }
   },
-  "noChangesDetected": "Aucun changement détecté. L'effectif est déjà à jour."
+  "noChangesDetected": "Aucun changement détecté. L'effectif est déjà à jour.",
+
+  "onboardingWelcomeTitle": "Bienvenue dans Entraîneur Assistant de Football",
+  "onboardingWelcomeSubtitle": "Commencez en trois étapes :",
+  "onboardingStep1": "1. Créez une saison",
+  "onboardingStep2": "2. Ajoutez votre équipe et vos joueurs",
+  "onboardingStep3": "3. Démarrez votre premier match",
+  "onboardingGetStarted": "Créez votre première saison",
+  "onboardingNoTeamsTitle": "Vous êtes presque prêt !",
+  "onboardingNoTeamsSubtitle": "Appuyez sur + pour créer votre première équipe, puis ajoutez des joueurs et programmez un match.",
+  "noTeamsYetDescriptionOnboarding": "Commencez : créez votre première équipe, ajoutez des joueurs, puis programmez un match.",
+  "noPlayersYetDescriptionOnboarding": "Ajoutez des joueurs à votre effectif. Une fois prêt, allez dans l'onglet Matchs pour programmer une rencontre.",
+  "noGamesYetDescriptionOnboarding": "Programmez votre premier match. Assurez-vous d'avoir ajouté des joueurs à l'effectif d'abord."
 }

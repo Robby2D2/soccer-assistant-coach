@@ -406,5 +406,17 @@
       }
     }
   },
-  "noChangesDetected": "No se detectaron cambios. La plantilla ya está actualizada."
+  "noChangesDetected": "No se detectaron cambios. La plantilla ya está actualizada.",
+
+  "onboardingWelcomeTitle": "Bienvenido a Entrenador Asistente de Fútbol",
+  "onboardingWelcomeSubtitle": "Comienza en tres pasos:",
+  "onboardingStep1": "1. Crea una temporada",
+  "onboardingStep2": "2. Agrega tu equipo y jugadores",
+  "onboardingStep3": "3. Comienza tu primer juego",
+  "onboardingGetStarted": "Crea tu primera temporada",
+  "onboardingNoTeamsTitle": "¡Ya casi estás listo!",
+  "onboardingNoTeamsSubtitle": "Toca + para crear tu primer equipo, luego agrega jugadores y programa un juego.",
+  "noTeamsYetDescriptionOnboarding": "Comienza: crea tu primer equipo, agrega jugadores y luego programa un juego.",
+  "noPlayersYetDescriptionOnboarding": "Agrega jugadores a tu plantilla. Una vez lista, ve a la pestaña de Juegos para programar un partido.",
+  "noGamesYetDescriptionOnboarding": "Programa tu primer juego. Asegúrate de haber agregado jugadores a la plantilla primero."
 }

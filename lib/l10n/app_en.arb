@@ -405,5 +405,17 @@
       }
     }
   },
-  "noChangesDetected": "No changes detected. The roster is already up to date."
+  "noChangesDetected": "No changes detected. The roster is already up to date.",
+
+  "onboardingWelcomeTitle": "Welcome to Soccer Assistant Coach",
+  "onboardingWelcomeSubtitle": "Get started in three steps:",
+  "onboardingStep1": "1. Create a season",
+  "onboardingStep2": "2. Add your team and players",
+  "onboardingStep3": "3. Start your first game",
+  "onboardingGetStarted": "Create your first season",
+  "onboardingNoTeamsTitle": "You're almost ready!",
+  "onboardingNoTeamsSubtitle": "Tap + to create your first team, then add players and schedule a game.",
+  "noTeamsYetDescriptionOnboarding": "Get started: create your first team, add players, then schedule a game.",
+  "noPlayersYetDescriptionOnboarding": "Add players to your roster. Once your roster is set, head to the Games tab to schedule a match.",
+  "noGamesYetDescriptionOnboarding": "Schedule your first game. Make sure you've added players to the roster first."
 }
