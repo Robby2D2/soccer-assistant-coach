@@ -7,8 +7,9 @@
 //   - the localization strings have the expected onboarding copy
 //   - the standalone onboarding card widgets render their copy correctly
 //
-// The actual wiring (empty list → shows the card) is covered by the existing
-// Patrol journey tests which run against a real device.
+// The actual wiring (empty DB → shows the onboarding card) is covered by
+// patrol_test/onboarding_journey_test.dart, which seeds AppDb.test() with no
+// data and asserts the welcome card title appears on a real device.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
