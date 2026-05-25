@@ -4,6 +4,51 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
+## Session: May 25, 2026 — QA fix: add Patrol onboarding journey test (issue #10)
+
+Date: 2026-05-25
+
+### What was done
+QA reviewer flagged a false comment in `test/onboarding_empty_state_test.dart` claiming existing Patrol tests covered the onboarding wiring. Added the actual Patrol journey test and corrected the comment.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `patrol_test/onboarding_journey_test.dart` | New Patrol E2E test: seeds `AppDb.test()` with no data, pumps the full app via `appUnderTest(db: db)`, asserts 'You're almost ready!' card appears; DB assertion confirms zero teams exist |
+| `test/onboarding_empty_state_test.dart` | Corrected the header comment: removed false claim that existing Patrol tests covered the onboarding wiring; replaced with accurate pointer to new test file |
+
+### Key learnings
+- **Empty DB → "has season, no teams" state**: `_ensureActiveSeason` runs via `Future.microtask()` so after `pumpAndSettle(5s)` the auto-created season exists but no teams → home screen shows `_OnboardingNoTeamsCard`. The "no season" state is too transient to reliably test.
+- **False test comments are blocking**: QA will reject PRs with comments that claim automated coverage exists when it doesn't. Always add the real test rather than leaving a placeholder comment.
+
+---
+
+## Session: May 24, 2026 — Onboarding empty-state guidance (issue #10)
+
+Date: 2026-05-24
+
+### What was done
+Added first-run onboarding guidance so new coaches know what to do when they first open the app.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `lib/features/home/home_screen.dart` | When no season exists, shows `_OnboardingWelcomeCard` (3-step sequence + "Create your first season" button) instead of bare icon + text; when season exists but 0 teams, shows `_OnboardingNoTeamsCard` (next-step hint + "Manage Teams" button) instead of the Quick Actions grid |
+| `lib/features/teams/teams_screen.dart` | Empty-state description now uses `noTeamsYetDescriptionOnboarding` which includes the step sequence hint |
+| `lib/features/players/players_screen.dart` | Empty-state uses `noPlayersYetDescriptionOnboarding` with roster + next-step hint |
+| `lib/features/games/games_screen.dart` | Empty-state uses `noGamesYetDescriptionOnboarding` with scheduling context |
+| `lib/l10n/app_{en,es,fr}.arb` | Added 11 new onboarding l10n strings |
+| `test/onboarding_empty_state_test.dart` | 5 l10n-level widget tests verifying onboarding strings |
+
+### Key learnings
+- **Drift StreamBuilder screens can't be widget-tested directly**: Screens with always-open Drift streams leave pending `FakeAsync` timers. Test l10n strings in isolation or test the components that don't use Drift streams. The `substitution_test.dart` comment documents this pattern.
+- **Onboarding should disappear automatically**: Since empty states are conditional on data being absent, they satisfy the acceptance criterion "only shown when the relevant list is empty" without any dismiss logic.
+- **`_ensureActiveSeason` in `season_provider.dart` creates a season automatically on first launch**: The "no season" home screen state is transient (auto-resolved on first frame). The primary first-run UX that a coach actually sees is "has season but no teams."
+
+---
+
 ## Session: May 22, 2026 — v1.0.7 release: fastlane bump push silent failure + Fastfile :release lane never built AAB
 
 Date: 2026-05-22
