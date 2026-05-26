@@ -230,20 +230,9 @@ class HomeScreen extends ConsumerWidget {
                         return currentSeasonAsync.when(
                           data: (currentSeason) {
                             if (currentSeason == null) {
-                              return Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.calendar_today, size: 48),
-                                    const SizedBox(height: 16),
-                                    Text(loc.noActiveSeasons),
-                                    const SizedBox(height: 16),
-                                    FilledButton(
-                                      onPressed: () => context.push('/seasons'),
-                                      child: Text(loc.createSeason),
-                                    ),
-                                  ],
-                                ),
+                              return _OnboardingWelcomeCard(
+                                onCreateSeason: () =>
+                                    context.push('/seasons'),
                               );
                             }
 
@@ -262,6 +251,13 @@ class HomeScreen extends ConsumerWidget {
                                         allTeamsSnapshot.data ?? [];
 
                                     final List<Widget> cards = [];
+
+                                    if (allTeams.isEmpty) {
+                                      return _OnboardingNoTeamsCard(
+                                        onManageTeams: () =>
+                                            context.push('/teams'),
+                                      );
+                                    }
 
                                     // Always show Manage Teams card first
                                     cards.add(
@@ -1028,6 +1024,151 @@ class _TeamBrandedCard extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OnboardingWelcomeCard extends StatelessWidget {
+  final VoidCallback onCreateSeason;
+
+  const _OnboardingWelcomeCard({required this.onCreateSeason});
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(40),
+                color: Theme.of(context).colorScheme.primaryContainer,
+              ),
+              child: Icon(
+                Icons.sports_soccer,
+                size: 44,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              loc.onboardingWelcomeTitle,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              loc.onboardingWelcomeSubtitle,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    loc.onboardingStep1,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    loc.onboardingStep2,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    loc.onboardingStep3,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: onCreateSeason,
+              icon: const Icon(Icons.add),
+              label: Text(loc.onboardingGetStarted),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OnboardingNoTeamsCard extends StatelessWidget {
+  final VoidCallback onManageTeams;
+
+  const _OnboardingNoTeamsCard({required this.onManageTeams});
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(40),
+                color: Theme.of(context).colorScheme.secondaryContainer,
+              ),
+              child: Icon(
+                Icons.groups_outlined,
+                size: 44,
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              loc.onboardingNoTeamsTitle,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              loc.onboardingNoTeamsSubtitle,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: onManageTeams,
+              icon: const Icon(Icons.groups_outlined),
+              label: Text(loc.manageTeams),
+            ),
+          ],
         ),
       ),
     );

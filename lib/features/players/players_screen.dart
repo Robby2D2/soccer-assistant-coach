@@ -45,7 +45,7 @@ class PlayersScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              loc.addPlayersDescription,
+              loc.noPlayersYetDescriptionOnboarding,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),

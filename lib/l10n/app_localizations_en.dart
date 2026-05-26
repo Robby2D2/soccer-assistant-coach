@@ -725,4 +725,41 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noChangesDetected =>
       'No changes detected. The roster is already up to date.';
+
+  @override
+  String get onboardingWelcomeTitle => 'Welcome to Soccer Assistant Coach';
+
+  @override
+  String get onboardingWelcomeSubtitle => 'Get started in three steps:';
+
+  @override
+  String get onboardingStep1 => '1. Create a season';
+
+  @override
+  String get onboardingStep2 => '2. Add your team and players';
+
+  @override
+  String get onboardingStep3 => '3. Start your first game';
+
+  @override
+  String get onboardingGetStarted => 'Create your first season';
+
+  @override
+  String get onboardingNoTeamsTitle => 'You\'re almost ready!';
+
+  @override
+  String get onboardingNoTeamsSubtitle =>
+      'Tap + to create your first team, then add players and schedule a game.';
+
+  @override
+  String get noTeamsYetDescriptionOnboarding =>
+      'Get started: create your first team, add players, then schedule a game.';
+
+  @override
+  String get noPlayersYetDescriptionOnboarding =>
+      'Add players to your roster. Once your roster is set, head to the Games tab to schedule a match.';
+
+  @override
+  String get noGamesYetDescriptionOnboarding =>
+      'Schedule your first game. Make sure you\'ve added players to the roster first.';
 }

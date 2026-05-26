@@ -1395,6 +1395,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No changes detected. The roster is already up to date.'**
   String get noChangesDetected;
+
+  /// No description provided for @onboardingWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Soccer Assistant Coach'**
+  String get onboardingWelcomeTitle;
+
+  /// No description provided for @onboardingWelcomeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Get started in three steps:'**
+  String get onboardingWelcomeSubtitle;
+
+  /// No description provided for @onboardingStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Create a season'**
+  String get onboardingStep1;
+
+  /// No description provided for @onboardingStep2.
+  ///
+  /// In en, this message translates to:
+  /// **'2. Add your team and players'**
+  String get onboardingStep2;
+
+  /// No description provided for @onboardingStep3.
+  ///
+  /// In en, this message translates to:
+  /// **'3. Start your first game'**
+  String get onboardingStep3;
+
+  /// No description provided for @onboardingGetStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your first season'**
+  String get onboardingGetStarted;
+
+  /// No description provided for @onboardingNoTeamsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re almost ready!'**
+  String get onboardingNoTeamsTitle;
+
+  /// No description provided for @onboardingNoTeamsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap + to create your first team, then add players and schedule a game.'**
+  String get onboardingNoTeamsSubtitle;
+
+  /// No description provided for @noTeamsYetDescriptionOnboarding.
+  ///
+  /// In en, this message translates to:
+  /// **'Get started: create your first team, add players, then schedule a game.'**
+  String get noTeamsYetDescriptionOnboarding;
+
+  /// No description provided for @noPlayersYetDescriptionOnboarding.
+  ///
+  /// In en, this message translates to:
+  /// **'Add players to your roster. Once your roster is set, head to the Games tab to schedule a match.'**
+  String get noPlayersYetDescriptionOnboarding;
+
+  /// No description provided for @noGamesYetDescriptionOnboarding.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule your first game. Make sure you\'ve added players to the roster first.'**
+  String get noGamesYetDescriptionOnboarding;
 }
 
 class _AppLocalizationsDelegate
