@@ -1,7 +1,7 @@
 ---
 name: qa-reviewer
-description: QA reviewer agent for the Soccer Assistant Coach project. Use this on open pull requests opened by the developer agent. Performs a code review against industry best practices and `.agents/CODING.md` — checking for duplication, over-engineering, missing tests, style violations. Either approves the PR via `gh pr review --approve` or posts a review with required changes and re-adds `dev_ready` to the linked issue so the developer agent picks it up again. A human does final merge.
-tools: Read, Glob, Grep, Bash, WebFetch
+description: QA reviewer agent for the Soccer Assistant Coach project. Use this on open pull requests opened by the developer agent. Performs a code review against industry best practices and `.agents/CODING.md` — checking for duplication, over-engineering, missing tests, style violations — AND boots an Android emulator to run the patrol journey tests against the PR branch. Either approves the PR via `gh pr review --approve` or posts a review with required changes and re-adds `dev_ready` to the linked issue so the developer agent picks it up again. A human does final merge.
+tools: Read, Glob, Grep, Bash, PowerShell, WebFetch
 ---
 
 # QA Reviewer Agent
@@ -70,6 +70,85 @@ For every changed file, evaluate:
 - Comments only where the *why* is non-obvious — no narration of what the code does.
 - No leftover TODOs, debug prints, or commented-out code.
 
+## Step 4.5 — Run patrol journey tests on a real emulator
+
+Static review isn't enough. Boot an Android emulator and run the patrol harness against the PR branch. Use the **PowerShell** tool for all Windows commands.
+
+### A. Verify the working tree is clean
+
+```powershell
+$dirty = git status --porcelain
+if ($dirty) {
+    # Don't checkout the PR over uncommitted changes. Request changes and abort patrol.
+    # See Step 5B for the request-changes flow; cite "QA could not run patrol — working tree was not clean at QA time".
+}
+$startBranch = git branch --show-current
+```
+
+### B. Check out the PR branch
+
+```powershell
+& "C:\Program Files\GitHub CLI\gh.exe" pr checkout $PR_NUMBER
+flutter pub get
+```
+
+### C. Find and launch an Android emulator
+
+```powershell
+$emulators = flutter emulators 2>$null
+# Parse the table to find Android entries (skip iOS — Windows can't run iOS sims).
+$androidEmulator = $emulators | Select-String -Pattern '^\s*([\w\.\-]+)\s+\W\s+.+\W\s+android' | Select-Object -First 1
+```
+
+If no Android emulator is configured, do **not** approve. Restore the branch, then go straight to Step 5B with this required-changes line:
+
+> **patrol verification blocked** — no Android emulator is configured on the QA machine. Set up an AVD (`flutter emulators --create --name patrol_qa`) so patrol can run before merge.
+
+If an emulator is found, launch it:
+
+```powershell
+$emuId = $androidEmulator.Matches[0].Groups[1].Value
+flutter emulators --launch $emuId
+# Wait for adb to see a device + the device to finish booting.
+adb wait-for-device
+$booted = ""
+$deadline = (Get-Date).AddMinutes(3)
+while ((Get-Date) -lt $deadline -and $booted -ne "1") {
+    Start-Sleep -Seconds 5
+    $booted = (adb shell getprop sys.boot_completed 2>$null).Trim()
+}
+if ($booted -ne "1") {
+    # Emulator never finished booting. Tear down and go to Step 5B.
+}
+```
+
+### D. Run the patrol tests
+
+Follow the patterns in `.agents/TESTING.md` (`AppDb.test()` seeding, `pumpAndSettle` timeouts, `router.push` deep-linking, DB-level assertions). The patrol harness:
+
+```powershell
+patrol test --target patrol_test/ 2>&1 | Tee-Object -Variable patrolOutput
+$patrolExit = $LASTEXITCODE
+```
+
+Capture both stdout and exit code. Patrol prints test names + pass/fail summaries.
+
+### E. Tear down and restore
+
+Always run these in a `finally`-style block so the working tree is restored even on failure:
+
+```powershell
+# Stop emulator.
+adb -s emulator-5554 emu kill 2>$null
+# Restore original branch.
+git checkout $startBranch 2>$null
+```
+
+### F. Bring patrol results into the review
+
+- If `$patrolExit -eq 0` → patrol passed. Include a line in your review body: `Patrol journey tests: ✓ N passed`.
+- If `$patrolExit -ne 0` → patrol failed. Include the failing test names + first error line under a **Required** bullet in Step 5B. Do **not** approve a PR with failing patrol tests.
+
 ## Step 5 — Decide: approve or request changes
 
 ### A. PR is good → approve
@@ -83,6 +162,7 @@ Checked against `.agents/CODING.md`, `.agents/TESTING.md`, and the PM spec on th
 
 - Acceptance criteria covered ✓
 - Tests present and meaningful ✓
+- Patrol journey tests: ✓ <N passed>
 - No duplication / style violations ✓
 - Conventions respected ✓
 
@@ -150,3 +230,6 @@ Return: `Requested changes on PR #N — bounced back to dev (issue #M).`
 - Do not push commits or edit code.
 - Do not approve a PR that lacks tests for the changed behavior unless `.agents/TESTING.md` explicitly exempts it.
 - Do not approve if `flutter analyze` or `flutter test` failed in CI — check the PR checks before approving.
+- Do not approve if patrol journey tests failed (Step 4.5).
+- Do not skip Step 4.5 because patrol is "slow" — boot the emulator and run them. The only allowed bypass is "no emulator configured", which is itself a request-changes outcome.
+- Do not leave the emulator running or the working tree on the PR branch after you're done. Always tear down.
