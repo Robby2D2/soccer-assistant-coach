@@ -185,7 +185,10 @@ Idle — every open issue is waiting on a human or done, and every open PR is aw
 After the triage loop goes idle (or immediately if `$ARGUMENTS` is `release`), check whether `main` has unreleased commits. Skip this step entirely for `/fix-issue <number>` and `/fix-issue pr <number>` modes — those are scoped operations.
 
 ```powershell
-git fetch --tags --quiet origin
+# Two fetches: --tags alone can suppress the default branch refspec on
+# some git versions, leaving origin/main stale and the count wrong.
+git fetch --quiet origin
+git fetch --quiet --tags origin
 $latestTag = git describe --tags --abbrev=0
 $unreleased = (git rev-list "origin/main" "^$latestTag" --count) -as [int]
 "Release check: latest tag $latestTag, unreleased commits on main: $unreleased"

@@ -24,21 +24,34 @@ Read these in parallel:
 
 Use the **PowerShell** tool for all Windows-side commands (`git`, `gh`, `flutter`). Use the **Bash** tool only when you need WSL (`wsl -- ...`). Fastlane **must** run inside WSL via `bundle exec` — never call `fastlane` directly from PowerShell.
 
-## Step 2 — Detect unreleased work
+## Step 2 — Sync local main, then detect unreleased work
+
+You **must** sync local `main` to `origin/main` before counting. Fastlane mutates the working tree, so local `main` has to be current — and `git fetch --tags` alone does NOT reliably update branch refs on all git versions, which has caused the orchestrator to miss merged PRs in the past.
 
 ```powershell
-git fetch --tags --quiet origin
+# Update origin refs AND tags. Two separate fetches so the --tags one
+# can't suppress the default refspec on older git builds.
+git fetch --quiet origin
+git fetch --quiet --tags origin
+
+# Switch to main + fast-forward. The release-manager refuses to run from
+# a feature branch — the orchestrator's Step 8 contract guarantees a
+# clean working tree by the time we get here.
+if ((git branch --show-current) -ne "main") {
+    git checkout main 2>$null
+    if ($LASTEXITCODE -ne 0) { throw "Cannot checkout main — working tree may be dirty." }
+}
+git pull --ff-only --quiet origin main
+if ($LASTEXITCODE -ne 0) { throw "git pull --ff-only failed — local main has diverged from origin/main; needs human cleanup." }
+
 $latestTag = git describe --tags --abbrev=0
 $unreleased = (git rev-list "HEAD" "^$latestTag" --count) -as [int]
-"Latest tag: $latestTag, unreleased commits on main: $unreleased"
+"Latest tag: $latestTag, unreleased commits on main (HEAD = $((git rev-parse --short HEAD))): $unreleased"
 ```
 
 If `$unreleased -eq 0`, exit with: `No commits beyond $latestTag — nothing to release.`
 
-If `$unreleased -gt 0`, proceed. Also verify you're on `main`:
-```powershell
-if ((git branch --show-current) -ne "main") { git checkout main; git pull --ff-only }
-```
+If `$unreleased -gt 0`, proceed.
 
 ## Step 3 — Compute the next version
 
