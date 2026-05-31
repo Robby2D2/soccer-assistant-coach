@@ -1,6 +1,6 @@
 ---
 name: release-manager
-description: Release agent for the Soccer Assistant Coach project. Use this when `main` has commits beyond the latest `v*` tag — typically once per `/fix-issue` sweep after PRs have been merged. Patch-bumps the version, runs `bundle exec fastlane create_release` from WSL to tag + push + ship to Play beta + TestFlight, creates a GitHub Release with auto-generated notes, then comments on every issue closed in the release range that the change is ready to promote to production.
+description: Release agent for the Soccer Assistant Coach project. Use this when `main` has commits beyond the latest `v*` tag — typically once per `/fix-issue` sweep after PRs have been merged. Boots an Android emulator and runs the patrol journey suite against `main` HEAD as a hard gate, then patch-bumps the version, runs `bundle exec fastlane create_release` from WSL to tag + push + ship to Play beta + TestFlight, creates a GitHub Release with auto-generated notes, and comments on every issue closed in the release range that the change is ready to promote to production. Aborts the release if no emulator is configured or if patrol fails.
 tools: Read, Glob, Grep, Bash, PowerShell, WebFetch
 ---
 
@@ -83,6 +83,74 @@ if ($existing) { throw "Tag v$nextVersion already exists on origin — aborting 
 ```
 
 If a previous run created the tag but failed downstream (e.g., GitHub Release not created), the user will see this error and can clean up manually. Do **not** force-overwrite tags.
+
+## Step 4.5 — Patrol gate on `main`
+
+Before we tag and push (Step 5), confirm the patrol journey suite still passes on what we're about to ship. This catches regressions from direct-to-main commits that bypassed the PR/QA gate.
+
+You are already on `main` and `HEAD` is `origin/main` (per Step 2). Working tree should be clean.
+
+### A. Refresh deps
+
+```powershell
+flutter pub get
+```
+
+### B. Find and launch an Android emulator
+
+```powershell
+$emulators = flutter emulators 2>$null
+$androidEmulator = $emulators | Select-String -Pattern '^\s*([\w\.\-]+)\s+\W\s+.+\W\s+android' | Select-Object -First 1
+```
+
+If no Android emulator is configured, **abort the release** with this message:
+
+> `Patrol gate cannot run — no Android emulator configured on the release machine. Aborting v$nextVersion. Set up an AVD (e.g. `flutter emulators --create --name patrol_qa`) before the next 5 AM run.`
+
+Do **not** proceed to Step 5. This is a hard gate.
+
+If an emulator is found, launch and wait for boot:
+
+```powershell
+$emuId = $androidEmulator.Matches[0].Groups[1].Value
+flutter emulators --launch $emuId
+adb wait-for-device
+$booted = ""
+$deadline = (Get-Date).AddMinutes(3)
+while ((Get-Date) -lt $deadline -and $booted -ne "1") {
+    Start-Sleep -Seconds 5
+    $booted = (adb shell getprop sys.boot_completed 2>$null).Trim()
+}
+if ($booted -ne "1") {
+    # Tear down what we started and abort.
+    adb -s emulator-5554 emu kill 2>$null
+    throw "Emulator $emuId did not finish booting within 3 minutes — aborting release."
+}
+```
+
+### C. Run patrol
+
+```powershell
+patrol test --target patrol_test/ 2>&1 | Tee-Object -Variable patrolOutput
+$patrolExit = $LASTEXITCODE
+```
+
+### D. Tear down
+
+Run unconditionally — do NOT skip on failure:
+
+```powershell
+adb -s emulator-5554 emu kill 2>$null
+```
+
+### E. Gate decision
+
+- If `$patrolExit -eq 0` → patrol passed on `main` HEAD. Proceed to Step 5. Record the pass count for inclusion in the Step 9 issue comments.
+- If `$patrolExit -ne 0` → **abort the release**. Do **not** tag, do **not** push, do **not** create a GitHub Release. Return this line so the orchestrator surfaces it in the daily log:
+
+> `Patrol gate failed on origin/main ($(git rev-parse --short HEAD)) — aborting v$nextVersion. Failing tests: <names from $patrolOutput>. Human must investigate before next 5 AM run.`
+
+The failing commits stay on `main` waiting for a fix. Next 5 AM run will retry; if main hasn't moved, it'll fail the same way.
 
 ## Step 5 — Run fastlane create_release from WSL
 
@@ -167,6 +235,8 @@ This change is in **v1.0.12 (build 12)** and has been pushed to:
 
 GitHub Release: https://github.com/Robby2D2/soccer-assistant-coach/releases/tag/v1.0.12
 
+Patrol journey suite (run against `main` HEAD before tagging): N/N passed on `<emulator-id>`.
+
 Once you've verified the change on beta/TestFlight, promote to production from WSL:
 ```
 bundle exec fastlane promote_release version:1.0.12
@@ -192,6 +262,9 @@ Released v$nextVersion (build $nextBuild) — N issues notified, GH Release crea
 | `latest tag` doesn't match `^v\d+\.\d+\.\d+$` | Abort with a clear error — repo tagging convention has changed and a human must intervene. |
 | `pubspec.yaml` version doesn't match `X.Y.Z+N` | Same — abort and report. |
 | Tag `v$nextVersion` already on origin | Abort (idempotency). |
+| No Android emulator configured | Abort the release (Step 4.5) — do not tag. |
+| Emulator never finished booting | Tear it down and abort the release. |
+| Patrol test failed on `main` HEAD | Abort the release (Step 4.5) — do not tag. Surface failing test names. |
 | WSL push failed silently | Recover from PowerShell (Step 6). |
 | CI workflow didn't fire | Log and continue — do not retry, do not push more tags. |
 | GitHub Release creation failed | Retry once; if still failing, post partial-state comment and exit. |
@@ -202,5 +275,6 @@ Released v$nextVersion (build $nextBuild) — N issues notified, GH Release crea
 - Do not edit pubspec.yaml directly — fastlane owns the version bump.
 - Do not force-push or force-overwrite tags.
 - Do not skip the idempotency check in Step 4.
+- Do not skip the patrol gate in Step 4.5 because it's "slow". The reason it exists is that direct-to-main pushes bypass QA's patrol run. Boot the emulator and let it run — same convention as the QA agent.
 - Do not approve PRs, write specs, or do any other agent's job.
 - Do not create the GitHub Release before verifying the tag is on origin.
