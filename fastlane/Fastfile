@@ -48,6 +48,7 @@ lane :promote_release do |options|
   )
   upload_to_app_store(
     api_key:                           ios_key,
+    app_version:                       version,
     skip_binary_upload:                true,
     screenshots_path:                  "fastlane/screenshots",
     metadata_path:                     "fastlane/metadata",
@@ -94,8 +95,13 @@ lane :promote_release_android do
   UI.success("Android promoted from beta → production track.")
 end
 
-desc "Submit ONLY iOS TestFlight build for App Store review (useful for retrying iOS-only after fixing metadata/screenshot issues). Usage: promote_release_ios"
-lane :promote_release_ios do
+desc "Submit ONLY iOS TestFlight build for App Store review (useful for retrying iOS-only after fixing metadata/screenshot issues). Usage: promote_release_ios version:1.0.9 (version defaults to pubspec.yaml if omitted)"
+lane :promote_release_ios do |options|
+  version = options[:version]
+  if version.nil? || version.to_s.strip.empty?
+    pubspec = File.read(File.expand_path("../pubspec.yaml", __dir__))
+    version = pubspec.match(/^version:\s+(\S+)\+/)[1]
+  end
   ios_key = app_store_connect_api_key(
     key_id:                ENV["APP_STORE_CONNECT_KEY_ID"],
     issuer_id:             ENV["APP_STORE_CONNECT_ISSUER_ID"],
@@ -104,6 +110,7 @@ lane :promote_release_ios do
   )
   upload_to_app_store(
     api_key:                           ios_key,
+    app_version:                       version,
     skip_binary_upload:                true,
     screenshots_path:                  "fastlane/screenshots",
     metadata_path:                     "fastlane/metadata",
@@ -116,7 +123,7 @@ lane :promote_release_ios do
       add_id_info_uses_idfa:             false,
     },
   )
-  UI.success("iOS submitted for App Store review (1-2 day Apple review window).")
+  UI.success("iOS v#{version} submitted for App Store review (1-2 day Apple review window).")
 end
 
 default_platform(:android)
