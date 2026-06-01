@@ -45,7 +45,6 @@ PLAY_TARGETS = [
 ]
 
 IOS_TARGETS = [
-    ('iphone67', 1290, 2796),
     ('iphone69', 1320, 2868),
 ]
 
