@@ -84,6 +84,8 @@ Post a single comment with this exact shape (keep it tight — bullets, not pros
 
 ```markdown
 <!-- pm-agent:spec -->
+**[Product Manager]**
+
 ## Product Spec
 
 **Problem.** <one or two sentences naming the user pain>
@@ -126,6 +128,8 @@ Post a single comment with this exact shape:
 
 ```markdown
 <!-- pm-agent:question -->
+**[Product Manager]**
+
 ## Need a bit more info before this is dev-ready
 
 I need answers to the following so I can write a clear spec:
@@ -154,6 +158,8 @@ Post a single comment with this exact shape, then close the issue with reason `n
 
 ```markdown
 <!-- pm-agent:closed -->
+**[Product Manager]**
+
 ## Closing as not planned
 
 Thanks for the suggestion. Soccer Assistant Coach is built specifically to **make soccer coaching easier for youth soccer coaches** — managing teams, rosters, lineups, and live games on the sideline. After reading this through, I don't see a path from this request to that mission. Specifically:

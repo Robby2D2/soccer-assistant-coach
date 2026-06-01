@@ -227,6 +227,8 @@ For each `$issue` in `$issueNumbers`, post **one** comment:
 
 ```markdown
 <!-- release-agent:shipped -->
+**[Release Manager]**
+
 ## Shipped in v1.0.12 (build 12)
 
 This change is in **v1.0.12 (build 12)** and has been pushed to:

@@ -43,6 +43,8 @@ Post one comment:
 
 ```markdown
 <!-- dev-agent:question -->
+**[Developer]**
+
 ## Dev question — need clarification before I can implement
 
 Re-reading the PM spec, I'm blocked on:
@@ -72,6 +74,8 @@ Before touching code, post one comment with the plan:
 
 ```markdown
 <!-- dev-agent:plan -->
+**[Developer]**
+
 ## Implementation plan
 
 **Files affected**
@@ -174,6 +178,8 @@ Post one final comment:
 
 ```markdown
 <!-- dev-agent:done -->
+**[Developer]**
+
 ## Implementation complete
 
 PR: <pr-url>

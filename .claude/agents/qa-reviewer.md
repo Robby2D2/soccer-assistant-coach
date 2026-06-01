@@ -156,6 +156,8 @@ git checkout $startBranch 2>$null
 ```powershell
 & "C:\Program Files\GitHub CLI\gh.exe" pr review $PR_NUMBER --approve --body @'
 <!-- qa-agent:approved -->
+**[QA Reviewer]**
+
 ## QA review — approved
 
 Checked against `.agents/CODING.md`, `.agents/TESTING.md`, and the PM spec on the linked issue.
@@ -181,6 +183,8 @@ Post a single review comment with concrete required changes:
 ```powershell
 & "C:\Program Files\GitHub CLI\gh.exe" pr review $PR_NUMBER --request-changes --body @'
 <!-- qa-agent:review -->
+**[QA Reviewer]**
+
 ## QA review — changes required
 
 The following must be addressed before this can merge:
@@ -207,6 +211,8 @@ Also leave a short crosspost on the issue (so the orchestrator can detect dev-cy
 ```powershell
 & "C:\Program Files\GitHub CLI\gh.exe" issue comment $ISSUE_NUMBER --body @'
 <!-- qa-agent:bounce -->
+**[QA Reviewer]**
+
 QA requested changes on PR #<pr> — re-adding `dev_ready` so the developer agent picks this back up. See the PR for details.
 
 — posted by qa-reviewer agent
