@@ -56,6 +56,7 @@ flutter_01.png
 
 # Patrol generated test bundle (regenerated automatically on each `patrol test` run)
 patrol_test/test_bundle.dart
+test_bundle.dart
 
 # Android signing keystore (NEVER commit; generated via keytool)
 android/key.properties
