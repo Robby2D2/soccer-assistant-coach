@@ -53,7 +53,7 @@ lane :promote_release do |options|
     screenshots_path:                  "fastlane/screenshots",
     metadata_path:                     "fastlane/metadata",
     submit_for_review:                 true,
-    automatic_release:                 false,
+    automatic_release:                 true,
     force:                             true,
     reject_if_possible:                true,
     precheck_include_in_app_purchases: false,
@@ -62,7 +62,7 @@ lane :promote_release do |options|
       add_id_info_uses_idfa:             false,
     },
   )
-  UI.success("iOS v#{version} submitted for App Store review (1-2 day Apple review window).")
+  UI.success("iOS v#{version} submitted for App Store review — will auto-release when approved.")
 
   # ─── Android: promote beta → production (only if iOS submission succeeded) ─
   UI.header("Android — promoting beta to production")
@@ -78,7 +78,7 @@ lane :promote_release do |options|
   )
   UI.success("Android v#{version} live on Play Store production track.")
 
-  UI.success("✅ v#{version} promotion complete. Watch Apple email for review status; click Release in App Store Connect when approved. Android is already live on Play Store production.")
+  UI.success("✅ v#{version} promotion complete. iOS will auto-release on the App Store once Apple approves (1-2 days). Android is already live on Play Store production.")
 end
 
 desc "Promote ONLY Android beta to production (useful for partial recovery if a previous promote_release succeeded iOS but failed Android, or to roll Android forward independently). Usage: promote_release_android"
@@ -116,7 +116,7 @@ lane :promote_release_ios do |options|
     screenshots_path:                  "fastlane/screenshots",
     metadata_path:                     "fastlane/metadata",
     submit_for_review:                 true,
-    automatic_release:                 false,
+    automatic_release:                 true,
     force:                             true,
     reject_if_possible:                true,
     precheck_include_in_app_purchases: false,
@@ -125,7 +125,7 @@ lane :promote_release_ios do |options|
       add_id_info_uses_idfa:             false,
     },
   )
-  UI.success("iOS v#{version} submitted for App Store review (1-2 day Apple review window).")
+  UI.success("iOS v#{version} submitted for App Store review — will auto-release when approved.")
 end
 
 default_platform(:android)
@@ -286,7 +286,7 @@ platform :ios do
       screenshots_path:   "fastlane/screenshots",
       metadata_path:      "fastlane/metadata",
       submit_for_review:                 true,
-      automatic_release:                 false,
+      automatic_release:                 true,
       force:                             true,
       reject_if_possible:                true,
       precheck_include_in_app_purchases: false,
