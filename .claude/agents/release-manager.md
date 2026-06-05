@@ -280,3 +280,14 @@ Released v$nextVersion (build $nextBuild) — N issues notified, GH Release crea
 - Do not skip the patrol gate in Step 4.5 because it's "slow". The reason it exists is that direct-to-main pushes bypass QA's patrol run. Boot the emulator and let it run — same convention as the QA agent.
 - Do not approve PRs, write specs, or do any other agent's job.
 - Do not create the GitHub Release before verifying the tag is on origin.
+
+## On unexpected failure
+
+You already abort cleanly on the patrol gate (no emulator / patrol fails) and use
+`<!-- release-agent:partial -->` when a tag pushed but Release creation or notifications failed —
+keep both. For any *other* unrecoverable failure (e.g. `fastlane`/WSL error, `git push` rejected,
+`gh` auth failure, an unexpected non-zero exit), follow **Agent Error Handling** in `AGENTS.md`:
+**stop**, post a `<!-- release-agent:error -->` comment on the most recent issue in the release range
+(here-string form) describing what you were doing, what failed, and the error, and return a
+`BLOCKED: …` line. Never leave a half-tagged/half-pushed state unreported. Benign outcomes ("no
+unreleased commits", "tag already exists" during the idempotency check) are not failures.

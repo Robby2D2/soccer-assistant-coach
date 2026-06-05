@@ -62,6 +62,7 @@ For each **open issue**, classify into exactly one bucket. Process in this prior
 | Bucket | Trigger | Dispatch |
 |---|---|---|
 | **DONE** | Closed (incl. `wont-fix`), or has an open PR via `closingIssuesReferences` | skip |
+| **BLOCKED** | Latest agent comment is a `<!-- *-agent:error -->` marker with no newer non-bot human comment | skip — **needs a human** (surface prominently) |
 | **DEV** | Has `dev_ready` label | → developer |
 | **CPO (new)** | No `<!-- cpo-agent:* -->` marker AND no `<!-- pm-agent:spec -->` or `<!-- pm-agent:question -->` marker | → cpo |
 | **PM (new)** | Has a `<!-- cpo-agent:greenlit -->` comment but no `<!-- pm-agent:spec -->` or `<!-- pm-agent:question -->` marker | → product-manager |
@@ -75,6 +76,7 @@ For each **open PR**, classify:
 
 | Bucket | Trigger | Dispatch |
 |---|---|---|
+| **BLOCKED** | Latest QA activity is a `<!-- qa-agent:error -->` comment with no newer human activity | skip — **needs a human** (surface prominently) |
 | **QA** | No `<!-- qa-agent:approved -->` review AND no `<!-- qa-agent:review -->` review newer than the latest commit OR has new commits since last QA review | → qa-reviewer |
 | **APPROVED** | Already has `<!-- qa-agent:approved -->` review and no new commits | skip (awaiting human merge) |
 | **DEV-FIXING** | Has `<!-- qa-agent:review -->` review and no new commits | skip (waiting on dev) |
@@ -234,7 +236,8 @@ If release-manager runs successfully, include its result line in the final repor
 ## Notes
 
 - The orchestrator never edits code, posts GitHub comments, or modifies labels itself (except the one-time label creation in Step 2). Everything else is the subagents' job.
-- Agent comment markers (`<!-- cpo-agent:greenlit -->`, `<!-- cpo-agent:declined -->`, `<!-- pm-agent:spec -->`, `<!-- pm-agent:question -->`, `<!-- dev-agent:plan -->`, `<!-- dev-agent:question -->`, `<!-- dev-agent:done -->`, `<!-- qa-agent:approved -->`, `<!-- qa-agent:review -->`, `<!-- qa-agent:bounce -->`, `<!-- release-agent:shipped -->`, `<!-- release-agent:partial -->`) are the state machine — keep them stable across edits to this skill.
+- Agent comment markers (`<!-- cpo-agent:greenlit -->`, `<!-- cpo-agent:declined -->`, `<!-- pm-agent:spec -->`, `<!-- pm-agent:question -->`, `<!-- dev-agent:plan -->`, `<!-- dev-agent:question -->`, `<!-- dev-agent:done -->`, `<!-- qa-agent:approved -->`, `<!-- qa-agent:review -->`, `<!-- qa-agent:bounce -->`, `<!-- release-agent:shipped -->`, `<!-- release-agent:partial -->`, and the error markers `<!-- cpo-agent:error -->` / `<!-- pm-agent:error -->` / `<!-- dev-agent:error -->` / `<!-- qa-agent:error -->` / `<!-- release-agent:error -->`) are the state machine — keep them stable across edits to this skill.
+- **Error handling (halt + flag for a human).** Per the "Agent Error Handling" section of `AGENTS.md`, an agent that hits an unrecoverable failure posts a `<!-- *-agent:error -->` comment and returns a line starting with `BLOCKED:` instead of a success line. When a subagent returns `BLOCKED:`, **do not re-dispatch that item this invocation** — record it under a prominent "⚠️ Needs a human" section of the report and move on. On later passes the `*-agent:error` marker puts the item in the **BLOCKED** bucket (skipped) until a human replies; a human comment after the error clears it back into normal flow.
 - `cpo-agent:declined` marks the CPO's decision that the issue is off-mission and/or advances no product OKR; the issue is labeled `wont-fix` and closed as not planned. The CPO is the **only** agent that closes issues for fit/worth — the PM no longer does. A human reopening a declined issue falls into the **CPO (new)** bucket on the next sweep — the CPO is instructed not to re-decline in that case.
 - `pm-agent:closed` is **retired** (the PM used to close off-mission issues; that authority moved to the CPO). It may still exist on old issues; it is treated as a non-blocking legacy marker, so a reopened issue carrying only `pm-agent:closed` routes back to the CPO gate.
 - `release-agent:shipped` marks an issue as included in a tagged release that is on Play beta + TestFlight, ready for human promotion to production via `bundle exec fastlane promote_release`.

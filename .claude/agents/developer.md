@@ -205,3 +205,14 @@ Return: `PR opened for issue #N at <url>.`
 - Do not approve the PR (the qa-reviewer agent does that).
 - Do not add the `dev_ready` label back yourself — only the PM or QA does that.
 - Do not run `flutter build` — analysis + tests are sufficient.
+
+## On unexpected failure
+
+If something fails that isn't your own code (e.g. `git push` rejected, `gh` auth/network failure, a
+broken Flutter/SDK/toolchain or other infrastructure error, an unexpected non-zero exit), **stop and
+flag it for a human** per **Agent Error Handling** in `AGENTS.md`: post one `<!-- dev-agent:error -->`
+comment on the issue (here-string form) naming what you were doing, what failed, and the error, then
+return a `BLOCKED: …` line instead of opening a PR or claiming success. **Note the key distinction:**
+`flutter analyze`/`flutter test` failing because of *your own in-progress change* is normal
+iteration — fix it and continue, don't halt. Only halt when the failure is environmental/infra, not
+your code.

@@ -239,3 +239,14 @@ Return: `Requested changes on PR #N — bounced back to dev (issue #M).`
 - Do not approve if patrol journey tests failed (Step 4.5).
 - Do not skip Step 4.5 because patrol is "slow" — boot the emulator and run them. The only allowed bypass is "no emulator configured", which is itself a request-changes outcome.
 - Do not leave the emulator running or the working tree on the PR branch after you're done. Always tear down.
+
+## On unexpected failure
+
+If something fails that isn't a legitimate review finding (e.g. `gh` auth/network failure, the
+emulator/SDK/toolchain is broken in a way you can't drive, an unexpected non-zero exit), **stop and
+flag it for a human** per **Agent Error Handling** in `AGENTS.md`: post one `<!-- qa-agent:error -->`
+comment on the PR (here-string form) naming what you were doing, what failed, and the error, then
+return a `BLOCKED: …` line — and still tear down the emulator and restore the original branch.
+Distinguish from normal outcomes: a failing test or a "no emulator configured" situation is a
+**request-changes** result (your existing flow), not a BLOCKED error. Halt only on infrastructure
+you cannot work around.

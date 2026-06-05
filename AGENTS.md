@@ -14,6 +14,70 @@ This project is a Flutter app for managing soccer teams, seasons, players, and l
 
 Do **not** use `gh` bare, `wsl bash -c "gh ..."`, or any other form — only the full Windows path works reliably from Claude Code tools.
 
+**Run `gh` (and git/flutter) through the PowerShell tool, never the Bash tool.** These are
+PowerShell commands — the `&` call operator, `@'…'@` here-strings, and `$null` are all PowerShell
+syntax. The Bash tool runs `/usr/bin/bash`, which cannot parse them and fails with
+`syntax error near unexpected token '&'`; wrapping them in `powershell -Command "…"` from Bash
+just adds a second layer of quote mangling. Any agent that needs `gh` must have `PowerShell` in its
+`tools:` list and use it. The Bash tool is only for read-only POSIX text work, never for `gh.exe`.
+
+#### Posting comments safely (avoid quote corruption)
+
+Always post issue/PR comment bodies with a **PowerShell single-quoted here-string** (`@'…'@`),
+never an inline `--body '…'`. A here-string passes apostrophes, `$`, backticks, and markdown
+through literally; an inline single-quoted body doubles apostrophes (`coach's` → `coach''s`) and
+can fail or retry when the body contains special characters. The closing `'@` must sit at column 0.
+
+```powershell
+& "C:\Program Files\GitHub CLI\gh.exe" issue comment $ISSUE_NUMBER --body @'
+…your markdown body, apostrophes and all…
+'@
+```
+
+---
+
+### Agent Error Handling (halt + flag for a human)
+
+Every pipeline agent (cpo, product-manager, developer, qa-reviewer, release-manager) follows this
+when something goes genuinely wrong. The goal: **never fake success, never silently push through an
+unexpected failure** — stop and leave a human a clear note.
+
+**1. Halt on an unrecoverable failure.** If a command you expect to succeed fails in a way you
+cannot safely recover from — `gh`/git auth or network failure, `git push` rejected, an emulator /
+build / CI infrastructure error unrelated to your change, a missing tool, or any unexpected
+non-zero exit you did not plan for — **stop immediately.** Do not retry blindly, do not fabricate a
+result, do not proceed to later steps.
+
+**2. Flag it on the issue/PR** with your role's `<!-- <role>-agent:error -->` marker (here-string form):
+
+```powershell
+& "C:\Program Files\GitHub CLI\gh.exe" issue comment $ISSUE_NUMBER --body @'
+<!-- <role>-agent:error -->
+**[<Role>]** ⚠️ Stopped — needs a human.
+
+**Doing:** <the step you were on>
+**Failed:** <the command or action>
+**Error:** <the key error text, trimmed>
+
+Stopping here so a human can take a look. No further automated action on this item until then.
+
+— posted by <role> agent
+'@
+```
+
+**3. Return a `BLOCKED:` line** to the orchestrator instead of a success line —
+e.g. `BLOCKED: issue #18 — git push rejected (auth). Posted error comment.`
+
+**Do NOT halt on expected, benign outcomes — these are normal control flow:**
+- `label create` failing because the label already exists (`2>$null` swallows it).
+- `gh issue/pr list` returning empty when there's nothing to act on.
+- "No PR found", "already past gate", "no new human input", patrol "N/A".
+- `flutter analyze`/`flutter test` failing because of **your own in-progress change** — that's
+  normal iteration; fix it and continue. Only halt when the failure is environmental/infra, not your code.
+
+When genuinely unsure whether an unexpected error is recoverable, **halt and flag** — a human glance
+is cheap; a silently broken pipeline is not.
+
 ---
 
 ### Development
