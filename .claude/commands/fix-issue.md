@@ -17,7 +17,7 @@ The five specialists:
 - **product-manager** — turns CPO-greenlit issues into specs with success metrics and asks clarifying questions when a spec needs them. Does not judge mission fit or close issues — the CPO owns that.
 - **developer** — implements `dev_ready` issues, runs tests, opens PRs.
 - **qa-reviewer** — reviews open PRs against code quality + spec acceptance criteria; boots an Android emulator and runs the patrol journey tests.
-- **release-manager** — when `main` has commits beyond the latest `v*` tag, patch-bumps the version and runs `bundle exec fastlane create_release` from WSL to ship to Play beta + TestFlight, then creates a GitHub Release and comments on every closed issue.
+- **release-manager** — when `main` has commits beyond the latest `v*` tag, patch-bumps the version, commits, and pushes a `vX.Y.Z` tag. The tag push triggers the `release.yml` (Play beta) and `release-ios.yml` (TestFlight) workflows, then it creates a GitHub Release and comments on every closed issue.
 
 ## Step 1 — Parse the argument
 
@@ -31,10 +31,10 @@ The five specialists:
 
 Ensure the labels the agents rely on exist on the repo. Idempotent — these silently no-op if they already exist:
 
-```powershell
-& "C:\Program Files\GitHub CLI\gh.exe" label create "dev_ready" --color "0E8A16" --description "PM spec written; ready for the developer agent" 2>$null
-& "C:\Program Files\GitHub CLI\gh.exe" label create "awaiting-answer" --color "FBCA04" --description "Waiting on a human answer in the issue thread" 2>$null
-& "C:\Program Files\GitHub CLI\gh.exe" label create "wont-fix" --color "E11D21" --description "CPO declined: does not advance a product OKR" 2>$null
+```bash
+gh label create "dev_ready" --color "0E8A16" --description "PM spec written; ready for the developer agent" 2>/dev/null || true
+gh label create "awaiting-answer" --color "FBCA04" --description "Waiting on a human answer in the issue thread" 2>/dev/null || true
+gh label create "wont-fix" --color "E11D21" --description "CPO declined: does not advance a product OKR" 2>/dev/null || true
 ```
 
 Don't fail if these error — they likely already exist.
@@ -44,13 +44,13 @@ Don't fail if these error — they likely already exist.
 Run these in parallel:
 
 **Open issues** (with labels + last comment author/timestamp for staleness checks):
-```powershell
-& "C:\Program Files\GitHub CLI\gh.exe" issue list --state open --limit 50 --json number,title,labels,author,updatedAt,comments
+```bash
+gh issue list --state open --limit 50 --json number,title,labels,author,updatedAt,comments
 ```
 
 **Open PRs**:
-```powershell
-& "C:\Program Files\GitHub CLI\gh.exe" pr list --state open --limit 30 --json number,title,headRefName,author,labels,reviews,updatedAt,closingIssuesReferences,statusCheckRollup
+```bash
+gh pr list --state open --limit 30 --json number,title,headRefName,author,labels,reviews,updatedAt,closingIssuesReferences,statusCheckRollup
 ```
 
 If a specific issue/PR was passed, fetch only that one.
@@ -205,19 +205,19 @@ Idle — every open issue is waiting on a human or done, and every open PR is aw
 
 After the triage loop goes idle (or immediately if `$ARGUMENTS` is `release`), check whether `main` has unreleased commits. Skip this step entirely for `/fix-issue <number>` and `/fix-issue pr <number>` modes — those are scoped operations.
 
-```powershell
+```bash
 # Two fetches: --tags alone can suppress the default branch refspec on
 # some git versions, leaving origin/main stale and the count wrong.
 git fetch --quiet origin
 git fetch --quiet --tags origin
-$latestTag = git describe --tags --abbrev=0
-$unreleased = (git rev-list "origin/main" "^$latestTag" --count) -as [int]
-"Release check: latest tag $latestTag, unreleased commits on main: $unreleased"
+latest_tag=$(git describe --tags --abbrev=0)
+unreleased=$(git rev-list "origin/main" "^$latest_tag" --count)
+echo "Release check: latest tag $latest_tag, unreleased commits on main: $unreleased"
 ```
 
-If `$unreleased -eq 0`, print `No unreleased commits on main — skipping release.` and exit.
+If `unreleased` is `0`, print `No unreleased commits on main — skipping release.` and exit.
 
-If `$unreleased -gt 0`, dispatch the release-manager:
+If `unreleased` is greater than `0`, dispatch the release-manager:
 
 ```
 Agent tool:

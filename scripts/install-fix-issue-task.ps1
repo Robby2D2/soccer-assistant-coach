@@ -1,3 +1,9 @@
+# ⚠️ DEPRECATED — the /fix-issue pipeline now runs in the cloud on GitHub Actions
+# (.github/workflows/fix-issue.yml, scheduled by cron), not on this PC. You no longer
+# need this local scheduled task. To stop the old local job, run:
+#   Unregister-ScheduledTask -TaskName 'SoccerAssistantCoach-FixIssueDaily' -Confirm:$false
+# This script is kept only as a local fallback for running the sweep on this machine.
+#
 # One-time setup: registers a Windows scheduled task that runs the /fix-issue
 # orchestrator daily at 5:00 AM local time. Idempotent — re-running replaces
 # any existing task with the same name. To remove: Unregister-ScheduledTask -TaskName 'SoccerAssistantCoach-FixIssueDaily' -Confirm:$false
