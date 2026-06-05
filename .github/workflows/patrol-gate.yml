@@ -1,15 +1,18 @@
-name: Patrol gate (sharded)
+name: Patrol gate
 
 # The required patrol journey gate. Boots a headless Android emulator ON THE GITHUB RUNNER
-# (reactivecircus/android-emulator-runner) and runs the patrol journey tests — nothing runs on a
+# (reactivecircus/android-emulator-runner) and runs the patrol journey suite — nothing runs on a
 # local machine. The qa-reviewer agent dispatches this against a PR branch and the release-manager
 # dispatches it against `main`, then both gate on the run's conclusion.
 #
-# Why sharded: Patrol's 4.x test orchestrator hangs unpredictably BETWEEN tests when the whole
-# suite runs in one process. We run each test file as its own matrix job with a bounded timeout so
-# a hang is isolated to one shard (and surfaces as that shard's failure) instead of wedging the
-# whole gate. fail-fast is off so every shard reports; the gate (this workflow) concludes failure
-# if ANY shard fails — which is exactly the signal QA/release need.
+# Single job (not a matrix): patrol_cli always builds and runs the full test_bundle.dart regardless
+# of the target file, so sharding by file would just run the whole suite N times. The suite runs in
+# ~5 min once the emulator is up.
+#
+# Emulator config note: -partition-size must NOT be set so large that the userdata partition
+# overruns the runner disk — that makes the emulator abort with a FATAL "Not enough space to create
+# userdata partition" before boot (which looks like a boot timeout). The disk-cleanup step + the
+# default partition size keep it within budget. api-34 google_apis x86_64 boots reliably with KVM.
 
 on:
   workflow_dispatch:
@@ -21,25 +24,8 @@ on:
 
 jobs:
   patrol:
-    name: patrol ${{ matrix.test }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        test:
-          - patrol_test/smoke_test.dart
-          - patrol_test/onboarding_journey_test.dart
-          - patrol_test/team_management_journey_test.dart
-          - patrol_test/roster_import_journey_test.dart
-          - patrol_test/json_import_test.dart
-          - patrol_test/substitution_journey_test.dart
-          - patrol_test/shift_management_journey_test.dart
-          - patrol_test/shift_alarm_journey_test.dart
-          - patrol_test/halftime_journey_test.dart
-          - patrol_test/season_clone_journey_test.dart
-          - patrol_test/notifications_test.dart
-          - patrol_test/settings_test.dart
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v5
@@ -68,8 +54,12 @@ jobs:
         run: dart pub global activate patrol_cli 4.3.1
 
       - name: Free disk space
+        # The emulator needs headroom for the userdata partition — without this it aborts with a
+        # FATAL "Not enough space" before boot. Keep this aggressive.
         run: |
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/share/swift /usr/local/share/powershell /usr/local/lib/node_modules
+          sudo docker system prune -af || true
           sudo apt-get clean
           df -h
 
@@ -83,15 +73,27 @@ jobs:
         run: sudo apt-get install -y libpulse0
 
       - name: Build Patrol test APK
-        run: $HOME/.pub-cache/bin/patrol build android ${{ matrix.test }}
+        run: $HOME/.pub-cache/bin/patrol build android
 
-      - name: Run Patrol test
+      - name: Reclaim disk before emulator
+        # The emulator's userdata partition needs ~7.4 GB free or it aborts with a FATAL
+        # "Not enough space" before boot. After the APK is built we no longer need the NDK or
+        # these large SDKs, so remove them to leave several GB of headroom (not just MBs).
+        run: |
+          sudo rm -rf /usr/local/lib/android/sdk/ndk
+          sudo rm -rf /usr/share/miniconda /opt/az /usr/lib/google-cloud-sdk /usr/lib/jvm/temurin-8* 2>/dev/null || true
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"/Ruby "$AGENT_TOOLSDIRECTORY"/go 2>/dev/null || true
+          df -h /
+
+      - name: Run Patrol suite
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 33
+          api-level: 34
           arch: x86_64
-          target: default
+          target: google_apis
           disable-animations: true
-          emulator-boot-timeout: 900
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -partition-size 4096
-          script: $HOME/.pub-cache/bin/patrol test ${{ matrix.test }}
+          emulator-boot-timeout: 600
+          # NB: no -partition-size — an oversized userdata partition overruns the runner disk and
+          # aborts the emulator before boot.
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          script: $HOME/.pub-cache/bin/patrol test
