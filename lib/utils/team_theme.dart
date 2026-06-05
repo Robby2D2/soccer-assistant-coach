@@ -70,34 +70,28 @@ class TeamTheme {
     );
   }
 
-  /// Generate ColorScheme based on team colors
-  ColorScheme get colorScheme {
-    if (isDarkMode) {
-      return ColorScheme.fromSeed(
-        seedColor: primaryColor,
-        brightness: Brightness.dark,
-      ).copyWith(secondary: secondaryColor, tertiary: tertiaryColor);
-    } else {
-      return ColorScheme.fromSeed(
-        seedColor: primaryColor,
-        brightness: Brightness.light,
-      ).copyWith(secondary: secondaryColor, tertiary: tertiaryColor);
-    }
+  /// Generate a [ColorScheme] from the team colors at the requested brightness.
+  ColorScheme colorSchemeFor(Brightness brightness) {
+    return ColorScheme.fromSeed(
+      seedColor: primaryColor,
+      brightness: brightness,
+    ).copyWith(secondary: secondaryColor, tertiary: tertiaryColor);
   }
 
-  /// Generate ThemeData based on team colors
-  ThemeData get themeData {
-    return ThemeData(
-      colorScheme: colorScheme,
-      useMaterial3: true,
-      appBarTheme: AppBarTheme(
-        backgroundColor: colorScheme.primaryContainer,
-        foregroundColor: colorScheme.onPrimaryContainer,
-        elevation: 0,
-      ),
-      cardTheme: CardThemeData(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+  /// Generate ColorScheme based on team colors, honoring [isDarkMode].
+  ColorScheme get colorScheme =>
+      colorSchemeFor(isDarkMode ? Brightness.dark : Brightness.light);
+
+  /// Layer the team colors onto an existing [base] theme, preserving the base
+  /// theme's brightness, scaffold background, and component styling so a
+  /// team-scoped subtree stays consistent with the system light/dark mode.
+  ThemeData applyTo(ThemeData base) {
+    final scheme = colorSchemeFor(base.brightness);
+    return base.copyWith(
+      colorScheme: scheme,
+      appBarTheme: base.appBarTheme.copyWith(
+        backgroundColor: scheme.primaryContainer,
+        foregroundColor: scheme.onPrimaryContainer,
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
@@ -107,6 +101,19 @@ class TeamTheme {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Generate standalone ThemeData based on team colors.
+  ///
+  /// Prefer [applyTo] so the surrounding base theme (and its brightness) is
+  /// preserved; this getter builds a theme from scratch at [isDarkMode].
+  ThemeData get themeData {
+    return applyTo(
+      ThemeData(
+        useMaterial3: true,
+        brightness: isDarkMode ? Brightness.dark : Brightness.light,
       ),
     );
   }
