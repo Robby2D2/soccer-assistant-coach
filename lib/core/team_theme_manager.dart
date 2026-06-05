@@ -24,8 +24,10 @@ class TeamThemeScope extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teamThemeAsync = ref.watch(teamThemeProvider(teamId));
+    final baseTheme = Theme.of(context);
     return teamThemeAsync.maybeWhen(
-      data: (t) => t == null ? child : Theme(data: t.themeData, child: child),
+      data: (t) =>
+          t == null ? child : Theme(data: t.applyTo(baseTheme), child: child),
       orElse: () => child,
     );
   }
@@ -60,8 +62,11 @@ class TeamAppBar extends ConsumerWidget implements PreferredSizeWidget {
         if (t == null) {
           return _baseAppBar(context, scheme, actions);
         }
-        final onPrimary = t.colorScheme.onPrimaryContainer;
-        final bg = t.colorScheme.primaryContainer;
+        final teamScheme = t.colorSchemeFor(
+          Theme.of(context).brightness,
+        );
+        final onPrimary = teamScheme.onPrimaryContainer;
+        final bg = teamScheme.primaryContainer;
         return AppBar(
           title:
               title ??
