@@ -116,11 +116,13 @@ class AssignPlayersScreen extends ConsumerWidget {
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 1,
                                   ),
-                                  subtitle: Text(
-                                    'Player ID: ${p.id}',
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
-                                  ),
+                                  subtitle: p.jerseyNumber != null
+                                      ? Text(
+                                          '#${p.jerseyNumber}',
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                        )
+                                      : null,
                                   trailing: DropdownButton<String>(
                                     value: current,
                                     hint: const Text('Position'),

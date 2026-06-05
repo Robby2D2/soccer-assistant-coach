@@ -207,5 +207,36 @@ void main() {
         expect(await db.hasPresentPlayersForGame(ids.gameId!), isFalse);
       },
     );
+
+    test('jersey number round-trips through the DB', () async {
+      final ids = await seedTeam(db, createGame: true);
+      final playerId = await seedPlayer(
+        db,
+        teamId: ids.teamId,
+        seasonId: ids.seasonId,
+        firstName: 'Jamie',
+        lastName: 'Kit',
+        jerseyNumber: 7,
+      );
+
+      final player = await db.getPlayer(playerId);
+      expect(player, isNotNull);
+      expect(player!.jerseyNumber, 7);
+    });
+
+    test('player with no jersey number has null jerseyNumber', () async {
+      final ids = await seedTeam(db, createGame: true);
+      final playerId = await seedPlayer(
+        db,
+        teamId: ids.teamId,
+        seasonId: ids.seasonId,
+        firstName: 'Robin',
+        lastName: 'Nonum',
+      );
+
+      final player = await db.getPlayer(playerId);
+      expect(player, isNotNull);
+      expect(player!.jerseyNumber, isNull);
+    });
   });
 }
