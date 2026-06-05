@@ -56,6 +56,8 @@ jobs:
       - name: Free disk space
         run: |
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/share/swift /usr/local/share/powershell /usr/local/lib/node_modules
+          sudo docker system prune -af || true
           sudo apt-get clean
           df -h
 
@@ -76,12 +78,13 @@ jobs:
       - name: Run Patrol smoke test
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          # Iteration 2: KVM is confirmed working, ubuntu-22.04 didn't help, so swap the
-          # boot-flaky api-33 default (AOSP) image for the more-reliable google_apis image.
+          # Iteration 3: the real cause was the emulator FATAL "Not enough space to create
+          # userdata partition" — the -partition-size 4096 (4 GB) overran the runner disk by
+          # ~5 MB. Drop it (default partition fits) now that more disk is freed above.
           api-level: 34
           arch: x86_64
           target: google_apis
           disable-animations: true
           emulator-boot-timeout: 600
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -partition-size 4096
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           script: $HOME/.pub-cache/bin/patrol test patrol_test/smoke_test.dart
