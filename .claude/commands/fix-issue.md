@@ -1,6 +1,6 @@
 # Fix GitHub Issue (Orchestrator)
 
-Triage open GitHub issues + open pull requests and dispatch the right specialist agent for each: **product-manager**, **developer**, **qa-reviewer**, or **release-manager**.
+Triage open GitHub issues + open pull requests and dispatch the right specialist agent for each: **cpo**, **product-manager**, **developer**, **qa-reviewer**, or **release-manager**.
 
 Usage:
 - `/fix-issue` — sweep all open issues + PRs, triage, dispatch, and cut a release if `main` has unreleased commits (default mode).
@@ -12,8 +12,9 @@ Usage:
 
 You are the **orchestrator**. You do not write product specs, code, reviews, or releases yourself — you classify work and hand each piece to the right specialist subagent (defined in [.claude/agents/](../agents/)). Each subagent communicates with humans through GitHub issue/PR comments. You report a triage summary back to the user.
 
-The four specialists:
-- **product-manager** — turns rough issues into specs with success metrics, asks clarifying questions when needed, closes off-mission issues as not planned.
+The five specialists:
+- **cpo** — the first gate on a brand-new issue. Evaluates it against the product OKRs in `.agents/OKRS.md` and decides whether it's worth fixing at all. Greenlights worthwhile issues to the PM, or declines (labels `wont-fix` + closes as not planned) issues that advance no OKR.
+- **product-manager** — turns CPO-greenlit issues into specs with success metrics and asks clarifying questions when a spec needs them. Does not judge mission fit or close issues — the CPO owns that.
 - **developer** — implements `dev_ready` issues, runs tests, opens PRs.
 - **qa-reviewer** — reviews open PRs against code quality + spec acceptance criteria; boots an Android emulator and runs the patrol journey tests.
 - **release-manager** — when `main` has commits beyond the latest `v*` tag, patch-bumps the version and runs `bundle exec fastlane create_release` from WSL to ship to Play beta + TestFlight, then creates a GitHub Release and comments on every closed issue.
@@ -33,6 +34,7 @@ Ensure the labels the agents rely on exist on the repo. Idempotent — these sil
 ```powershell
 & "C:\Program Files\GitHub CLI\gh.exe" label create "dev_ready" --color "0E8A16" --description "PM spec written; ready for the developer agent" 2>$null
 & "C:\Program Files\GitHub CLI\gh.exe" label create "awaiting-answer" --color "FBCA04" --description "Waiting on a human answer in the issue thread" 2>$null
+& "C:\Program Files\GitHub CLI\gh.exe" label create "wont-fix" --color "E11D21" --description "CPO declined: does not advance a product OKR" 2>$null
 ```
 
 Don't fail if these error — they likely already exist.
@@ -59,12 +61,15 @@ For each **open issue**, classify into exactly one bucket. Process in this prior
 
 | Bucket | Trigger | Dispatch |
 |---|---|---|
+| **DONE** | Closed (incl. `wont-fix`), or has an open PR via `closingIssuesReferences` | skip |
 | **DEV** | Has `dev_ready` label | → developer |
-| **PM (new)** | No comment has the marker `<!-- pm-agent:spec -->` or `<!-- pm-agent:question -->` | → product-manager |
+| **CPO (new)** | No `<!-- cpo-agent:* -->` marker AND no `<!-- pm-agent:spec -->` or `<!-- pm-agent:question -->` marker | → cpo |
+| **PM (new)** | Has a `<!-- cpo-agent:greenlit -->` comment but no `<!-- pm-agent:spec -->` or `<!-- pm-agent:question -->` marker | → product-manager |
 | **PM (re-eval)** | Latest PM comment is `<!-- pm-agent:question -->` AND there is a non-bot human comment OR `updatedAt` newer than that PM comment | → product-manager |
 | **WAITING** | Has `awaiting-answer` label and no new human activity since the PM question | skip with note |
 | **DEV-RETURN** | Latest dev comment is `<!-- dev-agent:question -->` (no `dev_ready`) | → product-manager (dev is asking a question, PM should respond/route) |
-| **DONE** | Closed, or has an open PR via `closingIssuesReferences` | skip |
+
+The **DONE** check comes first so a CPO-declined (`wont-fix`, closed) issue is never re-evaluated. A brand-new issue with no agent markers goes to the **cpo** gate; only once the CPO posts `<!-- cpo-agent:greenlit -->` does it become eligible for **PM (new)**. The CPO is the *only* agent that judges mission fit and worth — the PM no longer closes issues. (Legacy issues that already carry a `pm-agent:spec`/`pm-agent:question` marker predate the CPO and continue from their PM state; a legacy issue whose only PM marker is the now-retired `pm-agent:closed`, if reopened, falls back to the **cpo** gate for a fresh decision.)
 
 For each **open PR**, classify:
 
@@ -85,7 +90,8 @@ Triage summary
 ──────────────
 Issues:
   #12  "Add jersey-number sort"         → DEV          (developer)
-  #18  "Crash on empty roster"          → PM (new)     (product-manager)
+  #18  "Crash on empty roster"          → PM (new)     (product-manager — CPO greenlit)
+  #19  "Add a chess mini-game"          → CPO (new)    (cpo — strategic gate)
   #21  "Dark mode for substitution UI"  → PM (re-eval) (product-manager — human answered question)
   #25  "Stats export"                   → WAITING      (skip — no human reply yet)
 
@@ -105,6 +111,18 @@ If the user wants to be selective for a given run, they can either invoke `/fix-
 For each dispatched item, call the appropriate subagent via the Agent tool. Run **independent** dispatches in parallel within a single message (multiple Agent tool calls).
 
 Dispatch templates (substitute the issue/PR number):
+
+**CPO:**
+```
+Agent tool:
+  subagent_type: cpo
+  description: "CPO gate on issue #N"
+  prompt: |
+    Act as the CPO on issue #N for the soccer-assistant-coach repo.
+    Follow your role instructions in .claude/agents/cpo.md exactly.
+    ISSUE_NUMBER = N
+    Return a single line summarizing what you did (greenlit, or declined + closed, or skipped).
+```
 
 **Product manager:**
 ```
@@ -147,6 +165,7 @@ If the custom subagent type isn't available in this session, fall back to `subag
 
 ### Parallelism rules
 
+- Multiple CPO dispatches can run in parallel — they only read context and write to GitHub.
 - Multiple PM dispatches can run in parallel — they only write to GitHub.
 - Multiple QA dispatches can run in parallel — they only read code and write to GitHub.
 - Only **one developer agent at a time** — they create branches and run tests. Run dev dispatches sequentially.
@@ -215,7 +234,8 @@ If release-manager runs successfully, include its result line in the final repor
 ## Notes
 
 - The orchestrator never edits code, posts GitHub comments, or modifies labels itself (except the one-time label creation in Step 2). Everything else is the subagents' job.
-- Agent comment markers (`<!-- pm-agent:spec -->`, `<!-- pm-agent:question -->`, `<!-- pm-agent:closed -->`, `<!-- dev-agent:plan -->`, `<!-- dev-agent:question -->`, `<!-- dev-agent:done -->`, `<!-- qa-agent:approved -->`, `<!-- qa-agent:review -->`, `<!-- qa-agent:bounce -->`, `<!-- release-agent:shipped -->`, `<!-- release-agent:partial -->`) are the state machine — keep them stable across edits to this skill.
-- `pm-agent:closed` marks a PM decision to close as not planned (mission-fit decline). A human reopening such an issue will fall into the PM (new) bucket on the next sweep — the PM is instructed not to re-close in that case.
+- Agent comment markers (`<!-- cpo-agent:greenlit -->`, `<!-- cpo-agent:declined -->`, `<!-- pm-agent:spec -->`, `<!-- pm-agent:question -->`, `<!-- dev-agent:plan -->`, `<!-- dev-agent:question -->`, `<!-- dev-agent:done -->`, `<!-- qa-agent:approved -->`, `<!-- qa-agent:review -->`, `<!-- qa-agent:bounce -->`, `<!-- release-agent:shipped -->`, `<!-- release-agent:partial -->`) are the state machine — keep them stable across edits to this skill.
+- `cpo-agent:declined` marks the CPO's decision that the issue is off-mission and/or advances no product OKR; the issue is labeled `wont-fix` and closed as not planned. The CPO is the **only** agent that closes issues for fit/worth — the PM no longer does. A human reopening a declined issue falls into the **CPO (new)** bucket on the next sweep — the CPO is instructed not to re-decline in that case.
+- `pm-agent:closed` is **retired** (the PM used to close off-mission issues; that authority moved to the CPO). It may still exist on old issues; it is treated as a non-blocking legacy marker, so a reopened issue carrying only `pm-agent:closed` routes back to the CPO gate.
 - `release-agent:shipped` marks an issue as included in a tagged release that is on Play beta + TestFlight, ready for human promotion to production via `bundle exec fastlane promote_release`.
 - If a subagent reports a hard failure (e.g., "PR already exists but issue still has dev_ready"), surface it in the final report rather than retrying automatically.

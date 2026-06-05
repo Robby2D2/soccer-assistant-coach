@@ -6,6 +6,8 @@ This file is a table of contents. Each entry links to a topic-specific file in `
 
 | Date | Topic | File | Summary |
 |------|-------|------|---------|
+| 2026-06-05 | CPO decision memory | [memory/cpo_decisions.md](memory/cpo_decisions.md) | CPO agent's precedent + standing principles for greenlight/decline consistency. Two layers: GitHub `wont-fix` label trail (authoritative) + curated principles. Agent reads, never writes. |
+| 2026-06-05 | PM spec conventions | [memory/pm_conventions.md](memory/pm_conventions.md) | Product-manager terminology table, required spec structure, success-metric→OKR alignment, recurring out-of-scope boundaries. Agent reads, never writes. |
 | 2026-05-18 | iOS CI/CD setup | [memory/ios_setup.md](memory/ios_setup.md) | One-time checklist complete. Runner: macos-14. Admin API key required. Keychain hang fix documented in MEMORY.md May 18 entry. |
 | 2026-05-18 | App Store submission | [memory/testing.md](memory/testing.md) | Patrol E2E suite: 4.x upgrade, journey tests (team mgmt, substitution, shift, season clone), key patterns |
 | 2026-04-24 | Production readiness | [memory/production_readiness.md](memory/production_readiness.md) | Pre-store audit: PrivacyInfo.xcprivacy, CFBundleName fix, Timer leak fix, migration tests, debugPrint cleanup |

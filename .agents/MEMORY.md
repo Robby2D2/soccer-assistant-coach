@@ -4,6 +4,31 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
+## Session: June 5, 2026 — Add CPO agent as the first issue gate + define product OKRs
+
+Date: 2026-06-05
+
+### What was done
+Added a **CPO (Chief Product Officer)** agent that sits in front of the product-manager in the `/fix-issue` pipeline. It is the first agent to see a brand-new issue and decides — against the product OKRs **and** mission fit — whether the issue is worth fixing at all before any PM/dev effort is spent. **All mission-fit/closing authority was moved out of the PM and into the CPO**, narrowing the PM to a pure spec-writer for already-greenlit issues.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `.agents/OKRS.md` | **New.** Source-of-truth product OKRs (O1 effortless lineups/subs, O2 reliability, O3 fast onboarding, O4 low cognitive load), each with measurable KRs. The CPO's rubric; also a reference for PM success metrics. |
+| `.claude/agents/cpo.md` | **New.** CPO agent. Reads `.agents/OKRS.md`, evaluates an issue, then either posts `<!-- cpo-agent:greenlit -->` (hands to PM) or `<!-- cpo-agent:declined -->` + labels `wont-fix` + closes as not planned. Lightweight gate — no specs, no codebase spelunking. Conservative: when on the fence, greenlight. |
+| `.claude/commands/fix-issue.md` | Wired CPO into orchestrator: new **CPO (new)** triage bucket (fires when an issue has no `cpo-agent` marker and no `pm-agent:spec`/`pm-agent:question` marker); **PM (new)** now gated behind a `cpo-agent:greenlit` comment; DONE check moved first so `wont-fix`/closed issues are skipped; added `wont-fix` label setup, CPO dispatch template, parallelism note, and marker list entries. Retired the `pm-agent:closed` marker (now legacy/non-blocking). |
+| `.claude/agents/product-manager.md` | **Narrowed to a pure spec-writer.** Removed outcome D + Step 6 (close-as-not-planned) and the `pm-agent:closed` flow; the PM now assumes mission fit is settled by the CPO and only writes specs (A) or asks spec-blocking clarifying questions (B). It no longer judges mission fit or closes any issue. Now also reads `.agents/memory/pm_conventions.md` in Step 1. |
+| `.agents/memory/cpo_decisions.md`, `.agents/memory/pm_conventions.md` | **New — per-agent decision memory** for the two judgment agents (anti-drift). CPO: standing greenlight/decline principles + precedent. PM: terminology table, spec structure, OKR-aligned metrics, out-of-scope boundaries. Two-layer design: GitHub label/comment trail is the authoritative self-truing record; these curated files hold distilled rationale. **Agents read but never write them** (they ingest untrusted issue text → no repo-file writes; avoids prompt-injection + poisoning). CPO Step 2 now queries `--label wont-fix` for live precedent. |
+| `AGENTS.md`, `.agents/LONGTERM_MEMORY.md` | Added "Key Changes" step 5 (distill CPO/PM patterns into the memory files during upkeep — human is the only writer) and indexed both files. |
+
+### Key learnings
+- **Pipeline order is now CPO → PM → dev → QA → release.** Clean separation of concerns: the **CPO** owns "should we care?" (mission fit + OKR worth) and is the *only* agent that closes issues for fit; the **PM** owns "what exactly do we build?" (spec only). Narrowing the PM's context to spec-writing should yield more reliable specs.
+- **State machine is marker-driven.** New markers `<!-- cpo-agent:greenlit -->` / `<!-- cpo-agent:declined -->` must stay stable. The CPO (new) trigger requires no `cpo-agent` marker and no active PM marker (`pm-agent:spec`/`pm-agent:question`); legacy in-flight PM issues bypass the gate. `pm-agent:closed` is retired but treated as non-blocking, so a reopened legacy PM-closed issue routes back to the CPO for a fresh decision.
+- **CPO closes declined issues as not planned + `wont-fix`** so the DONE bucket skips them; a human reopen routes back to CPO (new), and the CPO is instructed never to re-decline a reopened issue.
+
+---
+
 ## Session: May 25, 2026 — QA fix: add Patrol onboarding journey test (issue #10)
 
 Date: 2026-05-25
