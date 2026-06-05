@@ -1,0 +1,85 @@
+name: Patrol emulator debug
+
+# TEMPORARY / THROWAWAY. A single-job, single-test harness used to get the Android
+# emulator booting reliably on a GitHub runner before trusting patrol-gate.yml's 12-shard
+# matrix. Delete this file once patrol-gate.yml is confirmed green.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Ref to test (blank = the dispatch ref)'
+        required: false
+        default: ''
+
+jobs:
+  debug:
+    # Iteration 1: pin off ubuntu-24.04 (current ubuntu-latest), which has documented
+    # Android-emulator regressions. ubuntu-22.04 is the most commonly-working image.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: KVM + OS diagnostics (before enabling perms)
+        run: |
+          echo "=== os ==="
+          cat /etc/os-release | head -2
+          echo "=== /dev/kvm ==="
+          ls -la /dev/kvm || echo "NO /dev/kvm PRESENT"
+          echo "=== cpu virtualization flags (vmx/svm count) ==="
+          grep -Ec '(vmx|svm)' /proc/cpuinfo || echo 0
+          echo "=== kvm-ok ==="
+          sudo apt-get install -y cpu-checker >/dev/null 2>&1 || true
+          kvm-ok || echo "kvm-ok reported a problem"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Install patrol_cli
+        run: dart pub global activate patrol_cli 4.3.1
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+          df -h
+
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          echo "=== /dev/kvm after perms ==="
+          ls -la /dev/kvm || echo "STILL NO /dev/kvm"
+
+      - name: Install emulator system dependencies
+        run: sudo apt-get install -y libpulse0
+
+      - name: Build Patrol test APK
+        run: $HOME/.pub-cache/bin/patrol build android patrol_test/smoke_test.dart
+
+      - name: Run Patrol smoke test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          target: default
+          disable-animations: true
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -partition-size 4096
+          script: $HOME/.pub-cache/bin/patrol test patrol_test/smoke_test.dart
