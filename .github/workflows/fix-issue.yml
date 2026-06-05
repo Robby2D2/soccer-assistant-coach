@@ -1,0 +1,59 @@
+name: Fix issues (agent sweep)
+
+# Runs the /fix-issue orchestrator (cpo → product-manager → developer → qa-reviewer →
+# release-manager) headless on a GitHub-hosted Linux runner. This replaces the old Windows
+# Task Scheduler job (SoccerAssistantCoach-FixIssueDaily) that ran the same command on the
+# developer's PC — nothing here touches a local machine.
+#
+# The agents drive everything through `gh` against this repo and a state machine made of
+# HTML-marker comments on issues/PRs. The Android emulator patrol gate and the store releases
+# run in OTHER workflows (patrol-gate.yml, release.yml, release-ios.yml) that the agents
+# trigger via `gh workflow run` — this job never boots an emulator itself.
+
+on:
+  schedule:
+    # 12:00 UTC ≈ early morning US-Central. Adjust to taste.
+    - cron: '0 12 * * *'
+  workflow_dispatch:
+    inputs:
+      args:
+        description: 'Arguments to /fix-issue (blank = full sweep; "<n>" one issue; "pr <n>"; "release")'
+        required: false
+        default: ''
+
+# Never let two sweeps run at once — the developer agent creates branches and the
+# release-manager pushes to main; overlapping runs would collide.
+concurrency:
+  group: fix-issue-sweep
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    # A full sweep can dispatch several agents and poll long-running patrol/release workflows.
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Use the bot token so commits/tags/PRs the agents push can trigger downstream
+          # workflows (ci.yml, release.yml). The default GITHUB_TOKEN cannot cascade.
+          token: ${{ secrets.BOT_TOKEN }}
+          fetch-depth: 0
+
+      - name: Run /fix-issue
+        uses: anthropics/claude-code-action@v1
+        with:
+          # Either ANTHROPIC_API_KEY (pay-per-use) or claude_code_oauth_token (subscription seat).
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Pass the bot token so the agents' `gh` calls and `git push` cascade to other workflows.
+          github_token: ${{ secrets.BOT_TOKEN }}
+          prompt: '/fix-issue ${{ github.event.inputs.args }}'
+          claude_args: '--dangerously-skip-permissions'
+        env:
+          # Make the bot token visible to the agents' bare `gh` / `git` invocations too.
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}

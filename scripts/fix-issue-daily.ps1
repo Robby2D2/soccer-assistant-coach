@@ -1,3 +1,7 @@
+# ⚠️ DEPRECATED — the daily /fix-issue sweep now runs in GitHub Actions
+# (.github/workflows/fix-issue.yml). Its logs live in the Actions run history, not here.
+# This script remains only as a manual local fallback for running a sweep on this PC.
+#
 # Daily automated run of the /fix-issue orchestrator.
 # Triggered by Windows Task Scheduler — see install-fix-issue-task.ps1 for setup.
 # Logs land in .claude/logs/fix-issue-<date>.log (already gitignored via *.log).

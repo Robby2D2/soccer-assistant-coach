@@ -4,6 +4,33 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
+## Session: June 5, 2026 — Move the /fix-issue agent pipeline to the cloud (GitHub Actions)
+
+Date: 2026-06-05
+
+### What was done
+Migrated the entire `/fix-issue` agent pipeline off the developer's Windows PC to run **headless on GitHub-hosted Linux runners**. The agents are no longer Windows/PowerShell/WSL-bound; the local Windows Task Scheduler job is retired.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `.github/workflows/fix-issue.yml` | **New.** Cron + manual `workflow_dispatch` job that runs `claude /fix-issue` headless via `anthropics/claude-code-action` on `ubuntu-latest`. Has a `concurrency` group so sweeps never overlap. |
+| `.github/workflows/patrol-gate.yml` | **New.** The required patrol gate: boots a headless Android emulator **on the runner** (`reactivecircus/android-emulator-runner`) and runs the patrol journeys. **Sharded** — one matrix job per `patrol_test/*.dart` file (`fail-fast: false`) so the documented Patrol-4.x between-tests hang is isolated to one shard instead of wedging the whole gate. Takes a `ref` input. |
+| `.claude/commands/fix-issue.md` + all 5 `.claude/agents/*.md` | De-Windowed: bare `gh` (PATH + `GH_TOKEN`) instead of `C:\Program Files\GitHub CLI\gh.exe`, bash heredocs (`--body "$(cat <<'EOF'…EOF)"`) instead of PowerShell `@'…'@` here-strings. `tools:` lists dropped `PowerShell`. |
+| `qa-reviewer.md` | No longer boots a local emulator. It **dispatches `patrol-gate.yml`** against the PR branch (`gh workflow run … --ref <head>`), polls `gh run watch --exit-status`, and gates on the conclusion. |
+| `release-manager.md` | **No more WSL/fastlane.** Dispatches `patrol-gate.yml` against `main`, then bumps `pubspec.yaml` itself, commits, and pushes a `vX.Y.Z` tag. The tag push triggers the existing `release.yml`/`release-ios.yml`. Eliminates the WSL silent-push credential-manager bug entirely. |
+| `AGENTS.md` | GitHub CLI section now documents the CI (bare `gh`/bash) path as primary, Windows/PowerShell as the local-human path. Publishing section notes the automated release is just a tag push; WSL fastlane is the manual path. |
+| `scripts/fix-issue-daily.ps1`, `scripts/install-fix-issue-task.ps1` | Marked **DEPRECATED** (kept as local fallback). The Windows scheduled task `SoccerAssistantCoach-FixIssueDaily` should be unregistered. |
+
+### Key learnings / required setup before this runs
+- **`GITHUB_TOKEN` cannot trigger other workflows.** Pushes/tags the agents make must use a **fine-grained PAT** stored as `secrets.BOT_TOKEN` (scopes: contents, pull-requests, issues, workflows RW) so `ci.yml`/`release.yml`/`release-ios.yml` actually fire. `fix-issue.yml` checks out with `BOT_TOKEN`.
+- **Claude auth:** repo secret `ANTHROPIC_API_KEY` (pay-per-use) or `CLAUDE_CODE_OAUTH_TOKEN` (subscription seat).
+- The patrol emulator now runs **inside GitHub's runner**, not on any of the user's machines.
+- Status: code/workflows written; **secrets not yet added and the pipeline not yet test-run** — verify per the plan (auth smoke test → patrol-in-cloud → dev path cascade → release path) before disabling the local task.
+
+---
+
 ## Session: June 5, 2026 — Add CPO agent as the first issue gate + define product OKRs
 
 Date: 2026-06-05

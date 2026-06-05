@@ -1,0 +1,97 @@
+name: Patrol gate (sharded)
+
+# The required patrol journey gate. Boots a headless Android emulator ON THE GITHUB RUNNER
+# (reactivecircus/android-emulator-runner) and runs the patrol journey tests — nothing runs on a
+# local machine. The qa-reviewer agent dispatches this against a PR branch and the release-manager
+# dispatches it against `main`, then both gate on the run's conclusion.
+#
+# Why sharded: Patrol's 4.x test orchestrator hangs unpredictably BETWEEN tests when the whole
+# suite runs in one process. We run each test file as its own matrix job with a bounded timeout so
+# a hang is isolated to one shard (and surfaces as that shard's failure) instead of wedging the
+# whole gate. fail-fast is off so every shard reports; the gate (this workflow) concludes failure
+# if ANY shard fails — which is exactly the signal QA/release need.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref (branch or sha) to test. Defaults to the ref the workflow is dispatched on.'
+        required: false
+        default: ''
+
+jobs:
+  patrol:
+    name: patrol ${{ matrix.test }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        test:
+          - patrol_test/smoke_test.dart
+          - patrol_test/onboarding_journey_test.dart
+          - patrol_test/team_management_journey_test.dart
+          - patrol_test/roster_import_journey_test.dart
+          - patrol_test/json_import_test.dart
+          - patrol_test/substitution_journey_test.dart
+          - patrol_test/shift_management_journey_test.dart
+          - patrol_test/shift_alarm_journey_test.dart
+          - patrol_test/halftime_journey_test.dart
+          - patrol_test/season_clone_journey_test.dart
+          - patrol_test/notifications_test.dart
+          - patrol_test/settings_test.dart
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Empty input ⇒ checkout the ref the workflow was dispatched on (github.ref).
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Install patrol_cli
+        # Pinned to the exact version that pairs with the patrol package in pubspec.yaml.
+        # patrol_cli 4.3.1 + patrol 4.5.0 is the known-good pair.
+        run: dart pub global activate patrol_cli 4.3.1
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL
+          sudo apt-get clean
+          df -h
+
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install emulator system dependencies
+        run: sudo apt-get install -y libpulse0
+
+      - name: Build Patrol test APK
+        run: $HOME/.pub-cache/bin/patrol build android ${{ matrix.test }}
+
+      - name: Run Patrol test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          target: default
+          disable-animations: true
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -partition-size 4096
+          script: $HOME/.pub-cache/bin/patrol test ${{ matrix.test }}

@@ -25,9 +25,14 @@ Use TodoWrite to track your steps for the rest of the run.
 
 ## Step 2 — Read the issue and the PM spec
 
-```powershell
-& "C:\Program Files\GitHub CLI\gh.exe" issue view $ISSUE_NUMBER --json number,title,body,labels,comments
+```bash
+gh issue view "$ISSUE_NUMBER" --json number,title,body,labels,comments
 ```
+
+This agent runs headless on a Linux GitHub Actions runner: every command below is **bash**, `gh`
+is on the PATH and pre-authenticated from `GH_TOKEN`, and the Flutter SDK / `git` are installed on
+the runner. Post multi-line comment/PR bodies with a quoted bash heredoc (`--body "$(cat <<'EOF'
+… EOF)"`).
 
 Find the most recent `<!-- pm-agent:spec -->` comment — that's your source of truth for scope. If there is no PM spec comment, stop and tell the orchestrator: `Issue #N has dev_ready label but no PM spec — refusing to proceed.`
 
@@ -58,8 +63,8 @@ Sending this back to product. Once answered I'll re-plan.
 ```
 
 Then remove `dev_ready` so the orchestrator routes this back to the PM:
-```powershell
-& "C:\Program Files\GitHub CLI\gh.exe" issue edit $ISSUE_NUMBER --remove-label "dev_ready" --add-label "awaiting-answer"
+```bash
+gh issue edit "$ISSUE_NUMBER" --remove-label "dev_ready" --add-label "awaiting-answer"
 ```
 
 Return and stop.
@@ -99,10 +104,10 @@ Keep this honest — use Glob/Grep to identify real files. If you discover durin
 
 Derive a slug from the issue title (lowercase, hyphens, max 40 chars).
 
-```powershell
+```bash
 git checkout main
 git pull --ff-only
-git checkout -b fix/<slug>-$ISSUE_NUMBER
+git checkout -b "fix/<slug>-$ISSUE_NUMBER"
 ```
 
 Use `feat/` prefix instead of `fix/` if the issue has the `enhancement` label.
@@ -122,12 +127,17 @@ Implement only what the PM spec's acceptance criteria require. If scope grows, p
 
 Run sequentially (each depends on the previous):
 
-```powershell
+```bash
 flutter analyze
 flutter test
 ```
 
-For changes that touch user-visible flows, also run the patrol journey tests per `.agents/TESTING.md`. If patrol tests don't exist for the affected flow and the change is user-visible, add them.
+For changes that touch user-visible flows, **add or update** the patrol journey tests per
+`.agents/TESTING.md`. Do **not** try to boot an emulator and run patrol here — this agent runs on a
+plain Linux runner with no emulator. The patrol journeys are executed by the QA gate
+(`.github/workflows/patrol-gate.yml`, which the qa-reviewer agent dispatches on your PR) and again
+by the release-manager against `main`. Your job is to make sure the tests exist and are correct;
+the gate runs them on a cloud emulator.
 
 If anything fails:
 - Failures in code you changed → fix and re-run.
@@ -147,11 +157,11 @@ Use `feat:` for enhancement-labeled issues.
 
 ## Step 9 — Push and open the PR
 
-```powershell
+```bash
 git push -u origin HEAD
-& "C:\Program Files\GitHub CLI\gh.exe" pr create `
-  --title "<commit subject>" `
-  --body @'
+gh pr create \
+  --title "<commit subject>" \
+  --body "$(cat <<'EOF'
 ## Summary
 
 <1–3 sentences>
@@ -162,14 +172,15 @@ Closes #<issue-number>
 
 - [x] `flutter analyze` passes
 - [x] `flutter test` passes
-- [ ] Patrol journey tests pass (if applicable)
+- [ ] Patrol journey gate (qa-reviewer dispatches `patrol-gate.yml`)
 - [ ] <manual verification step, if any>
 
 ---
 *This PR will be reviewed by the qa-reviewer agent. A human merges.*
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
-'@
+EOF
+)"
 ```
 
 ## Step 10 — Close out on the issue
@@ -184,7 +195,7 @@ Post one final comment:
 
 PR: <pr-url>
 Branch: `<branch>`
-Tests run: analyze ✓ unit ✓ patrol ✓
+Tests run: analyze ✓ unit ✓ (patrol journeys run by the qa-reviewer gate)
 
 Handing off to qa-reviewer.
 
@@ -192,8 +203,8 @@ Handing off to qa-reviewer.
 ```
 
 Then remove `dev_ready`:
-```powershell
-& "C:\Program Files\GitHub CLI\gh.exe" issue edit $ISSUE_NUMBER --remove-label "dev_ready"
+```bash
+gh issue edit "$ISSUE_NUMBER" --remove-label "dev_ready"
 ```
 
 Return: `PR opened for issue #N at <url>.`
@@ -211,7 +222,7 @@ Return: `PR opened for issue #N at <url>.`
 If something fails that isn't your own code (e.g. `git push` rejected, `gh` auth/network failure, a
 broken Flutter/SDK/toolchain or other infrastructure error, an unexpected non-zero exit), **stop and
 flag it for a human** per **Agent Error Handling** in `AGENTS.md`: post one `<!-- dev-agent:error -->`
-comment on the issue (here-string form) naming what you were doing, what failed, and the error, then
+comment on the issue (heredoc form) naming what you were doing, what failed, and the error, then
 return a `BLOCKED: …` line instead of opening a PR or claiming success. **Note the key distinction:**
 `flutter analyze`/`flutter test` failing because of *your own in-progress change* is normal
 iteration — fix it and continue, don't halt. Only halt when the failure is environmental/infra, not

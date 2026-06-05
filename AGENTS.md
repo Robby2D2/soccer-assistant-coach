@@ -4,35 +4,47 @@ This project is a Flutter app for managing soccer teams, seasons, players, and l
 
 ### GitHub CLI (`gh`)
 
-`gh` is installed at `C:\Program Files\GitHub CLI\gh.exe` but is **not in the sandboxed PATH** used by Claude Code's Bash/PowerShell tools. Always invoke it with the full path in PowerShell:
+> **Where the pipeline runs now.** The `/fix-issue` agents (cpo, product-manager, developer,
+> qa-reviewer, release-manager) run **headless in GitHub Actions on a Linux runner**
+> (`.github/workflows/fix-issue.yml`), scheduled by cron — **not** on the developer's Windows PC.
+> In that environment `gh` is on the PATH and pre-authenticated from the `GH_TOKEN` env var, so the
+> agents call **bare `gh`** with **bash** syntax: heredocs for comment bodies, `2>/dev/null`, `||`.
+> Each agent file in `.claude/agents/` is written that way. The Windows/PowerShell instructions
+> below apply **only when a human runs `gh` locally** on this machine — they are no longer how the
+> automated pipeline operates.
+
+#### In CI (how the agents run)
+
+`gh` is bare and authenticated. Post comment/PR bodies with a quoted bash heredoc so apostrophes,
+`$`, and backticks pass through literally:
+
+```bash
+gh issue comment "$ISSUE_NUMBER" --body "$(cat <<'EOF'
+…your markdown body, apostrophes and all…
+EOF
+)"
+```
+
+The bot token (`secrets.BOT_TOKEN`, a fine-grained PAT — **not** the default `GITHUB_TOKEN`) is what
+makes pushes and tags from the agents trigger downstream workflows (`ci.yml`, `release.yml`,
+`release-ios.yml`). The default `GITHUB_TOKEN` cannot trigger other workflows, so the release tag
+would never fire CI without `BOT_TOKEN`.
+
+#### Locally on Windows (for a human)
+
+`gh` is installed at `C:\Program Files\GitHub CLI\gh.exe` but is **not in the sandboxed PATH** used
+by Claude Code's Bash/PowerShell tools. Invoke it with the full path in PowerShell, and post bodies
+with a PowerShell single-quoted here-string (`@'…'@`, closing `'@` at column 0):
 
 ```powershell
 & "C:\Program Files\GitHub CLI\gh.exe" issue view 6
-& "C:\Program Files\GitHub CLI\gh.exe" pr create --title "..." --body "..."
-& "C:\Program Files\GitHub CLI\gh.exe" run list --workflow=release-ios.yml --limit=3
-```
-
-Do **not** use `gh` bare, `wsl bash -c "gh ..."`, or any other form — only the full Windows path works reliably from Claude Code tools.
-
-**Run `gh` (and git/flutter) through the PowerShell tool, never the Bash tool.** These are
-PowerShell commands — the `&` call operator, `@'…'@` here-strings, and `$null` are all PowerShell
-syntax. The Bash tool runs `/usr/bin/bash`, which cannot parse them and fails with
-`syntax error near unexpected token '&'`; wrapping them in `powershell -Command "…"` from Bash
-just adds a second layer of quote mangling. Any agent that needs `gh` must have `PowerShell` in its
-`tools:` list and use it. The Bash tool is only for read-only POSIX text work, never for `gh.exe`.
-
-#### Posting comments safely (avoid quote corruption)
-
-Always post issue/PR comment bodies with a **PowerShell single-quoted here-string** (`@'…'@`),
-never an inline `--body '…'`. A here-string passes apostrophes, `$`, backticks, and markdown
-through literally; an inline single-quoted body doubles apostrophes (`coach's` → `coach''s`) and
-can fail or retry when the body contains special characters. The closing `'@` must sit at column 0.
-
-```powershell
 & "C:\Program Files\GitHub CLI\gh.exe" issue comment $ISSUE_NUMBER --body @'
 …your markdown body, apostrophes and all…
 '@
 ```
+
+From Claude Code tools on Windows, run `gh`/git/flutter through the **PowerShell tool** — the Bash
+tool runs `/usr/bin/bash` and can't parse `&`, here-strings, or `$null`.
 
 ---
 
@@ -48,10 +60,11 @@ build / CI infrastructure error unrelated to your change, a missing tool, or any
 non-zero exit you did not plan for — **stop immediately.** Do not retry blindly, do not fabricate a
 result, do not proceed to later steps.
 
-**2. Flag it on the issue/PR** with your role's `<!-- <role>-agent:error -->` marker (here-string form):
+**2. Flag it on the issue/PR** with your role's `<!-- <role>-agent:error -->` marker (in CI, bash
+heredoc form; locally, the PowerShell here-string form):
 
-```powershell
-& "C:\Program Files\GitHub CLI\gh.exe" issue comment $ISSUE_NUMBER --body @'
+```bash
+gh issue comment "$ISSUE_NUMBER" --body "$(cat <<'EOF'
 <!-- <role>-agent:error -->
 **[<Role>]** ⚠️ Stopped — needs a human.
 
@@ -62,14 +75,15 @@ result, do not proceed to later steps.
 Stopping here so a human can take a look. No further automated action on this item until then.
 
 — posted by <role> agent
-'@
+EOF
+)"
 ```
 
 **3. Return a `BLOCKED:` line** to the orchestrator instead of a success line —
 e.g. `BLOCKED: issue #18 — git push rejected (auth). Posted error comment.`
 
 **Do NOT halt on expected, benign outcomes — these are normal control flow:**
-- `label create` failing because the label already exists (`2>$null` swallows it).
+- `label create` failing because the label already exists (`2>/dev/null || true` swallows it).
 - `gh issue/pr list` returning empty when there's nothing to act on.
 - "No PR found", "already past gate", "no new human input", patrol "N/A".
 - `flutter analyze`/`flutter test` failing because of **your own in-progress change** — that's
@@ -93,6 +107,18 @@ Always refer to `.agents/TESTING.md` for testing instructions and patterns.
 Always refer to `.agents/ARCHITECTURE.md` for information on project structure, patterns, and significant decisions.
 
 ### Publishing a Release
+
+> **The automated pipeline no longer uses WSL or fastlane to cut a release.** When the
+> release-manager agent runs in GitHub Actions it simply bumps `pubspec.yaml`, commits to `main`,
+> and **pushes a `vX.Y.Z` tag** (with `BOT_TOKEN` so the push cascades). The tag push triggers
+> `release.yml` (Android → Play beta) and `release-ios.yml` (iOS → TestFlight), which run fastlane
+> **inside CI on the runners** — there is no WSL anywhere in that path, and the old silent-push
+> credential-manager bug cannot occur. See `.claude/agents/release-manager.md`.
+>
+> The WSL + `bundle exec fastlane` flow documented below is the **manual / human** path for cutting
+> or promoting a release from this Windows machine (e.g. the `/publish-release` skill). Promotion to
+> production is still human-triggered — via `bundle exec fastlane promote_release` from WSL, or the
+> `promote-release.yml` workflow from the Actions tab.
 
 Fastlane must be run from **WSL (Ubuntu)** using Bundler — it is not available in PowerShell or Git Bash.
 
