@@ -5,11 +5,16 @@ name: Patrol gate (sharded)
 # local machine. The qa-reviewer agent dispatches this against a PR branch and the release-manager
 # dispatches it against `main`, then both gate on the run's conclusion.
 #
-# Why sharded: Patrol's 4.x test orchestrator hangs unpredictably BETWEEN tests when the whole
-# suite runs in one process. We run each test file as its own matrix job with a bounded timeout so
-# a hang is isolated to one shard (and surfaces as that shard's failure) instead of wedging the
-# whole gate. fail-fast is off so every shard reports; the gate (this workflow) concludes failure
-# if ANY shard fails — which is exactly the signal QA/release need.
+# Why sharded with -t: Patrol's 4.x orchestrator hangs unpredictably BETWEEN tests when the whole
+# test_bundle runs in one process. The `-t <file>` flag makes patrol build+run exactly ONE test
+# (verified: "Total: 1"), so each matrix shard runs a single test with no between-tests transition
+# to hang on. A flaky/hung shard trips only its own timeout instead of wedging the whole gate.
+# fail-fast is off so every shard reports; the gate concludes failure if ANY shard fails.
+#
+# Emulator config (all hard-won): ubuntu-22.04 + api-34 google_apis x86_64 with KVM. Do NOT set
+# -partition-size — an oversized userdata partition overruns the runner disk and the emulator aborts
+# with a FATAL "Not enough space to create userdata partition" (which masquerades as a boot timeout).
+# The disk-free + NDK-reclaim steps keep several GB of headroom so the emulator boots reliably.
 
 on:
   workflow_dispatch:
@@ -21,9 +26,11 @@ on:
 
 jobs:
   patrol:
-    name: patrol ${{ matrix.test }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    name: ${{ matrix.test }}
+    runs-on: ubuntu-22.04
+    # Per-shard: build (~9 min) + emulator boot (~1.5 min) + a single test (~2 min). 25 min leaves
+    # headroom while still failing fast if a single test ever hangs.
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -68,10 +75,13 @@ jobs:
         run: dart pub global activate patrol_cli 4.3.1
 
       - name: Free disk space
+        # The emulator needs headroom for its userdata partition or it aborts before boot.
         run: |
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/share/swift /usr/local/share/powershell /usr/local/lib/node_modules
+          sudo docker system prune -af || true
           sudo apt-get clean
-          df -h
+          df -h /
 
       - name: Enable KVM group perms
         run: |
@@ -82,16 +92,25 @@ jobs:
       - name: Install emulator system dependencies
         run: sudo apt-get install -y libpulse0
 
-      - name: Build Patrol test APK
-        run: $HOME/.pub-cache/bin/patrol build android ${{ matrix.test }}
+      - name: Build Patrol test APK (single test via -t)
+        run: $HOME/.pub-cache/bin/patrol build android -t ${{ matrix.test }}
 
-      - name: Run Patrol test
+      - name: Reclaim disk before emulator
+        # After the APK is built we no longer need the NDK / these SDKs; removing them leaves
+        # several GB of headroom so the emulator's userdata partition fits.
+        run: |
+          sudo rm -rf /usr/local/lib/android/sdk/ndk
+          sudo rm -rf /usr/share/miniconda /opt/az /usr/lib/google-cloud-sdk 2>/dev/null || true
+          df -h /
+
+      - name: Run Patrol test (single test via -t)
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 33
+          api-level: 34
           arch: x86_64
-          target: default
+          target: google_apis
           disable-animations: true
-          emulator-boot-timeout: 900
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -partition-size 4096
-          script: $HOME/.pub-cache/bin/patrol test ${{ matrix.test }}
+          emulator-boot-timeout: 600
+          # NB: no -partition-size — an oversized userdata partition overruns the runner disk.
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          script: $HOME/.pub-cache/bin/patrol test -t ${{ matrix.test }}
