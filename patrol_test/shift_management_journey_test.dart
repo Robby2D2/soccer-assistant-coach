@@ -20,14 +20,25 @@ import 'helpers/app_harness.dart';
 ///      because time remains on the current shift.
 ///   3. Confirming the dialog promotes the queued shift to current and
 ///      updates `games.currentShiftId` in the DB.
+///
+/// Navigation: we route directly to `/game/$gameId` rather than tapping
+/// through the Home screen. This mirrors the pattern in
+/// [substitution_journey_test.dart] and avoids two sources of instability:
+///   - Waiting for the Home screen's own Drift streams to render the
+///     active-games card (extra settling overhead).
+///   - Setting `startTime: DateTime.now()` on the game, which would launch
+///     an active shift timer. That timer continuously pumps frames, making
+///     every Patrol driver interaction unreliable because the app is
+///     perpetually "busy" and `pump()` calls stall.
+/// Without `startTime`, the clock hasn't started, the timer is idle, and
+/// the game screen is settleable — exactly what we need.
 void main() {
   patrolTest(
     'tapping Next Shift advances the current shift after confirmation',
     (PatrolIntegrationTester $) async {
       await initApp();
 
-      // Clear stale timer state persisted by prior tests (shift_alarm runs
-      // before this alphabetically and leaves timer_started_at_1 in prefs).
+      // Clear stale timer state persisted by prior tests.
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
 
@@ -50,8 +61,9 @@ void main() {
           seasonId: seasonId,
           opponent: const drift.Value('Substitutes United'),
           gameStatus: const drift.Value('in-progress'),
-          // Active Games card on Home filters on startTime IS NOT NULL.
-          startTime: drift.Value(DateTime.now()),
+          // No startTime — the clock hasn't started so no active timer runs.
+          // startTime is only needed for the Home screen "active games" filter,
+          // which we bypass by navigating directly via router.push.
         ),
       );
 
@@ -85,23 +97,16 @@ void main() {
       await $.pumpWidget(appUnderTest(db: db));
       await $.pumpAndSettle(timeout: const Duration(seconds: 5));
 
-      // Navigate via the active-games card on Home. Use noSettle throughout:
-      // GameScreen's many StreamBuilders watching always-open Drift streams
-      // keep the app perpetually "busy," so pumpAndSettle never completes
-      // and plain `expect($(selector), ...)` hangs indefinitely in an
-      // integration test (the driver command never gets a clean response).
-      // Use waitUntilVisible with a bounded timeout so failures surface in
-      // seconds rather than wedging the shard for 35+ minutes.
-      await $('vs Substitutes United').waitUntilVisible(
-        timeout: const Duration(seconds: 10),
-      );
-      await $('vs Substitutes United').tap(settlePolicy: SettlePolicy.noSettle);
-      await Future.delayed(const Duration(seconds: 3));
+      // Navigate directly to the game screen — no Home screen tap needed.
+      router.push('/game/$gameId');
+      // Give the GameScreen time to mount its StreamBuilders and render
+      // the shift controls. No timer is running so the app is settleable.
+      await Future.delayed(const Duration(seconds: 5));
 
       // The "Next Shift" control appears because there's a shift queued
       // after the current one. Tap it.
       await $('Next Shift').waitUntilVisible(
-        timeout: const Duration(seconds: 10),
+        timeout: const Duration(seconds: 15),
       );
       await $('Next Shift').first.tap(settlePolicy: SettlePolicy.noSettle);
       await Future.delayed(const Duration(seconds: 2));
