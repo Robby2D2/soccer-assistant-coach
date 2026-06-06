@@ -85,24 +85,32 @@ void main() {
       await $.pumpWidget(appUnderTest(db: db));
       await $.pumpAndSettle(timeout: const Duration(seconds: 5));
 
-      // Navigate via the active-games card on Home. Use noSettle here:
+      // Navigate via the active-games card on Home. Use noSettle throughout:
       // GameScreen's many StreamBuilders watching always-open Drift streams
-      // make Patrol's pumpAndSettle hang on real devices (the timeout is not
-      // honored). Future.delayed gives the navigation animation and screen
-      // mount time to complete using wall-clock time.
-      expect($('vs Substitutes United'), findsAtLeastNWidgets(1));
+      // keep the app perpetually "busy," so pumpAndSettle never completes
+      // and plain `expect($(selector), ...)` hangs indefinitely in an
+      // integration test (the driver command never gets a clean response).
+      // Use waitUntilVisible with a bounded timeout so failures surface in
+      // seconds rather than wedging the shard for 35+ minutes.
+      await $('vs Substitutes United').waitUntilVisible(
+        timeout: const Duration(seconds: 10),
+      );
       await $('vs Substitutes United').tap(settlePolicy: SettlePolicy.noSettle);
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 3));
 
       // The "Next Shift" control appears because there's a shift queued
       // after the current one. Tap it.
-      expect($('Next Shift'), findsAtLeastNWidgets(1));
+      await $('Next Shift').waitUntilVisible(
+        timeout: const Duration(seconds: 10),
+      );
       await $('Next Shift').first.tap(settlePolicy: SettlePolicy.noSettle);
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(seconds: 2));
 
       // Time is left on the current shift, so the confirmation dialog
       // surfaces. Confirm to advance.
-      expect($('Start next shift early?'), findsOneWidget);
+      await $('Start next shift early?').waitUntilVisible(
+        timeout: const Duration(seconds: 10),
+      );
       await $('Start Next Shift').tap(settlePolicy: SettlePolicy.noSettle);
       await Future.delayed(const Duration(seconds: 1));
 

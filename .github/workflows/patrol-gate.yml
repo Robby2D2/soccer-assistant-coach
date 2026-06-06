@@ -28,11 +28,11 @@ jobs:
   patrol:
     name: ${{ matrix.test }}
     runs-on: ubuntu-22.04
-    # Default: build (~9 min) + emulator boot (~1.5 min) + single test (~2 min).
-    # shift_management gets extra headroom via matrix.timeout — it navigates a
-    # GameScreen with many always-open Drift StreamBuilders and occasionally
-    # has a slow emulator draw that eats into the 25-min budget.
-    timeout-minutes: ${{ matrix.timeout || 25 }}
+    # Default: build (~9 min) + emulator boot (up to 10 min) + single test (~2 min) = 21 min
+    # minimum. 30 min gives a comfortable 9-min buffer on slow runner days.
+    # shift_management gets 35 min via matrix.include — it navigates a GameScreen with
+    # many always-open Drift StreamBuilders which can make the test itself run longer.
+    timeout-minutes: ${{ matrix.timeout || 30 }}
     strategy:
       fail-fast: false
       matrix:
