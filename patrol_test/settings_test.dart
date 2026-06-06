@@ -47,8 +47,11 @@ void main() {
     // Halftime alarms toggle (icon flips between `Icons.timer` and
     // `Icons.timer_off`). `Icons.timer` also appears on the Duration control
     // further down the list, so target the first match — the toggle, which
-    // comes before the duration row.
-    await $(Icons.timer).first.scrollTo();
+    // comes before the duration row. Scroll with the bare finder (chaining
+    // `.first` before `scrollTo` evaluates the match too early and throws
+    // "Bad state: No element" when the toggle isn't built yet); the toggle is
+    // the first `Icons.timer` reached scrolling down, so `.first` is the toggle.
+    await $(Icons.timer).scrollTo();
     await $(Icons.timer).first.tap();
     await $.pumpAndSettle(timeout: const Duration(seconds: 3));
     expect($(Icons.timer_off), findsOneWidget);
