@@ -107,11 +107,17 @@ void main() {
       await $.pumpAndSettle(timeout: const Duration(seconds: 10));
 
       // The "Next Shift" control appears because there's a shift queued
-      // after the current one. Tap it.
-      await $('Next Shift').waitUntilVisible(
+      // after the current one. The button label is "Next Shift" on wide screens
+      // and "Next" when isCompact (width < 360). The headless AVD has no skin
+      // so its screen is likely narrower than 360dp — using the Tooltip message
+      // ('Start next shift immediately') targets the button by accessibility
+      // label, which UIAutomator finds regardless of the compact label.
+      await $('Start next shift immediately').waitUntilVisible(
         timeout: const Duration(seconds: 15),
       );
-      await $('Next Shift').first.tap(settlePolicy: SettlePolicy.noSettle);
+      await $('Start next shift immediately').tap(
+        settlePolicy: SettlePolicy.noSettle,
+      );
       await Future.delayed(const Duration(seconds: 2));
 
       // Time is left on the current shift, so the confirmation dialog
