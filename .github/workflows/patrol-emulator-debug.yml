@@ -73,18 +73,24 @@ jobs:
         run: sudo apt-get install -y libpulse0
 
       - name: Build Patrol test APK
-        run: $HOME/.pub-cache/bin/patrol build android patrol_test/smoke_test.dart
+        # Iteration 4: use the -t FLAG so patrol isolates to ONE test file. The positional form
+        # (patrol build android <file>) builds the full test_bundle.dart and runs all 11 tests,
+        # which both wastes time and triggers the patrol-4.x between-tests hang.
+        run: $HOME/.pub-cache/bin/patrol build android -t patrol_test/smoke_test.dart
+
+      - name: Reclaim disk before emulator
+        run: |
+          sudo rm -rf /usr/local/lib/android/sdk/ndk
+          sudo rm -rf /usr/share/miniconda /opt/az /usr/lib/google-cloud-sdk 2>/dev/null || true
+          df -h /
 
       - name: Run Patrol smoke test
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          # Iteration 3: the real cause was the emulator FATAL "Not enough space to create
-          # userdata partition" — the -partition-size 4096 (4 GB) overran the runner disk by
-          # ~5 MB. Drop it (default partition fits) now that more disk is freed above.
           api-level: 34
           arch: x86_64
           target: google_apis
           disable-animations: true
           emulator-boot-timeout: 600
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
-          script: $HOME/.pub-cache/bin/patrol test patrol_test/smoke_test.dart
+          script: $HOME/.pub-cache/bin/patrol test -t patrol_test/smoke_test.dart
