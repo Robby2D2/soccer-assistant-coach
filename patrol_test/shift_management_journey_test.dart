@@ -99,9 +99,12 @@ void main() {
 
       // Navigate directly to the game screen — no Home screen tap needed.
       router.push('/game/$gameId');
-      // Give the GameScreen time to mount its StreamBuilders and render
-      // the shift controls. No timer is running so the app is settleable.
-      await Future.delayed(const Duration(seconds: 5));
+      // Pump frames so GoRouter's async navigation actually completes and the
+      // GameScreen renders. Without an active timer (no startTime), the app
+      // settles cleanly once the navigation animation and initial stream
+      // emissions are done. pumpAndSettle is safe here — it would hang if the
+      // game had a live shift timer pumping continuous frames, but it doesn't.
+      await $.pumpAndSettle(timeout: const Duration(seconds: 10));
 
       // The "Next Shift" control appears because there's a shift queued
       // after the current one. Tap it.
