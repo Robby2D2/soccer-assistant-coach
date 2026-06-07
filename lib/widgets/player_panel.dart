@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../data/db/database.dart';
 import 'player_avatar.dart';
@@ -39,30 +38,12 @@ class PlayerPanel extends StatelessWidget {
     return '$minutes:${secs.toString().padLeft(2, '0')}';
   }
 
-  bool _hasProfileImage() {
-    if (player.profileImagePath == null || player.profileImagePath!.isEmpty) {
-      return false;
-    }
-    // Check if the image file actually exists
-    try {
-      final imageFile = File(player.profileImagePath!);
-      return imageFile.existsSync();
-    } catch (e) {
-      return false;
-    }
-  }
-
   String _getPlayerDisplayName() {
-    final hasImage = _hasProfileImage();
-    final hasJerseyNumber = player.jerseyNumber != null;
-
-    // If player has both image and jersey number, show number before name
-    if (hasImage && hasJerseyNumber) {
-      return '#${player.jerseyNumber} ${player.firstName} ${player.lastName}';
+    final name = '${player.firstName} ${player.lastName}';
+    if (player.jerseyNumber != null) {
+      return '#${player.jerseyNumber} $name';
     }
-
-    // Otherwise just show the name
-    return '${player.firstName} ${player.lastName}';
+    return name;
   }
 
   Widget _buildBadge(BuildContext context) {
@@ -185,7 +166,7 @@ class PlayerPanel extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // Player name (with jersey number if both image and number exist)
+                  // Player name with jersey number (when set)
                   Flexible(
                     child: Padding(
                       padding: const EdgeInsets.only(top: 2),

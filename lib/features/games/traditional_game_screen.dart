@@ -1392,7 +1392,7 @@ class _TraditionalLineupView extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Substitute with ${benchPlayer.firstName} ${benchPlayer.lastName}',
+                'Substitute with ${getPlayerDisplayName(benchPlayer)}',
                 style: Theme.of(context).textTheme.titleLarge,
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
@@ -1440,7 +1440,7 @@ class _TraditionalLineupView extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '${benchPlayer.firstName} ${benchPlayer.lastName}',
+                        getPlayerDisplayName(benchPlayer),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w500,
                         ),
@@ -1610,7 +1610,7 @@ class _TraditionalLineupView extends StatelessWidget {
                                             ),
                                             const SizedBox(height: 1),
                                             Text(
-                                              '${activePlayer.firstName} ${activePlayer.lastName}',
+                                              getPlayerDisplayName(activePlayer),
                                               style: Theme.of(context)
                                                   .textTheme
                                                   .bodySmall
