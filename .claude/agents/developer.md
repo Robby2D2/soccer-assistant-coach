@@ -139,6 +139,23 @@ plain Linux runner with no emulator. The patrol journeys are executed by the QA 
 by the release-manager against `main`. Your job is to make sure the tests exist and are correct;
 the gate runs them on a cloud emulator.
 
+**If your change is visual (UI), capture a screenshot of the fix in the journey test.** Import
+`helpers/screenshot.dart` and call `await captureScreenshot($, '<short-name>')` at the exact point
+the test has the fixed UI on screen — **before any pop / navigation away** (many journey tests assert
+via the DB *after* the screen pops, so the screen you fixed is gone by the end). Name it for what it
+shows (e.g. `'import-confirmation'`). The gate pulls these off the emulator and the qa-reviewer agent
+attaches them to the issue so a human can see the fix before merging. Capture only the screen(s) that
+demonstrate the change — one or two is plenty, not every step.
+
+```dart
+import 'helpers/screenshot.dart';
+// ...
+await $('Review & Import').tap();
+await $.pumpAndSettle();
+await captureScreenshot($, 'import-confirmation'); // dialog visible here — snapshot it
+await $('Import').tap();                           // ... then it pops
+```
+
 If anything fails:
 - Failures in code you changed → fix and re-run.
 - Pre-existing failures unrelated to your change → note in the PR body but do not silently fix them.

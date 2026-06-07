@@ -4,6 +4,49 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
+## Session: June 7, 2026 — QA agent attaches emulator screenshots to UI-changing PRs
+
+Date: 2026-06-07
+
+### What was done
+Journey tests can now capture a screenshot **of the actual fix**, which the qa-reviewer agent attaches
+to the GitHub issue so a human can eyeball the change before merging.
+
+- **`patrol_test/helpers/app_harness.dart`** — `appUnderTest()` is wrapped in a keyed
+  `RepaintBoundary` (`screenshotBoundaryKey`) above `SoccerApp`, so the whole UI incl. dialogs/snackbars
+  is capturable.
+- **`patrol_test/helpers/screenshot.dart`** (new) — `captureScreenshot($, '<name>')` renders the live
+  tree (`RenderRepaintBoundary.toImage`) to `files/screenshots/<name>.png` in the app support dir.
+  Best-effort: failures never fail the test.
+- **`patrol-gate.yml`** — after `patrol test`, pulls those PNGs with `adb exec-out run-as <pkg> cat`
+  (debuggable APK ⇒ no root/storage perms) and uploads them as a per-shard `screenshot-<job-index>`
+  artifact. Test's real exit code is preserved (`set +e` … `exit $status`) so a red test still fails.
+- **`developer.md` Step 7** — for UI changes, the developer agent must call `captureScreenshot` at the
+  point the fixed UI is on screen, **before any pop** (most journey tests assert via DB after the screen
+  pops, so the final frame is the wrong screen).
+- **`qa-reviewer.md` Step 4.6** — for PRs touching `lib/**/*.dart` (excl. generated), downloads the
+  artifacts, pushes every PNG to a public **`ci-screenshots` orphan branch** under `pr-<n>/<sha>/`, and
+  posts a `<!-- qa-agent:screenshots -->` issue comment embedding them as inline
+  `raw.githubusercontent.com` images. This is the QA agent's **only** sanctioned push (assets, never code).
+
+### Key learnings
+- **Patrol 4.5.0 has no screenshot API** (verified in the pub cache) and patrol_cli doesn't collect
+  integration_test screenshots → use Flutter's own `RenderRepaintBoundary.toImage`, which is pure Dart,
+  headless-safe, and NOT the flaky Android surface-conversion path.
+- **Final-frame capture is structurally wrong here:** journey tests deliberately end away from the fix
+  (e.g. `roster_import_journey_test.dart` pops then asserts via DB). The screenshot must be taken
+  mid-test, by the test, at the assertion point. That's why this reversed the original "no Dart changes"
+  plan.
+- Repo is **public** → branch files get no-auth raw URLs that render inline in comments. Private repo
+  would NOT render (would need an image host / release assets).
+- `<sha>` in the asset path keeps each review's raw URLs unique so GitHub's ~5-min raw cache never
+  serves a stale image.
+- App package id: `com.useunix.soccerassistantcoach`; pulled from `files/screenshots` via `run-as`.
+- Status: written, **not yet exercised on a real PR** — verify capture → run-as pull → artifact →
+  branch push → inline render on the next UI PR.
+
+---
+
 ## Session: June 5, 2026 — Move the /fix-issue agent pipeline to the cloud (GitHub Actions)
 
 Date: 2026-06-05

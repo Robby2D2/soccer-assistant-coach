@@ -125,4 +125,37 @@ jobs:
           # NB: no -partition-size — an oversized userdata partition overruns the runner disk.
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           # -d emulator-5554 is explicit so patrol doesn't log "No device specified".
-          script: $HOME/.pub-cache/bin/patrol test -t ${{ matrix.test }} -d emulator-5554
+          # After the test, pull any screenshots the test captured with the in-app
+          # captureScreenshot() helper (patrol_test/helpers/screenshot.dart). The test writes
+          # PNGs to the app's internal support dir; we read them back with `run-as` (the patrol
+          # debug APK is debuggable, so no root/storage perms needed) via `exec-out cat` which
+          # is binary-safe. These are deliberate frames of the fixed UI — not the final frame —
+          # so they actually show the change the qa-reviewer agent attaches to the issue.
+          # set +e keeps a failing test from skipping the pull; we re-exit with patrol's real
+          # status so the gate still fails on a red test.
+          script: |
+            set +e
+            $HOME/.pub-cache/bin/patrol test -t ${{ matrix.test }} -d emulator-5554
+            status=$?
+            mkdir -p screenshots
+            PKG=com.useunix.soccerassistantcoach
+            files=$(adb -s emulator-5554 exec-out run-as "$PKG" ls files/screenshots 2>/dev/null | tr -d '\r')
+            for f in $files; do
+              case "$f" in
+                *.png)
+                  adb -s emulator-5554 exec-out run-as "$PKG" cat "files/screenshots/$f" > "screenshots/$f" 2>/dev/null || true
+                  ;;
+              esac
+            done
+            exit $status
+
+      - name: Upload screenshot artifact
+        # Per-shard artifact name (job-index is unique across the matrix); the PNG inside is
+        # named after the test so the qa-reviewer agent can map it back. Runs even on a failed
+        # shard so a failing UI change can still be eyeballed.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-${{ strategy.job-index }}
+          path: screenshots/*.png
+          if-no-files-found: ignore

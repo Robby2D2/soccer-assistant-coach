@@ -45,16 +45,30 @@ Future<void> initApp() async {
   await NotificationService.instance.init();
 }
 
+/// Identifies the [RepaintBoundary] wrapping the whole app so `captureScreenshot`
+/// (see `helpers/screenshot.dart`) can render the live frame to a PNG. The
+/// boundary sits *above* [SoccerApp]'s `MaterialApp`, so dialogs, snackbars, and
+/// the active route — everything painted into the app's Overlay/Navigator — are
+/// included in the capture.
+final GlobalKey screenshotBoundaryKey = GlobalKey();
+
 /// Builds the production [SoccerApp] wrapped in a [ProviderScope]. If [db]
 /// is provided, [dbProvider] is overridden with it so tests can run against
 /// an in-memory database (`AppDb.test()`) and stay isolated from the user's
 /// real data.
 ///
+/// The whole tree is wrapped in a keyed [RepaintBoundary] so a journey test can
+/// screenshot the live UI for the CI patrol gate (`captureScreenshot`). The
+/// boundary is inert in normal runs — it only matters when a screenshot is taken.
+///
 /// We do **not** call `runApp` here — Patrol's `patrolTest` is responsible
 /// for pumping the widget via `tester.pumpWidget`.
 Widget appUnderTest({AppDb? db}) {
-  return ProviderScope(
-    overrides: [if (db != null) dbProvider.overrideWithValue(db)],
-    child: const SoccerApp(),
+  return RepaintBoundary(
+    key: screenshotBoundaryKey,
+    child: ProviderScope(
+      overrides: [if (db != null) dbProvider.overrideWithValue(db)],
+      child: const SoccerApp(),
+    ),
   );
 }

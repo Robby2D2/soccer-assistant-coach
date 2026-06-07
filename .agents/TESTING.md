@@ -105,6 +105,33 @@ Shared fixture helpers in `test/helpers/fixtures.dart` (`seedTeam`, `seedPlayer`
 
 ---
 
+## CI screenshots of a fix (UI-changing PRs)
+
+For PRs that change UI, a journey test can snapshot the fixed screen so the qa-reviewer agent can
+attach it to the GitHub issue — a human sees the actual change before merging.
+
+Patrol 4.5.0 has **no** screenshot API, and a final-frame capture is the wrong screen for most of our
+tests (they assert via the DB *after* the screen pops). So capture deliberately, mid-test, with the
+helper `patrol_test/helpers/screenshot.dart`:
+
+```dart
+import 'helpers/screenshot.dart';
+// ... drive to and assert the fixed UI ...
+await captureScreenshot($, 'import-confirmation'); // fixed UI is on screen here
+// ... then continue (taps that pop the screen, DB assertions, etc.)
+```
+
+`captureScreenshot` renders the live widget tree (`RenderRepaintBoundary.toImage` via the boundary in
+`helpers/app_harness.dart`) to `files/screenshots/<name>.png` in the app's support dir. The patrol gate
+(`.github/workflows/patrol-gate.yml`) pulls these with `run-as` and uploads them as artifacts; the
+qa-reviewer agent embeds them in the issue via the public `ci-screenshots` branch.
+
+Guidance:
+- Call it **before** any pop/navigation away from the fixed screen.
+- Name it for what it shows; capture only the screen(s) that demonstrate the change (one or two).
+- It's best-effort — a capture failure never fails the test.
+- Captures are headless `swiftshader` pixel_6 frames: a visual sanity check, not pixel-perfect.
+
 ## Guidelines
 
 - **Every new feature or bug fix must include or update a test.** If a fix is trivial (typo, copy), a test is still preferred.
