@@ -20,14 +20,25 @@ import 'helpers/app_harness.dart';
 ///      because time remains on the current shift.
 ///   3. Confirming the dialog promotes the queued shift to current and
 ///      updates `games.currentShiftId` in the DB.
+///
+/// Navigation: we route directly to `/game/$gameId` rather than tapping
+/// through the Home screen. This mirrors the pattern in
+/// [substitution_journey_test.dart] and avoids two sources of instability:
+///   - Waiting for the Home screen's own Drift streams to render the
+///     active-games card (extra settling overhead).
+///   - Setting `startTime: DateTime.now()` on the game, which would launch
+///     an active shift timer. That timer continuously pumps frames, making
+///     every Patrol driver interaction unreliable because the app is
+///     perpetually "busy" and `pump()` calls stall.
+/// Without `startTime`, the clock hasn't started, the timer is idle, and
+/// the game screen is settleable — exactly what we need.
 void main() {
   patrolTest(
     'tapping Next Shift advances the current shift after confirmation',
     (PatrolIntegrationTester $) async {
       await initApp();
 
-      // Clear stale timer state persisted by prior tests (shift_alarm runs
-      // before this alphabetically and leaves timer_started_at_1 in prefs).
+      // Clear stale timer state persisted by prior tests.
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
 
@@ -50,8 +61,9 @@ void main() {
           seasonId: seasonId,
           opponent: const drift.Value('Substitutes United'),
           gameStatus: const drift.Value('in-progress'),
-          // Active Games card on Home filters on startTime IS NOT NULL.
-          startTime: drift.Value(DateTime.now()),
+          // No startTime — the clock hasn't started so no active timer runs.
+          // startTime is only needed for the Home screen "active games" filter,
+          // which we bypass by navigating directly via router.push.
         ),
       );
 
@@ -85,41 +97,44 @@ void main() {
       await $.pumpWidget(appUnderTest(db: db));
       await $.pumpAndSettle(timeout: const Duration(seconds: 5));
 
-      // Navigate via the active-games card on Home. Use noSettle here:
-      // GameScreen's many StreamBuilders watching always-open Drift streams
-      // make Patrol's pumpAndSettle hang on real devices (the timeout is not
-      // honored). Future.delayed gives the navigation animation and screen
-      // mount time to complete using wall-clock time.
-      expect($('vs Substitutes United'), findsAtLeastNWidgets(1));
-      await $('vs Substitutes United').tap(settlePolicy: SettlePolicy.noSettle);
-      await Future.delayed(const Duration(seconds: 2));
+      // Navigate directly to the game screen — no Home screen tap needed.
+      router.push('/game/$gameId');
+      await $.pumpAndSettle(timeout: const Duration(seconds: 10));
 
-      // The "Next Shift" control appears because there's a shift queued
-      // after the current one. Tap it.
-      expect($('Next Shift'), findsAtLeastNWidgets(1));
-      await $('Next Shift').first.tap(settlePolicy: SettlePolicy.noSettle);
-      await Future.delayed(const Duration(seconds: 1));
+      // CRITICAL: wrap the interaction in try/finally so the GameScreen is
+      // always disposed (router.pop) before the test ends — even on a failed
+      // assertion. The GameScreen holds always-open Drift StreamBuilders; if
+      // the test ends while it's still mounted, Patrol's teardown deadlocks
+      // for the full job timeout (~24+ min) instead of tearing down cleanly.
+      // Popping first turns any failure into a fast (~seconds) failure.
+      try {
+        // The "Next Shift" control appears because there's a shift queued after
+        // the current one. Use a plain expect (not waitUntilVisible): a synchronous
+        // expect failure tears down fast, whereas a waitUntilVisible timeout is
+        // what triggers the multi-minute teardown hang.
+        expect($('Next Shift'), findsAtLeastNWidgets(1));
+        await $('Next Shift').first.tap(settlePolicy: SettlePolicy.noSettle);
+        await Future.delayed(const Duration(seconds: 1));
 
-      // Time is left on the current shift, so the confirmation dialog
-      // surfaces. Confirm to advance.
-      expect($('Start next shift early?'), findsOneWidget);
-      await $('Start Next Shift').tap(settlePolicy: SettlePolicy.noSettle);
-      await Future.delayed(const Duration(seconds: 1));
+        // Time is left on the current shift, so the confirmation dialog surfaces.
+        expect($('Start next shift early?'), findsOneWidget);
+        await $('Start Next Shift').tap(settlePolicy: SettlePolicy.noSettle);
+        await Future.delayed(const Duration(seconds: 1));
 
-      // The queued shift is now current. Sanity-check both DB state and
-      // that the prior shift ID is no longer the active one.
-      final game = await db.getGame(gameId);
-      expect(
-        game?.currentShiftId,
-        secondShiftId,
-        reason: 'Confirming Next Shift should promote the queued shift',
-      );
-      expect(game?.currentShiftId, isNot(firstShiftId));
-
-      // Navigate back to trigger GameScreen.dispose() so any pending
-      // StreamBuilder subscriptions cancel before db.close() teardown runs.
-      router.pop();
-      await Future.delayed(const Duration(milliseconds: 600));
+        // The queued shift is now current. Sanity-check the DB state.
+        final game = await db.getGame(gameId);
+        expect(
+          game?.currentShiftId,
+          secondShiftId,
+          reason: 'Confirming Next Shift should promote the queued shift',
+        );
+        expect(game?.currentShiftId, isNot(firstShiftId));
+      } finally {
+        // Dispose GameScreen (cancel its StreamBuilder subscriptions) before
+        // the patrolTest body returns and db.close() runs in tearDown.
+        router.pop();
+        await Future.delayed(const Duration(milliseconds: 600));
+      }
     },
   );
 }

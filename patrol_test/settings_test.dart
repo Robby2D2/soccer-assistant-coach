@@ -8,6 +8,11 @@ import 'helpers/app_harness.dart';
 /// Verifies the settings screen toggles persist alarm gates the right way.
 /// Mirrors the production `AlarmSettingsNotifier` flow so a regression here
 /// would mean the shift/halftime alarms can no longer be turned off.
+///
+/// The settings screen is a long `ListView` — the alarm toggles sit below the
+/// "Current Configuration" summary and the notifications/permission section, so
+/// each icon has to be scrolled into view before it can be found or tapped
+/// (`find.byIcon` only matches widgets the lazy list has actually built).
 void main() {
   patrolTest('shift and halftime alarm toggles persist across navigation', (
     PatrolIntegrationTester $,
@@ -29,6 +34,7 @@ void main() {
     await $.pumpAndSettle(timeout: const Duration(seconds: 5));
 
     // Shift alarms toggle (icon flips from `Icons.alarm` to `Icons.alarm_off`).
+    await $(Icons.alarm).scrollTo();
     expect($(Icons.alarm), findsOneWidget);
     await $(Icons.alarm).tap();
     await $.pumpAndSettle(timeout: const Duration(seconds: 3));
@@ -39,8 +45,14 @@ void main() {
     );
 
     // Halftime alarms toggle (icon flips between `Icons.timer` and
-    // `Icons.timer_off`).
-    await $(Icons.timer).tap();
+    // `Icons.timer_off`). `Icons.timer` also appears on the Duration control
+    // further down the list, so target the first match — the toggle, which
+    // comes before the duration row. Scroll with the bare finder (chaining
+    // `.first` before `scrollTo` evaluates the match too early and throws
+    // "Bad state: No element" when the toggle isn't built yet); the toggle is
+    // the first `Icons.timer` reached scrolling down, so `.first` is the toggle.
+    await $(Icons.timer).scrollTo();
+    await $(Icons.timer).first.tap();
     await $.pumpAndSettle(timeout: const Duration(seconds: 3));
     expect($(Icons.timer_off), findsOneWidget);
 
@@ -51,7 +63,9 @@ void main() {
     await $(find.byIcon(Icons.settings)).first.tap();
     await $.pumpAndSettle(timeout: const Duration(seconds: 5));
 
+    await $(Icons.alarm_off).scrollTo();
     expect($(Icons.alarm_off), findsOneWidget);
+    await $(Icons.timer_off).scrollTo();
     expect($(Icons.timer_off), findsOneWidget);
 
     // Restore for next test run so SharedPreferences doesn't poison the suite.

@@ -28,9 +28,11 @@ jobs:
   patrol:
     name: ${{ matrix.test }}
     runs-on: ubuntu-22.04
-    # Per-shard: build (~9 min) + emulator boot (~1.5 min) + a single test (~2 min). 25 min leaves
-    # headroom while still failing fast if a single test ever hangs.
-    timeout-minutes: 25
+    # Default: build (~9 min) + emulator boot (up to 10 min) + single test (~2 min) = 21 min
+    # minimum. 30 min gives a comfortable 9-min buffer on slow runner days.
+    # shift_management gets 35 min via matrix.include — it navigates a GameScreen with
+    # many always-open Drift StreamBuilders which can make the test itself run longer.
+    timeout-minutes: ${{ matrix.timeout || 30 }}
     strategy:
       fail-fast: false
       matrix:
@@ -47,6 +49,9 @@ jobs:
           - patrol_test/season_clone_journey_test.dart
           - patrol_test/notifications_test.dart
           - patrol_test/settings_test.dart
+        include:
+          - test: patrol_test/shift_management_journey_test.dart
+            timeout: 35
 
     steps:
       - uses: actions/checkout@v5
