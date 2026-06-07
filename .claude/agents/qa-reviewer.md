@@ -116,9 +116,14 @@ captures the gate result. (Equivalently, gate on `CONCLUSION == "success"`.)
   (`gh run view "$RUN_ID" --json jobs --jq '.jobs[] | select(.conclusion=="failure") | .name'`) and
   list them under a **Required** bullet in Step 5B with a link
   (`gh run view "$RUN_ID" --web` gives the URL). Do **not** approve a PR with a failing patrol gate.
-- If the workflow could not run at all (e.g. `patrol-gate.yml` not found on the branch, or the
-  dispatch itself errored) that is an **infrastructure** failure → go to the "On unexpected failure"
-  section and post a `<!-- qa-agent:error -->` comment; do not silently approve.
+- If the workflow could not run at all (e.g. `patrol-gate.yml` not found on the branch, the dispatch
+  returned **HTTP 403 / permission denied**, or the dispatch otherwise errored) that is an
+  **infrastructure** failure → go to the "On unexpected failure" section and post a
+  `<!-- qa-agent:error -->` comment, then return `BLOCKED:`. **This takes precedence over any static
+  review findings:** when the gate cannot be dispatched or run, halt as an error — do **not** bounce
+  with `dev_ready`. Re-running the developer can't unblock infra, so bouncing just loops the issue
+  until a human fixes the root cause. Fold any code findings you did spot into the same error comment
+  so they're not lost, but the state stays BLOCKED, not back-to-dev.
 
 ## Step 4.6 — Attach visual changes to the issue (UI-touching PRs only)
 
