@@ -178,9 +178,19 @@ class PlayersScreen extends ConsumerWidget {
               if (rows.isEmpty) {
                 return _buildEmptyState(context);
               }
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: rows.length,
+              final activeCount =
+                  rows.where((p) => p.isPresent).length;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _RosterCountSummary(
+                    total: rows.length,
+                    active: activeCount,
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: rows.length,
                 itemBuilder: (_, i) {
                   final player = rows[i];
                   return Container(
@@ -352,10 +362,36 @@ class PlayersScreen extends ConsumerWidget {
                     ),
                   );
                 },
+              ),
+                  ),
+                ],
               );
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class _RosterCountSummary extends StatelessWidget {
+  final int total;
+  final int active;
+
+  const _RosterCountSummary({required this.total, required this.active});
+
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Text(
+        loc.rosterCountSummary(total, active),
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }

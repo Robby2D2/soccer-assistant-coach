@@ -762,4 +762,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noGamesYetDescriptionOnboarding =>
       'Schedule your first game. Make sure you\'ve added players to the roster first.';
+
+  @override
+  String rosterCountSummary(int total, int active) {
+    return '$total players · $active active';
+  }
 }

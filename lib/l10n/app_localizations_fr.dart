@@ -764,4 +764,9 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get noGamesYetDescriptionOnboarding =>
       'Programmez votre premier match. Assurez-vous d\'avoir ajouté des joueurs à l\'effectif d\'abord.';
+
+  @override
+  String rosterCountSummary(int total, int active) {
+    return '$total joueurs · $active actifs';
+  }
 }

@@ -418,5 +418,17 @@
   "onboardingNoTeamsSubtitle": "Toca + para crear tu primer equipo, luego agrega jugadores y programa un juego.",
   "noTeamsYetDescriptionOnboarding": "Comienza: crea tu primer equipo, agrega jugadores y luego programa un juego.",
   "noPlayersYetDescriptionOnboarding": "Agrega jugadores a tu plantilla. Una vez lista, ve a la pestaña de Juegos para programar un partido.",
-  "noGamesYetDescriptionOnboarding": "Programa tu primer juego. Asegúrate de haber agregado jugadores a la plantilla primero."
+  "noGamesYetDescriptionOnboarding": "Programa tu primer juego. Asegúrate de haber agregado jugadores a la plantilla primero.",
+
+  "rosterCountSummary": "{total} jugadores · {active} activos",
+  "@rosterCountSummary": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "active": {
+        "type": "int"
+      }
+    }
+  }
 }
