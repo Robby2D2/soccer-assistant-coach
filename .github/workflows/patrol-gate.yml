@@ -114,8 +114,15 @@ jobs:
           api-level: 34
           arch: x86_64
           target: google_apis
+          # Pin a real phone profile (~411 logical dp wide). Without this the image's
+          # default AVD can render under 360 dp, which flips responsive widgets into
+          # their compact layout — e.g. the game screen shows a "Next" button instead
+          # of "Next Shift", so a finder for "Next Shift" finds nothing and the test
+          # fails in CI while passing on a normal-width local emulator.
+          profile: pixel_6
           disable-animations: true
           emulator-boot-timeout: 600
           # NB: no -partition-size — an oversized userdata partition overruns the runner disk.
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
-          script: $HOME/.pub-cache/bin/patrol test -t ${{ matrix.test }}
+          # -d emulator-5554 is explicit so patrol doesn't log "No device specified".
+          script: $HOME/.pub-cache/bin/patrol test -t ${{ matrix.test }} -d emulator-5554
