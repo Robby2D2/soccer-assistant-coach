@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart' as drift;
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -102,26 +101,40 @@ void main() {
       router.push('/game/$gameId');
       await $.pumpAndSettle(timeout: const Duration(seconds: 10));
 
-      // ===== TEMPORARY DIAGNOSTIC (remove after) =====
-      // Dump every Text and Tooltip in the tree via fail()'s message so we can
-      // see exactly what the GameScreen renders. fail() throws synchronously —
-      // a fast teardown (~4s) that surfaces the message in the log, unlike a
-      // waitUntilVisible timeout which deadlocks for 24 min. Keep firstShiftId
-      // / secondShiftId referenced for the analyzer.
-      final texts = $.tester
-          .widgetList<Text>(find.byType(Text))
-          .map((t) => t.data)
-          .where((s) => s != null)
-          .toList();
-      final tooltips = $.tester
-          .widgetList<Tooltip>(find.byType(Tooltip))
-          .map((t) => t.message)
-          .where((s) => s != null)
-          .toList();
-      fail(
-        'SCREENDUMP shifts=[$firstShiftId,$secondShiftId] '
-        'texts=[${texts.join(" || ")}] tooltips=[${tooltips.join(" || ")}]',
-      );
+      // CRITICAL: wrap the interaction in try/finally so the GameScreen is
+      // always disposed (router.pop) before the test ends — even on a failed
+      // assertion. The GameScreen holds always-open Drift StreamBuilders; if
+      // the test ends while it's still mounted, Patrol's teardown deadlocks
+      // for the full job timeout (~24+ min) instead of tearing down cleanly.
+      // Popping first turns any failure into a fast (~seconds) failure.
+      try {
+        // The "Next Shift" control appears because there's a shift queued after
+        // the current one. Use a plain expect (not waitUntilVisible): a synchronous
+        // expect failure tears down fast, whereas a waitUntilVisible timeout is
+        // what triggers the multi-minute teardown hang.
+        expect($('Next Shift'), findsAtLeastNWidgets(1));
+        await $('Next Shift').first.tap(settlePolicy: SettlePolicy.noSettle);
+        await Future.delayed(const Duration(seconds: 1));
+
+        // Time is left on the current shift, so the confirmation dialog surfaces.
+        expect($('Start next shift early?'), findsOneWidget);
+        await $('Start Next Shift').tap(settlePolicy: SettlePolicy.noSettle);
+        await Future.delayed(const Duration(seconds: 1));
+
+        // The queued shift is now current. Sanity-check the DB state.
+        final game = await db.getGame(gameId);
+        expect(
+          game?.currentShiftId,
+          secondShiftId,
+          reason: 'Confirming Next Shift should promote the queued shift',
+        );
+        expect(game?.currentShiftId, isNot(firstShiftId));
+      } finally {
+        // Dispose GameScreen (cancel its StreamBuilder subscriptions) before
+        // the patrolTest body returns and db.close() runs in tearDown.
+        router.pop();
+        await Future.delayed(const Duration(milliseconds: 600));
+      }
     },
   );
 }
