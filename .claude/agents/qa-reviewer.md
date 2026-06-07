@@ -120,6 +120,103 @@ captures the gate result. (Equivalently, gate on `CONCLUSION == "success"`.)
   dispatch itself errored) that is an **infrastructure** failure → go to the "On unexpected failure"
   section and post a `<!-- qa-agent:error -->` comment; do not silently approve.
 
+## Step 4.6 — Attach visual changes to the issue (UI-touching PRs only)
+
+So a human can eyeball the fix before merging, attach the emulator screenshots from the gate run to
+the linked **issue** — but only when this PR actually changes UI. Skip this step entirely for
+pure-logic / test-only / CI / docs PRs.
+
+### A. Is this a UI-touching PR?
+
+```bash
+UI_FILES=$(gh pr view "$PR_NUMBER" --json files --jq \
+  '.files[].path | select(test("^lib/.*\\.dart$")) | select(test("\\.g\\.dart$|\\.drift\\.dart$")|not)')
+```
+
+If `UI_FILES` is empty → skip the rest of Step 4.6 (no visuals to attach). This is a normal,
+benign skip, not an error.
+
+### B. Pull the screenshots the gate produced
+
+The gate (`patrol-gate.yml`, Step 4.5) uploads a screenshot artifact per shard. Each PNG is a
+**deliberate frame the journey test captured** with `captureScreenshot($, '<name>')` at the moment
+the fixed UI was on screen (see `patrol_test/helpers/screenshot.dart`) — it is *not* a final-frame
+grab, so it actually shows the change. The PNG's name is whatever the developer passed (e.g.
+`import-confirmation.png`). Download them all from the run you already watched:
+
+```bash
+mkdir -p /tmp/shots
+gh run download "$RUN_ID" -D /tmp/shots   # artifacts land as /tmp/shots/screenshot-*/<name>.png
+```
+
+Embed **every** PNG found (each is an intentional fix screenshot). De-dupe by basename in case two
+shards captured the same name. List them:
+
+```bash
+find /tmp/shots -name '*.png' | sort -u
+```
+
+If there are **no** PNGs (the PR changed UI but its journey test didn't call `captureScreenshot`, or
+the capture failed), don't fabricate one — skip embedding, add a single line to the comment noting no
+fix screenshot was captured (and, as a non-blocking suggestion in your review, ask the developer to
+add a `captureScreenshot($, '…')` at the assertion point), then continue to Step 5. A missing
+screenshot is **not** a BLOCKED error.
+
+### C. Publish the images to the public `ci-screenshots` branch
+
+The repo is **public**, so files on a branch get no-auth `raw.githubusercontent.com` URLs that render
+inline in a comment. Push the selected PNGs to a dedicated orphan branch under a per-PR, per-SHA path
+(the SHA keeps each review's URLs unique so GitHub's raw cache never serves a stale image). Do this in
+a throwaway clone so your review working tree is untouched — this is the **only** push the QA agent
+makes, and it pushes screenshot assets, never code.
+
+```bash
+SLUG="$GITHUB_REPOSITORY"                                   # owner/repo, set by Actions
+HEAD_SHA=$(gh pr view "$PR_NUMBER" --json headRefOid --jq .headRefOid)
+WORK=$(mktemp -d)
+# Reuse the branch if it exists; otherwise create it as an empty orphan.
+git clone --depth 1 --branch ci-screenshots \
+  "https://x-access-token:${GH_TOKEN}@github.com/${SLUG}.git" "$WORK" 2>/dev/null || {
+    git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/${SLUG}.git" "$WORK"
+    git -C "$WORK" checkout --orphan ci-screenshots
+    git -C "$WORK" rm -rf . >/dev/null 2>&1 || true
+  }
+DEST="$WORK/pr-${PR_NUMBER}/${HEAD_SHA}"
+mkdir -p "$DEST"
+# Copy every captured PNG (each is an intentional fix screenshot from 4.6.B).
+find /tmp/shots -name '*.png' -exec cp {} "$DEST/" \;
+git -C "$WORK" add -A
+git -C "$WORK" -c user.email=actions@github.com -c user.name="qa-reviewer agent" \
+  commit -m "ci(screenshots): PR #${PR_NUMBER} @ ${HEAD_SHA}" >/dev/null
+git -C "$WORK" push origin ci-screenshots
+```
+
+If the push fails (auth/network), that's an infrastructure failure → go to "On unexpected failure"
+and post a `<!-- qa-agent:error -->` comment; don't silently drop the visuals.
+
+### D. Post the visuals to the issue
+
+For each embedded PNG, the URL is
+`https://raw.githubusercontent.com/${SLUG}/ci-screenshots/pr-${PR_NUMBER}/${HEAD_SHA}/<name>.png`.
+
+```bash
+gh issue comment "$ISSUE_NUMBER" --body "$(cat <<EOF
+<!-- qa-agent:screenshots -->
+**[QA Reviewer]** Visual changes from PR #${PR_NUMBER} (pixel_6 emulator, gate run ${RUN_ID}):
+
+### <screenshot name, humanised>
+![<screenshot name>](https://raw.githubusercontent.com/${SLUG}/ci-screenshots/pr-${PR_NUMBER}/${HEAD_SHA}/<name>.png)
+
+> Captured by the journey test at the point it asserts the fix (headless pixel_6 emulator) — a visual sanity check before merge, not a pixel-perfect render.
+
+— posted by qa-reviewer agent
+EOF
+)"
+```
+
+Note this heredoc is **unquoted** (`<<EOF`, not `<<'EOF'`) so `${SLUG}`, `${PR_NUMBER}`, `${HEAD_SHA}`,
+and `${RUN_ID}` expand. Keep any literal `$`/backticks out of the body, or escape them.
+
 ## Step 5 — Decide: approve or request changes
 
 ### A. PR is good → approve
@@ -207,7 +304,8 @@ Return: `Requested changes on PR #N — bounced back to dev (issue #M).`
 ## Do not
 
 - Do not merge the PR. Humans merge.
-- Do not push commits or edit code.
+- Do not push commits or edit code. (The **only** exception is Step 4.6C — pushing screenshot
+  PNG assets to the `ci-screenshots` branch. Never push to the PR branch, `main`, or any code path.)
 - Do not approve a PR that lacks tests for the changed behavior unless `.agents/TESTING.md` explicitly exempts it.
 - Do not approve if `flutter analyze` or `flutter test` failed in CI — check the PR checks before approving.
 - Do not approve if the patrol gate failed (Step 4.5).
