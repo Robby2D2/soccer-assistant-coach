@@ -25,33 +25,39 @@ on:
         default: ''
 
 jobs:
+  # Discover the patrol tests dynamically so a newly-added patrol_test/*.dart is picked up
+  # automatically. With a hardcoded matrix a new journey test silently fell out of the gate
+  # (that's how players_count_journey_test.dart got skipped) — listing the files removes that
+  # whole failure class: every top-level test runs, and its screenshot is captured, with no
+  # workflow edit required when the developer adds a test.
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      tests: ${{ steps.list.outputs.tests }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - id: list
+        # All top-level patrol_test/*.dart except the generated bundle. helpers/ is a subdir so the
+        # non-recursive glob already excludes it. Emit a compact JSON array for the matrix.
+        run: |
+          tests=$(ls patrol_test/*.dart | grep -v 'test_bundle.dart' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "tests=$tests" >> "$GITHUB_OUTPUT"
+          echo "Discovered patrol tests: $tests"
+
   patrol:
     name: ${{ matrix.test }}
+    needs: discover
     runs-on: ubuntu-22.04
-    # Default: build (~9 min) + emulator boot (up to 10 min) + single test (~2 min) = 21 min
-    # minimum. 30 min gives a comfortable 9-min buffer on slow runner days.
-    # shift_management gets 35 min via matrix.include — it navigates a GameScreen with
-    # many always-open Drift StreamBuilders which can make the test itself run longer.
-    timeout-minutes: ${{ matrix.timeout || 30 }}
+    # build (~9 min) + emulator boot (up to 10 min) + single test (~2 min) ≈ 21 min minimum; 30 min
+    # gives a comfortable buffer on slow runner days. shift_management navigates a GameScreen with
+    # many always-open Drift StreamBuilders and can run longer, so it gets 35.
+    timeout-minutes: ${{ contains(matrix.test, 'shift_management') && 35 || 30 }}
     strategy:
       fail-fast: false
       matrix:
-        test:
-          - patrol_test/smoke_test.dart
-          - patrol_test/onboarding_journey_test.dart
-          - patrol_test/team_management_journey_test.dart
-          - patrol_test/roster_import_journey_test.dart
-          - patrol_test/json_import_test.dart
-          - patrol_test/substitution_journey_test.dart
-          - patrol_test/shift_management_journey_test.dart
-          - patrol_test/shift_alarm_journey_test.dart
-          - patrol_test/halftime_journey_test.dart
-          - patrol_test/season_clone_journey_test.dart
-          - patrol_test/notifications_test.dart
-          - patrol_test/settings_test.dart
-        include:
-          - test: patrol_test/shift_management_journey_test.dart
-            timeout: 35
+        test: ${{ fromJson(needs.discover.outputs.tests) }}
 
     steps:
       - uses: actions/checkout@v5
