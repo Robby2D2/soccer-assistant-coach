@@ -103,28 +103,25 @@ void main() {
       await $.pumpAndSettle(timeout: const Duration(seconds: 10));
 
       // ===== TEMPORARY DIAGNOSTIC (remove after) =====
-      // Dump every Text and Tooltip currently in the tree so we can see exactly
-      // what the GameScreen renders and why "Next Shift" isn't found. The test
-      // intentionally ends here (passing) to avoid the patrol failure-teardown
-      // deadlock — read the printed output from the job log.
+      // Dump every Text and Tooltip in the tree via fail()'s message so we can
+      // see exactly what the GameScreen renders. fail() throws synchronously —
+      // a fast teardown (~4s) that surfaces the message in the log, unlike a
+      // waitUntilVisible timeout which deadlocks for 24 min. Keep firstShiftId
+      // / secondShiftId referenced for the analyzer.
       final texts = $.tester
           .widgetList<Text>(find.byType(Text))
           .map((t) => t.data)
           .where((s) => s != null)
           .toList();
-      // ignore: avoid_print
-      print('DIAG_TEXTS_START ${texts.join(" | ")} DIAG_TEXTS_END');
       final tooltips = $.tester
           .widgetList<Tooltip>(find.byType(Tooltip))
           .map((t) => t.message)
           .where((s) => s != null)
           .toList();
-      // ignore: avoid_print
-      print('DIAG_TOOLTIPS_START ${tooltips.join(" | ")} DIAG_TOOLTIPS_END');
-      // Keep secondShiftId/firstShiftId referenced so analyzer stays quiet.
-      expect(secondShiftId, isNot(firstShiftId));
-      router.pop();
-      await Future.delayed(const Duration(milliseconds: 600));
+      fail(
+        'SCREENDUMP shifts=[$firstShiftId,$secondShiftId] '
+        'texts=[${texts.join(" || ")}] tooltips=[${tooltips.join(" || ")}]',
+      );
     },
   );
 }
