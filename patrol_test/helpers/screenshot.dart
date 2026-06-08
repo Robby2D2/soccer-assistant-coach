@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:patrol/patrol.dart';
 import 'package:path_provider/path_provider.dart';
@@ -35,7 +35,11 @@ Future<void> captureScreenshot(PatrolIntegrationTester $, String name) async {
 
     final boundary = screenshotBoundaryKey.currentContext?.findRenderObject()
         as RenderRepaintBoundary?;
-    if (boundary == null) return;
+    if (boundary == null) {
+      debugPrint('[captureScreenshot] no RenderRepaintBoundary for "$name" '
+          '— skipping');
+      return;
+    }
 
     // Capture at the device pixel ratio so text stays legible in the artifact.
     final dpr = $.tester.view.devicePixelRatio;
@@ -43,16 +47,24 @@ Future<void> captureScreenshot(PatrolIntegrationTester $, String name) async {
     final ByteData? bytes =
         await image.toByteData(format: ui.ImageByteFormat.png);
     image.dispose();
-    if (bytes == null) return;
+    if (bytes == null) {
+      debugPrint('[captureScreenshot] toByteData returned null for "$name" '
+          '— skipping');
+      return;
+    }
 
     final dir = await getApplicationSupportDirectory(); // /data/data/<pkg>/files
     final shotsDir = Directory('${dir.path}/screenshots');
     await shotsDir.create(recursive: true);
 
     final safe = name.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
-    await File('${shotsDir.path}/$safe.png')
-        .writeAsBytes(bytes.buffer.asUint8List());
-  } catch (_) {
-    // Screenshots are best-effort; never break a passing test over one.
+    final file = File('${shotsDir.path}/$safe.png');
+    await file.writeAsBytes(bytes.buffer.asUint8List());
+    debugPrint('[captureScreenshot] wrote ${file.path} '
+        '(${bytes.lengthInBytes} bytes)');
+  } catch (e, st) {
+    // Screenshots are best-effort; never break a passing test over one — but log
+    // why so a missing artifact is debuggable from the gate output.
+    debugPrint('[captureScreenshot] FAILED for "$name": $e\n$st');
   }
 }
