@@ -45,7 +45,11 @@ jobs:
           fetch-depth: 0
 
       - name: Run /fix-issue
-        uses: anthropics/claude-code-action@v1
+        # Pinned to an immutable release tag rather than the floating @v1, which silently moves
+        # to new builds — a regression there (e.g. the post-step "directory mismatch … tsconfig.json"
+        # internal error that aborted qa-reviewer runs mid-review) would otherwise reach us with no
+        # change on our side. Bump this deliberately after verifying a newer release is stable.
+        uses: anthropics/claude-code-action@v1.0.140
         with:
           # Subscription seat auth (generated with `claude setup-token`). Swap to
           # `anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}` for pay-per-use billing.
