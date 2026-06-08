@@ -22,7 +22,11 @@ set +e
 test_target="$1"
 
 run_patrol() {
-  "$HOME/.pub-cache/bin/patrol" test -t "$test_target" -d emulator-5554 2>&1 | tee patrol.log
+  # --no-uninstall keeps the app installed after the test so we can pull its captured
+  # screenshots with run-as. By default patrol (AGP 8.2+) uninstalls the app once the test
+  # finishes, which wipes its private files dir before the pull ("run-as: unknown package").
+  "$HOME/.pub-cache/bin/patrol" test -t "$test_target" -d emulator-5554 --no-uninstall 2>&1 \
+    | tee patrol.log
   return "${PIPESTATUS[0]}"
 }
 
@@ -49,8 +53,9 @@ echo "[diag] app files dir listing:"
 adb -s emulator-5554 exec-out run-as "$pkg" ls -la files || echo "[diag] (no files dir)"
 echo "[diag] files/screenshots listing:"
 adb -s emulator-5554 exec-out run-as "$pkg" ls -la files/screenshots || echo "[diag] (no files/screenshots dir)"
-echo "[diag] captureScreenshot log lines from patrol output:"
-grep -i 'captureScreenshot' patrol.log || echo "[diag] (no captureScreenshot log line found)"
+echo "[diag] captureScreenshot lines from logcat (app debugPrint surfaces here):"
+adb -s emulator-5554 logcat -d 2>/dev/null | grep -i 'captureScreenshot' \
+  || echo "[diag] (no captureScreenshot line in logcat)"
 echo "::endgroup::"
 
 files=$(adb -s emulator-5554 exec-out run-as "$pkg" ls files/screenshots 2>/dev/null | tr -d '\r')
