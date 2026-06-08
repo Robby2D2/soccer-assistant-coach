@@ -175,194 +175,224 @@ class PlayersScreen extends ConsumerWidget {
                 );
               }
               final rows = snap.data as List<Player>;
-              if (rows.isEmpty) {
-                return _buildEmptyState(context);
-              }
-              final activeCount =
-                  rows.where((p) => p.isPresent).length;
+              final activeCount = rows.where((p) => p.isPresent).length;
+              // PM spec: the count bar must be visible even on an empty roster
+              // (shows "0 players · 0 active"). The empty-state widget is shown
+              // *below* the summary, not in place of it.
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _RosterCountSummary(
-                    total: rows.length,
-                    active: activeCount,
-                  ),
+                  _RosterCountSummary(total: rows.length, active: activeCount),
                   Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: rows.length,
-                itemBuilder: (_, i) {
-                  final player = rows[i];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: Card(
-                      elevation: 2,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            // Player avatar with profile picture, jersey number, or initials
-                            PlayerAvatar(
-                              firstName: player.firstName,
-                              lastName: player.lastName,
-                              jerseyNumber: player.jerseyNumber,
-                              profileImagePath: player.profileImagePath,
-                              radius: 24,
-                              backgroundColor: player.isPresent
-                                  ? Theme.of(
-                                      context,
-                                    ).colorScheme.primaryContainer
-                                  : Theme.of(
-                                      context,
-                                    ).colorScheme.surfaceContainerHighest,
-                              textColor: player.isPresent
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 16),
-
-                            // Player info
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '${player.firstName} ${player.lastName}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(fontWeight: FontWeight.w600),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 2,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          color: player.isPresent
+                    child: rows.isEmpty
+                        ? _buildEmptyState(context)
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: rows.length,
+                            itemBuilder: (_, i) {
+                              final player = rows[i];
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                child: Card(
+                                  elevation: 2,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Row(
+                                      children: [
+                                        // Player avatar with profile picture, jersey number, or initials
+                                        PlayerAvatar(
+                                          firstName: player.firstName,
+                                          lastName: player.lastName,
+                                          jerseyNumber: player.jerseyNumber,
+                                          profileImagePath:
+                                              player.profileImagePath,
+                                          radius: 24,
+                                          backgroundColor: player.isPresent
                                               ? Theme.of(
                                                   context,
                                                 ).colorScheme.primaryContainer
+                                              : Theme.of(context)
+                                                    .colorScheme
+                                                    .surfaceContainerHighest,
+                                          textColor: player.isPresent
+                                              ? Theme.of(
+                                                  context,
+                                                ).colorScheme.primary
                                               : Theme.of(
                                                   context,
-                                                ).colorScheme.errorContainer,
+                                                ).colorScheme.onSurfaceVariant,
                                         ),
-                                        child: Text(
-                                          player.isPresent
-                                              ? 'Active'
-                                              : 'Inactive',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelSmall
-                                              ?.copyWith(
-                                                color: player.isPresent
-                                                    ? Theme.of(context)
-                                                          .colorScheme
-                                                          .onPrimaryContainer
-                                                    : Theme.of(context)
-                                                          .colorScheme
-                                                          .onErrorContainer,
-                                                fontWeight: FontWeight.w500,
+                                        const SizedBox(width: 16),
+
+                                        // Player info
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '${player.firstName} ${player.lastName}',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleMedium
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
                                               ),
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  Container(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 2,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                      color: player.isPresent
+                                                          ? Theme.of(context)
+                                                                .colorScheme
+                                                                .primaryContainer
+                                                          : Theme.of(context)
+                                                                .colorScheme
+                                                                .errorContainer,
+                                                    ),
+                                                    child: Text(
+                                                      player.isPresent
+                                                          ? 'Active'
+                                                          : 'Inactive',
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .labelSmall
+                                                          ?.copyWith(
+                                                            color:
+                                                                player.isPresent
+                                                                ? Theme.of(
+                                                                        context,
+                                                                      )
+                                                                      .colorScheme
+                                                                      .onPrimaryContainer
+                                                                : Theme.of(
+                                                                        context,
+                                                                      )
+                                                                      .colorScheme
+                                                                      .onErrorContainer,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  if (player.jerseyNumber !=
+                                                      null) ...[
+                                                    const SizedBox(width: 8),
+                                                    Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 2,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              12,
+                                                            ),
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .secondaryContainer,
+                                                      ),
+                                                      child: Text(
+                                                        '#${player.jerseyNumber}',
+                                                        style: Theme.of(context)
+                                                            .textTheme
+                                                            .labelSmall
+                                                            ?.copyWith(
+                                                              color: Theme.of(context)
+                                                                  .colorScheme
+                                                                  .onSecondaryContainer,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      if (player.jerseyNumber != null) ...[
+
+                                        // Toggle switch
+                                        Switch(
+                                          value: player.isPresent,
+                                          onChanged: (v) {
+                                            db
+                                                .update(db.players)
+                                                .replace(
+                                                  player.copyWith(isPresent: v),
+                                                );
+                                          },
+                                        ),
                                         const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.secondaryContainer,
-                                          ),
-                                          child: Text(
-                                            '#${player.jerseyNumber}',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .labelSmall
-                                                ?.copyWith(
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .onSecondaryContainer,
-                                                  fontWeight: FontWeight.w500,
+
+                                        // Action buttons
+                                        PopupMenuButton<String>(
+                                          icon: const Icon(Icons.more_vert),
+                                          onSelected: (value) async {
+                                            switch (value) {
+                                              case 'edit':
+                                                context.push(
+                                                  '/player/${player.id}/edit',
+                                                );
+                                                break;
+                                              case 'delete':
+                                                final ok = await _confirm(
+                                                  context,
+                                                  'Delete ${player.firstName} ${player.lastName}?',
+                                                );
+                                                if (ok) {
+                                                  await db.deletePlayer(
+                                                    player.id,
+                                                  );
+                                                }
+                                                break;
+                                            }
+                                          },
+                                          itemBuilder: (context) => [
+                                            const PopupMenuItem(
+                                              value: 'edit',
+                                              child: ListTile(
+                                                leading: Icon(
+                                                  Icons.edit_outlined,
                                                 ),
-                                          ),
+                                                title: Text('Edit'),
+                                                contentPadding: EdgeInsets.zero,
+                                              ),
+                                            ),
+                                            const PopupMenuItem(
+                                              value: 'delete',
+                                              child: ListTile(
+                                                leading: Icon(
+                                                  Icons.delete_outline,
+                                                ),
+                                                title: Text('Delete'),
+                                                contentPadding: EdgeInsets.zero,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Toggle switch
-                            Switch(
-                              value: player.isPresent,
-                              onChanged: (v) {
-                                db
-                                    .update(db.players)
-                                    .replace(player.copyWith(isPresent: v));
-                              },
-                            ),
-                            const SizedBox(width: 8),
-
-                            // Action buttons
-                            PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_vert),
-                              onSelected: (value) async {
-                                switch (value) {
-                                  case 'edit':
-                                    context.push('/player/${player.id}/edit');
-                                    break;
-                                  case 'delete':
-                                    final ok = await _confirm(
-                                      context,
-                                      'Delete ${player.firstName} ${player.lastName}?',
-                                    );
-                                    if (ok) await db.deletePlayer(player.id);
-                                    break;
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(
-                                  value: 'edit',
-                                  child: ListTile(
-                                    leading: Icon(Icons.edit_outlined),
-                                    title: Text('Edit'),
-                                    contentPadding: EdgeInsets.zero,
+                                    ),
                                   ),
                                 ),
-                                const PopupMenuItem(
-                                  value: 'delete',
-                                  child: ListTile(
-                                    leading: Icon(Icons.delete_outline),
-                                    title: Text('Delete'),
-                                    contentPadding: EdgeInsets.zero,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+                              );
+                            },
+                          ),
                   ),
                 ],
               );
