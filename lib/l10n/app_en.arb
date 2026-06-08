@@ -417,5 +417,17 @@
   "onboardingNoTeamsSubtitle": "Tap + to create your first team, then add players and schedule a game.",
   "noTeamsYetDescriptionOnboarding": "Get started: create your first team, add players, then schedule a game.",
   "noPlayersYetDescriptionOnboarding": "Add players to your roster. Once your roster is set, head to the Games tab to schedule a match.",
-  "noGamesYetDescriptionOnboarding": "Schedule your first game. Make sure you've added players to the roster first."
+  "noGamesYetDescriptionOnboarding": "Schedule your first game. Make sure you've added players to the roster first.",
+
+  "rosterCountSummary": "{total} players · {active} active",
+  "@rosterCountSummary": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "active": {
+        "type": "int"
+      }
+    }
+  }
 }

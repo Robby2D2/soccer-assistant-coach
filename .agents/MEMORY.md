@@ -4,6 +4,29 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
+## Session: June 7, 2026 — Roster player count summary on Players screen (issue #28)
+
+Date: 2026-06-07
+
+### What was done
+Added a reactive "N players · M active" count bar to the Players screen so coaches can see their roster size at a glance without scrolling.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `lib/features/players/players_screen.dart` | Added `_RosterCountSummary` widget (a sticky `Container` with `surfaceContainerHighest` background) placed as the first child of a `Column` wrapping the player `ListView`. Active count derived from `rows.where((p) => p.isPresent).length` — no extra DB query needed. |
+| `lib/l10n/app_{en,es,fr}.arb` | Added `rosterCountSummary` string with `{total}` (int) and `{active}` (int) placeholders |
+| `lib/l10n/app_localizations*.dart` | Regenerated via `flutter gen-l10n` |
+| `patrol_test/players_count_journey_test.dart` | New Patrol journey: seeds 3 players (2 active, 1 inactive), navigates to `/team/:id/players`, asserts "3 players · 2 active" visible, captures screenshot |
+
+### Key learnings
+- **The summary bar appears only when the roster is non-empty** — the empty-state path returns early before the `Column` is built, so the count bar is not shown on an empty roster. This matches the spec (the empty state already tells coaches to add players).
+- **No extra DB query** — the active count is computed inline from the already-streamed `rows` list, keeping the solution free of additional watchers.
+- **Flutter is not pre-installed on the `fix-issue.yml` runner** — the workflow only does `actions/checkout`. The developer agent must `git clone` the Flutter SDK (`https://github.com/flutter/flutter.git --branch stable --depth 1`) before running `flutter gen-l10n` / `flutter analyze` / `flutter test`.
+
+---
+
 ## Session: June 7, 2026 — QA agent attaches emulator screenshots to UI-changing PRs
 
 Date: 2026-06-07

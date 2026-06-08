@@ -1461,6 +1461,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Schedule your first game. Make sure you\'ve added players to the roster first.'**
   String get noGamesYetDescriptionOnboarding;
+
+  /// No description provided for @rosterCountSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{total} players · {active} active'**
+  String rosterCountSummary(int total, int active);
 }
 
 class _AppLocalizationsDelegate

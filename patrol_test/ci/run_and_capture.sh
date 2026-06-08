@@ -10,13 +10,38 @@
 # shells. Invoking this script as a SINGLE line (one `sh -c` -> `bash <file>`) runs the whole
 # thing in one shell, so the logic works.
 #
+# Total-0 retry: patrol intermittently fails with "Total: 0 / Gradle test execution failed
+# with code 1" — the connectedAndroidTest gradle task bails before instrumentation runs, so no
+# Dart test code ever executes. There is no test result to mask: the suite has produced exactly
+# zero outcomes. A one-shot retry costs ~45 s and shakes off this pre-existing flake. A real
+# failure (Total: >0, Failed: >0) does NOT match the guard and falls through unchanged.
+#
 # Exits with patrol's real status so the gate still fails on a genuinely red test.
 set +e
 
 test_target="$1"
-"$HOME/.pub-cache/bin/patrol" test -t "$test_target" -d emulator-5554
+
+run_patrol() {
+  # --no-uninstall keeps the app installed after the test so we can pull its captured
+  # screenshots with run-as. By default patrol (AGP 8.2+) uninstalls the app once the test
+  # finishes, which wipes its private files dir before the pull ("run-as: unknown package").
+  "$HOME/.pub-cache/bin/patrol" test -t "$test_target" -d emulator-5554 --no-uninstall 2>&1 \
+    | tee patrol.log
+  return "${PIPESTATUS[0]}"
+}
+
+run_patrol
 status=$?
 
+# Flake guard: non-zero exit + "Total: 0" => gradle never handed off to the instrumented test.
+# A genuine red test reports Total: 1 with Failed: 1, so it will not match this regex.
+if [ "$status" -ne 0 ] && grep -q "Total: 0" patrol.log; then
+  echo "::warning::patrol reported Total: 0 (gradle bailed before instrumentation) — retrying once"
+  run_patrol
+  status=$?
+fi
+
+# Pull any screenshots the test captured off the (still-installed) app with run-as.
 pkg=com.useunix.soccerassistantcoach
 mkdir -p screenshots
 files=$(adb -s emulator-5554 exec-out run-as "$pkg" ls files/screenshots 2>/dev/null | tr -d '\r')
