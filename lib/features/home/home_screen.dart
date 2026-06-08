@@ -8,6 +8,7 @@ import '../../../widgets/team_logo_widget.dart';
 import '../../widgets/team_color_picker.dart';
 import '../../utils/team_theme.dart'; // For TeamColorContrast
 import '../../l10n/app_localizations.dart';
+import '../../widgets/standardized_app_bar_actions.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -20,61 +21,11 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(loc.appTitle),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => context.push('/settings'),
-            tooltip: loc.settings,
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              switch (value) {
-                case 'settings':
-                  context.push('/settings');
-                  break;
-                case 'seasons':
-                  context.push('/seasons');
-                  break;
-                case 'debug':
-                  context.push('/debug/database');
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'settings',
-                child: Row(
-                  children: [
-                    const Icon(Icons.settings),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(loc.settings)),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'seasons',
-                child: Row(
-                  children: [
-                    const Icon(Icons.calendar_today),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(loc.manageSeasons)),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'debug',
-                child: Row(
-                  children: [
-                    const Icon(Icons.bug_report),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(loc.databaseDiagnostics)),
-                  ],
-                ),
-              ),
-            ],
-            child: const Icon(Icons.more_vert),
-          ),
-        ],
+        actions: StandardizedAppBarActions.createActionsWidgets([
+          CommonNavigationActions.settings(context),
+          CommonNavigationActions.manageSeasons(context),
+          CommonNavigationActions.database(context),
+        ]),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
