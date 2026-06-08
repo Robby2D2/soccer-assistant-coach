@@ -143,6 +143,15 @@ class CommonNavigationActions {
     );
   }
 
+  static NavigationAction manageSeasons(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    return NavigationAction(
+      label: loc.manageSeasons,
+      icon: Icons.calendar_today,
+      onPressed: () => context.push('/seasons'),
+    );
+  }
+
   static NavigationAction database(BuildContext context) {
     final loc = AppLocalizations.of(context);
     return NavigationAction(
