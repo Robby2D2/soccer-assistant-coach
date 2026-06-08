@@ -41,23 +41,9 @@ if [ "$status" -ne 0 ] && grep -q "Total: 0" patrol.log; then
   status=$?
 fi
 
+# Pull any screenshots the test captured off the (still-installed) app with run-as.
 pkg=com.useunix.soccerassistantcoach
 mkdir -p screenshots
-
-# --- DIAGNOSTIC (temporary): show whether the app wrote any screenshot and whether run-as
-# can read it, so a missing artifact tells us app-side-vs-pull-side. Remove once capture works.
-echo "::group::screenshot pull diagnostics"
-echo "[diag] run-as availability:"
-adb -s emulator-5554 exec-out run-as "$pkg" id || echo "[diag] run-as FAILED"
-echo "[diag] app files dir listing:"
-adb -s emulator-5554 exec-out run-as "$pkg" ls -la files || echo "[diag] (no files dir)"
-echo "[diag] files/screenshots listing:"
-adb -s emulator-5554 exec-out run-as "$pkg" ls -la files/screenshots || echo "[diag] (no files/screenshots dir)"
-echo "[diag] captureScreenshot lines from logcat (app debugPrint surfaces here):"
-adb -s emulator-5554 logcat -d 2>/dev/null | grep -i 'captureScreenshot' \
-  || echo "[diag] (no captureScreenshot line in logcat)"
-echo "::endgroup::"
-
 files=$(adb -s emulator-5554 exec-out run-as "$pkg" ls files/screenshots 2>/dev/null | tr -d '\r')
 for f in $files; do
   case "$f" in
@@ -67,6 +53,5 @@ for f in $files; do
       ;;
   esac
 done
-echo "[diag] pulled into ./screenshots:"; ls -la screenshots || true
 
 exit "$status"
