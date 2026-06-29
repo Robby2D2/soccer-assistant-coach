@@ -6,19 +6,18 @@ import 'providers.dart';
 /// Provides a TeamTheme for a given team id (or null for fallback app theme
 /// colors).
 ///
-/// This caches the fetched team, so it must be invalidated when the coach edits
-/// a team's colors — see [invalidateTeamTheme], called from the team editor —
-/// otherwise team-scoped screens keep showing the old colors.
-final teamThemeProvider = FutureProvider.family<TeamTheme?, int?>((
-  ref,
-  teamId,
-) async {
-  if (teamId == null) return null;
-  final db = ref.watch(dbProvider);
-  final team = await db.getTeam(teamId);
-  if (team == null) return null;
-  return TeamTheme.fromTeam(team);
-});
+/// `autoDispose` so it re-fetches whenever a team-scoped screen is (re)opened —
+/// e.g. returning to a game after editing the team's colors — instead of
+/// serving a stale cached theme. [invalidateTeamTheme] additionally refreshes
+/// any screen that is *already* mounted while the colors change.
+final teamThemeProvider = FutureProvider.autoDispose
+    .family<TeamTheme?, int?>((ref, teamId) async {
+      if (teamId == null) return null;
+      final db = ref.watch(dbProvider);
+      final team = await db.getTeam(teamId);
+      if (team == null) return null;
+      return TeamTheme.fromTeam(team);
+    });
 
 /// Refresh team theming after a team's colors/name change so every team-scoped
 /// screen (game, roster, metrics…) picks up the new colors immediately.
