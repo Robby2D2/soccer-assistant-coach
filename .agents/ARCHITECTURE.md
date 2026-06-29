@@ -68,9 +68,17 @@ Team colors propagate through the widget tree via a layered system:
 3. **Provider** — `teamThemeProvider` in `lib/core/team_theme_manager.dart` exposes the current team theme.
 4. **Scaffolds** — `TeamScaffold` and `GameScaffold` apply the team theme to their subtree.
 
+### Sideline design system
+
+The "Sideline" design system (`design-system/design_handoff_sideline/`) layers on top of the above:
+
+- **Tokens** — `lib/core/sideline.dart`: `SidelineColors` (neutral + whistle palettes), `SidelineSpacing`, `SidelineRadius`, and typography helpers `sidelineTextTheme()` (Hanken Grotesk) / `sidelineMono()` (Spline Sans Mono, tabular figures — use for all numerics). Light mode in `theme.dart` adopts these neutrals; dark mode keeps the seed scheme.
+- **`TeamColors` ThemeExtension** — `lib/utils/team_theme.dart`: exposes team-derived `team`/`strong`/`soft`/`onTeam` shades on the active `ThemeData`. Read via `Theme.of(context).extension<TeamColors>()` or `teamColorsOf(context)` (in `lib/widgets/sideline_widgets.dart`). It is the **only** ThemeExtension in the app; `applyTo` sets it outright (do not spread `base.extensions` — the test front-end rejects the inferred type).
+- **Components** — `lib/widgets/sideline_widgets.dart`: `SidelineHeroShiftCard`, `SidelineAlertBanner`, `SidelinePlayerShiftRow`, `SidelinePositionChip`, `SidelineNextOnChip`. The hero card + alert banner are live on the Live Game screen; the row/chip widgets exist but the rest of the Live Game layout (branded header, vertical pitch list, next-on wrap, bottom Next-Shift bar) and the Teams/Roster/Metrics rollout are still pending.
+
 ### Contrast Safety
 
-`TeamColorContrast.onColorFor(Color)` returns black or white to maintain ≥ 4.5:1 WCAG contrast against any team background. Always use this for text/icons rendered over team-colored surfaces.
+`TeamColorContrast.onColorFor(Color)` returns black or white to maintain ≥ 4.5:1 WCAG contrast against any team background. Always use this for text/icons rendered over team-colored surfaces. (`TeamColors.onTeam` is derived from it.)
 
 ---
 

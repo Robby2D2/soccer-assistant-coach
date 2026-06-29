@@ -1,25 +1,39 @@
 import 'package:flutter/material.dart';
+import 'sideline.dart';
+import '../utils/team_theme.dart';
 
-const _brandSeed = Color(0xFF2E7D32);
+// Sideline default team color (Pitch Green) — the brand seed and the fallback
+// team color for screens not scoped to a specific team.
+const _brandSeed = Color(0xFF1B8A47);
 
 ThemeData appTheme = _makeTheme(Brightness.light);
 ThemeData appDarkTheme = _makeTheme(Brightness.dark);
 
 ThemeData _makeTheme(Brightness brightness) {
+  final isLight = brightness == Brightness.light;
   final scheme = ColorScheme.fromSeed(
     seedColor: _brandSeed,
     brightness: brightness,
+  ).copyWith(
+    // Sideline light neutrals: warm off-white field + white surfaces + hairline
+    // borders. Dark mode keeps the seed-generated scheme.
+    surface: isLight ? SidelineColors.surface : null,
+    onSurface: isLight ? SidelineColors.ink : null,
+    outlineVariant: isLight ? SidelineColors.hairline : null,
   );
-  final textTheme =
-      (brightness == Brightness.dark
-              ? Typography.material2021().white
-              : Typography.material2021().black)
-          .apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface);
+  final textTheme = sidelineTextTheme(
+    (brightness == Brightness.dark
+            ? Typography.material2021().white
+            : Typography.material2021().black)
+        .apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface),
+  );
 
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
     brightness: brightness,
+    scaffoldBackgroundColor: isLight ? SidelineColors.field : null,
+    extensions: <ThemeExtension<dynamic>>[TeamColors.fromSeed(_brandSeed)],
     textTheme: textTheme,
     visualDensity: VisualDensity.standard,
     splashFactory: InkSparkle.splashFactory,
@@ -35,7 +49,7 @@ ThemeData _makeTheme(Brightness brightness) {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: scheme.surfaceContainerHighest,
+      color: isLight ? SidelineColors.surface : scheme.surfaceContainerHighest,
     ),
     listTileTheme: ListTileThemeData(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
