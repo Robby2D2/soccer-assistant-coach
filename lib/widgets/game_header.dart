@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/providers.dart';
 import '../core/sideline.dart';
@@ -50,15 +51,28 @@ class SidelineGameHeader extends ConsumerWidget {
                 : 'vs $opponentName';
             final isLive = game?.gameStatus == 'in-progress';
 
-            return Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: band,
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(SidelineRadius.headerBottom),
+            // The band paints behind the status bar, so match the status-bar
+            // icon brightness to the band: light icons on a dark team color,
+            // dark icons on a light one.
+            final bandIsDark =
+                ThemeData.estimateBrightnessForColor(band) == Brightness.dark;
+            final overlay =
+                (bandIsDark
+                        ? SystemUiOverlayStyle.light
+                        : SystemUiOverlayStyle.dark)
+                    .copyWith(statusBarColor: Colors.transparent);
+
+            return AnnotatedRegion<SystemUiOverlayStyle>(
+              value: overlay,
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: band,
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(SidelineRadius.headerBottom),
+                  ),
                 ),
-              ),
-              child: SafeArea(
+                child: SafeArea(
                 bottom: false,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(8, 4, 12, 16),
@@ -135,6 +149,7 @@ class SidelineGameHeader extends ConsumerWidget {
                       ),
                     ],
                   ),
+                ),
                 ),
               ),
             );
