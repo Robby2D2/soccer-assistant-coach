@@ -4,6 +4,42 @@ This file tracks key decisions, conventions, and session learnings for the socce
 
 ---
 
+## Session: June 28, 2026 — "Sideline" design system foundation + Live Game hero card
+
+Date: 2026-06-28
+
+### What was done
+Implemented the foundation of the "Sideline" design system (from
+`design-system/design_handoff_sideline/README.md`) and applied its centerpiece
+to the Live Game screen.
+
+### Changes made
+
+| Change | Detail |
+|--------|--------|
+| `pubspec.yaml` | Added `google_fonts: ^8.1.0` (Hanken Grotesk for text, Spline Sans Mono for numerics). |
+| `lib/core/sideline.dart` (new) | Design tokens: `SidelineColors` (ink/muted/field/surface/hairline + whistle/whistleText/whistleSoft), `SidelineSpacing`, `SidelineRadius`, `sidelineTextTheme()` (Hanken Grotesk), `sidelineMono()` (Spline Sans Mono w/ tabular figures). |
+| `lib/utils/team_theme.dart` | Added `TeamColors` **ThemeExtension** (`team`/`strong`/`soft`/`onTeam`) with the handoff derivation: strong = alphaBlend(black 30%, team), soft = alphaBlend(team 13%, white), onTeam = `TeamColorContrast.onColorFor`. Wired into `applyTo` via `extensions: [TeamColors.fromSeed(primaryColor)]`. |
+| `lib/core/theme.dart` | Brand seed → Pitch Green `#1B8A47`. Light mode now uses Sideline neutrals (field scaffold bg, white surface/cards, hairline outlineVariant, ink onSurface) + `sidelineTextTheme`. Registers a default `TeamColors` so non-team screens resolve the extension. Dark mode keeps the seed-generated scheme. |
+| `lib/widgets/sideline_widgets.dart` (new) | Reusable, theme-driven components: `SidelineHeroShiftCard`, `SidelineAlertBanner` (pulsing dot), `SidelinePlayerShiftRow`, `SidelinePositionChip`, `SidelineNextOnChip`, plus `teamColorsOf(context)` helper. |
+| `lib/features/games/game_screen.dart` | Swapped the stopwatch timer Card for `SidelineHeroShiftCard`; replaced the "Stop Alert" button with `SidelineAlertBanner`. Reused existing `_hhmmssSigned` / `_formatTimeRemaining` and the existing shift/stopwatch logic — buttons and `_ShiftsList` untouched. |
+
+### Key learnings
+- **`TeamColors` is the single app ThemeExtension.** `applyTo` sets it outright rather than merging `base.extensions.values` — the merge spread compiles under `flutter analyze` but the stricter test front-end rejects it (`ThemeExtension<ThemeExtension<dynamic>>` inference error). Read via `Theme.of(context).extension<TeamColors>()` (or `teamColorsOf`).
+- **Read all numerics with `sidelineMono()`** so tabular figures keep the clock from jittering.
+- **Live Game control layout (per Rob's steer on the updated Claude Design screenshot):** the play/pause control now lives **in the hero card top-right** (`SidelineHeroShiftCard.action` slot + `_HeroControlButton`), the countdown was shrunk (76→60) and the card padding tightened, and `_ShiftsList` dropped its fixed `height: 280` to fill its `Expanded` — so the compacted timer leaves more room to see the shift's players. Start/Pause/Resume logic was extracted into `_startOrResumeTimer` / `_pauseTimer` methods.
+- **Context-aware sticky bottom bar (`_ShiftActionBar`):** replaces the old "Next Shift" button. Its label follows which shift the coach is viewing in the planning pager: viewing the **active** shift → "See Next Shift" (scrolls the pager to the upcoming lineup); viewing an **upcoming** shift → "Start Shift" (activates it via `_handleStartNextShift`); viewing a **past** shift → "Back to Current Shift". Wiring: `_ShiftsList` gained an `onShiftViewed` callback (fired from `PageView.onPageChanged` + a post-frame initial report) → updates `_viewedShiftId` (`ValueNotifier<int?>`) → the bar's `ValueListenableBuilder` reacts. The bar is appended as the last child of the in-progress body `Column` (after the `Expanded` pager) so it pins to the bottom; shown only for in-progress games with an active shift.
+- **Decisions:** keep the existing horizontal `PageView` shift-planning view (do **not** rebuild into the vertical on-pitch list); **do not** add the "Next on · least time" section — Rob wanted to preserve planning + maximize players visible. The vertical `SidelinePlayerShiftRow` / `SidelineNextOnChip` widgets exist but stay unused for now. There is still a dead `Offstage` duplicate buttons block in `game_screen.dart` (harmless; candidate for cleanup).
+- **Data available for any future on-pitch/next-on view:** `db.playedSecondsByPlayer(gameId)` (per-player seconds → minutes & least-time sort), `db.presentPlayersForGame(gameId, teamId)`, `db.getAssignments(shiftId)` (on-pitch + positions). Bench = present − on-pitch.
+- **Claude Design link:** the live design lives in claude.ai/design project `4def67a5-f261-40c8-8862-a8447aef9aee` ("Design system for soccer coach", a regular PROJECT type, so it doesn't show in `DesignSync.list_projects`). Read it via `get_project`/`list_files`/`get_file`. Best workflow with Rob: he iterates visually + pastes screenshots; I translate to Flutter against the Sideline tokens.
+- **Branded game header (`lib/widgets/game_header.dart` → `SidelineGameHeader`):** the Live Game screen dropped `TeamAppBar` in favor of a full-bleed team-colored band with a rounded bottom (28), rendered as the **first child of the body** (not the `appBar` slot — easier to size a tall immersive band; it fills behind the status bar via `SafeArea(bottom:false)`). Contains: status row (back button · pulsing **LIVE** pill · the kebab menu re-parented into its `actions`), then crest (white rounded square w/ team initial) + team name + "vs Opponent" + a score/period box (`teamScore–opponentScore` + `1ST/2ND HALF` from `Games.teamScore/opponentScore/currentHalf`). The old app-bar title's per-team shift-length lazy-load moved to `_loadShiftLength()` in `initState`. Removed now-unused imports (`team_logo_widget`, `team_color_picker`, `team_theme_manager`).
+- **Status-bar styling:** `SidelineGameHeader` wraps its band in `AnnotatedRegion<SystemUiOverlayStyle>`, picking light/dark status-bar icons from the band's luminance (`ThemeData.estimateBrightnessForColor`) so they stay legible on any team color.
+- **Team color staleness fix:** `teamThemeProvider` (`team_theme_manager.dart`) is a non-autoDispose `FutureProvider` that fetched the team once and cached it, so after a coach edited team colors the game/roster/metrics kept the *old* colors until app restart. Fix: `invalidateTeamTheme(ref, teamId)` is now called from the team editor's Save handler (`team_edit_screen.dart`) so every team-scoped screen refetches. (Tried a reactive `StreamProvider` + `db.watchTeam` first, but a drift stream leaves a pending timer when a short-lived test widget tree disposes — `team_theme_test` failed with "A Timer is still pending" — so invalidate-on-save is the chosen approach.) All team-themed widgets already derive from the team color (raw `TeamColors` for the new Sideline components; tonal `colorScheme.*Container` for the older player panel / shift cards), so once the theme refreshes, everything follows the coach's selected colors. Remaining fidelity nit (optional): the player-panel badges/chips use Material *tonal* derivations of the team color rather than the raw vivid color.
+- **Sideline rollout (started):** the global theme already re-skins every screen (Sideline fonts + neutrals). Metrics playtime bars (`_PlaytimeBarRow` in `metrics_overview_screen.dart`) now use the real team color (`teamColorsOf`) for the fill, a solid hairline track, pill-rounded bars, and `sidelineMono` for the time numerics. Teams/Roster deeper per-screen styling is still open (subjective — get user direction / screenshots before sprawling).
+- Verified: `flutter analyze` clean, all 81 unit/widget tests pass (after both the foundation and this control-relocation pass).
+
+---
+
 ## Session: June 7, 2026 — Roster player count summary on Players screen (issue #28)
 
 Date: 2026-06-07

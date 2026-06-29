@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../utils/files.dart';
 import '../../core/game_scaffold.dart';
+import '../../core/sideline.dart';
 import '../../core/team_theme_manager.dart';
+import '../../widgets/sideline_widgets.dart';
 import '../../widgets/standardized_app_bar_actions.dart';
 
 class MetricsOverviewScreen extends ConsumerWidget {
@@ -353,9 +355,8 @@ class _PlaytimeBarRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = theme.colorScheme.primary;
-    final surfaceVariant = theme.colorScheme.surfaceContainerHighest;
-    final onSurfaceVariant = theme.colorScheme.onSurfaceVariant;
+    final color = teamColorsOf(context).team;
+    final surfaceVariant = SidelineColors.hairline;
     final name = player == null
         ? 'Player #?'
         : '${player!.firstName} ${player!.lastName}';
@@ -378,9 +379,10 @@ class _PlaytimeBarRow extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 _hhmmss(seconds),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                  color: onSurfaceVariant,
+                style: sidelineMono(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: SidelineColors.muted,
                 ),
               ),
             ],
@@ -393,8 +395,8 @@ class _PlaytimeBarRow extends StatelessWidget {
                 Container(
                   width: barMaxWidth,
                   decoration: BoxDecoration(
-                    color: surfaceVariant.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(6),
+                    color: surfaceVariant,
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
                 AnimatedContainer(
@@ -403,7 +405,7 @@ class _PlaytimeBarRow extends StatelessWidget {
                   width: barWidth,
                   decoration: BoxDecoration(
                     color: color,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(5),
                   ),
                 ),
               ],

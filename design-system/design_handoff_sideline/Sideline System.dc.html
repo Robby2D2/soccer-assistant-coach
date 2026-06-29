@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Hanken Grotesk',system-ui,sans-serif}
+  @keyframes livedot{0%,100%{opacity:1}50%{opacity:.35}}
+</style>
+</helmet>
+
+<!-- ============ FRAME 1 — SYSTEM ============ -->
+<div style="position:absolute;left:0;top:0;width:880px">
+  <div data-drags-parent="1" style="font:600 13px 'Spline Sans Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#5A675F;margin-bottom:14px">01 — Design System</div>
+  <div style="background:#FFFFFF;border-radius:28px;box-shadow:0 1px 3px rgba(20,40,28,.10);overflow:hidden;color:#18211C">
+
+    <!-- masthead -->
+    <div style="padding:44px 48px 38px;background:#1B8A47;color:#fff">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+        <div style="width:34px;height:34px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;color:#1B8A47;font-weight:800;font-size:20px">S</div>
+        <div style="font-size:15px;font-weight:600;letter-spacing:.04em">SIDELINE</div>
+      </div>
+      <div style="font-size:46px;font-weight:800;line-height:1.04;letter-spacing:-.02em;max-width:560px">A glance-and-go design system for sideline coaching.</div>
+      <div style="font-size:18px;font-weight:500;color:#E4F2E8;margin-top:16px;max-width:540px">Built to be read in bright sun, tapped without looking, and recolored to match any team.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:24px">
+        <div style="background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:9px 16px;font-size:14px;font-weight:600">☀ High-contrast for daylight</div>
+        <div style="background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:9px 16px;font-size:14px;font-weight:600">56px touch targets</div>
+        <div style="background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);border-radius:999px;padding:9px 16px;font-size:14px;font-weight:600">One token recolors the app</div>
+      </div>
+    </div>
+
+    <!-- COLOR -->
+    <div style="padding:40px 48px;border-bottom:1px solid #E2E7DC">
+      <div style="font:700 13px 'Spline Sans Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#1B8A47;margin-bottom:6px">Color</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:4px">Neutrals stay put, the team color travels</div>
+      <div style="font-size:16px;color:#5A675F;max-width:620px;margin-bottom:26px">Warm off-white surfaces and a near-black ink hold steady for legibility. Every accent on screen derives from a single <b style="color:#18211C">team color</b> — primary buttons, headers, progress, highlights.</div>
+
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px">
+        <div><div style="height:64px;border-radius:14px;background:#18211C;border:1px solid #E2E7DC"></div><div style="font-size:13px;font-weight:700;margin-top:8px">Ink</div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">#18211C</div></div>
+        <div><div style="height:64px;border-radius:14px;background:#5A675F"></div><div style="font-size:13px;font-weight:700;margin-top:8px">Muted</div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">#5A675F</div></div>
+        <div><div style="height:64px;border-radius:14px;background:#F2F5EE;border:1px solid #E2E7DC"></div><div style="font-size:13px;font-weight:700;margin-top:8px">Field (bg)</div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">#F2F5EE</div></div>
+        <div><div style="height:64px;border-radius:14px;background:#FFFFFF;border:1px solid #E2E7DC"></div><div style="font-size:13px;font-weight:700;margin-top:8px">Surface</div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">#FFFFFF</div></div>
+        <div><div style="height:64px;border-radius:14px;background:#E2E7DC"></div><div style="font-size:13px;font-weight:700;margin-top:8px">Hairline</div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">#E2E7DC</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px">
+        <div><div style="height:64px;border-radius:14px;background:#1B8A47"></div><div style="font-size:13px;font-weight:700;margin-top:8px">Team</div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">default</div></div>
+        <div><div style="height:64px;border-radius:14px;background:#146536"></div><div style="font-size:13px;font-weight:700;margin-top:8px">Team strong</div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">headers</div></div>
+        <div><div style="height:64px;border-radius:14px;background:#E4F2E8;border:1px solid #E2E7DC"></div><div style="font-size:13px;font-weight:700;margin-top:8px">Team soft</div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">tints</div></div>
+        <div><div style="height:64px;border-radius:14px;background:#F2A33B"></div><div style="font-size:13px;font-weight:700;margin-top:8px">Whistle</div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">alerts</div></div>
+        <div><div style="height:64px;border-radius:14px;background:#FCEFD9;border:1px solid #E2E7DC"></div><div style="font-size:13px;font-weight:700;margin-top:8px">Whistle soft</div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">alert bg</div></div>
+      </div>
+    </div>
+
+    <!-- TEAM THEMING -->
+    <div style="padding:40px 48px;border-bottom:1px solid #E2E7DC;background:#F2F5EE">
+      <div style="font:700 13px 'Spline Sans Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#1B8A47;margin-bottom:6px">Team theming</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:4px">One screen, every club's colors</div>
+      <div style="font-size:16px;color:#5A675F;max-width:620px;margin-bottom:26px">A coach picks the team color; the system derives <b style="color:#18211C">strong</b> and <b style="color:#18211C">soft</b> shades automatically. Contrast is checked so text stays readable on any pick.</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+        <div style="background:#fff;border:1px solid #E2E7DC;border-radius:18px;padding:16px">
+          <div style="display:flex;gap:6px;margin-bottom:12px"><div style="flex:1;height:44px;border-radius:10px;background:#146536"></div><div style="flex:1.4;height:44px;border-radius:10px;background:#1B8A47"></div><div style="flex:1;height:44px;border-radius:10px;background:#E4F2E8"></div></div>
+          <div style="font-size:15px;font-weight:700">Pitch Green</div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">default</div>
+        </div>
+        <div style="background:#fff;border:1px solid #E2E7DC;border-radius:18px;padding:16px">
+          <div style="display:flex;gap:6px;margin-bottom:12px"><div style="flex:1;height:44px;border-radius:10px;background:#A8301F"></div><div style="flex:1.4;height:44px;border-radius:10px;background:#D8442F"></div><div style="flex:1;height:44px;border-radius:10px;background:#FBE7E2"></div></div>
+          <div style="font-size:15px;font-weight:700">Riverside Red</div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">#D8442F</div>
+        </div>
+        <div style="background:#fff;border:1px solid #E2E7DC;border-radius:18px;padding:16px">
+          <div style="display:flex;gap:6px;margin-bottom:12px"><div style="flex:1;height:44px;border-radius:10px;background:#1A47A0"></div><div style="flex:1.4;height:44px;border-radius:10px;background:#2563C9"></div><div style="flex:1;height:44px;border-radius:10px;background:#E4EBFB"></div></div>
+          <div style="font-size:15px;font-weight:700">Lakeside Blue</div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">#2563C9</div>
+        </div>
+        <div style="background:#fff;border:1px solid #E2E7DC;border-radius:18px;padding:16px">
+          <div style="display:flex;gap:6px;margin-bottom:12px"><div style="flex:1;height:44px;border-radius:10px;background:#0A6A6A"></div><div style="flex:1.4;height:44px;border-radius:10px;background:#0E8C8C"></div><div style="flex:1;height:44px;border-radius:10px;background:#DBF0F0"></div></div>
+          <div style="font-size:15px;font-weight:700">Coastal Teal</div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">#0E8C8C</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TYPE -->
+    <div style="padding:40px 48px;border-bottom:1px solid #E2E7DC">
+      <div style="font:700 13px 'Spline Sans Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#1B8A47;margin-bottom:6px">Typography</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:4px">Hanken Grotesk + a scoreboard mono</div>
+      <div style="font-size:16px;color:#5A675F;max-width:620px;margin-bottom:26px">A warm, friendly grotesque for everything you read, and <span style="font-family:'Spline Sans Mono',monospace;font-weight:600">Spline Sans Mono</span> for clocks, scores and minutes — tabular figures that don't jitter as they tick.</div>
+      <div style="display:flex;gap:40px;flex-wrap:wrap;align-items:flex-end">
+        <div style="flex:1;min-width:300px">
+          <div style="display:flex;align-items:baseline;gap:14px;border-bottom:1px solid #E2E7DC;padding:10px 0"><div style="width:78px;font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">Display</div><div style="font-size:40px;font-weight:800;letter-spacing:-.02em">Next Shift</div></div>
+          <div style="display:flex;align-items:baseline;gap:14px;border-bottom:1px solid #E2E7DC;padding:10px 0"><div style="width:78px;font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">Title</div><div style="font-size:24px;font-weight:700">On the pitch</div></div>
+          <div style="display:flex;align-items:baseline;gap:14px;border-bottom:1px solid #E2E7DC;padding:10px 0"><div style="width:78px;font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">Body</div><div style="font-size:17px;font-weight:500">Mia Thompson · Forward</div></div>
+          <div style="display:flex;align-items:baseline;gap:14px;padding:10px 0"><div style="width:78px;font:500 12px 'Spline Sans Mono',monospace;color:#5A675F">Label</div><div style="font:600 13px 'Spline Sans Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#5A675F">Shift 4 of 6</div></div>
+        </div>
+        <div style="flex:1;min-width:240px;background:#18211C;border-radius:20px;padding:26px 28px;color:#fff;text-align:center">
+          <div style="font:600 12px 'Spline Sans Mono',monospace;letter-spacing:.14em;color:#9DB0A4">UNTIL NEXT SHIFT</div>
+          <div style="font:700 72px 'Spline Sans Mono',monospace;letter-spacing:-.02em;line-height:1.1;margin-top:6px">03:12</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHAPE & SPACE -->
+    <div style="padding:40px 48px;border-bottom:1px solid #E2E7DC;display:flex;gap:48px;flex-wrap:wrap">
+      <div style="flex:1;min-width:260px">
+        <div style="font:700 13px 'Spline Sans Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#1B8A47;margin-bottom:14px">Radius</div>
+        <div style="display:flex;align-items:flex-end;gap:16px">
+          <div style="text-align:center"><div style="width:56px;height:56px;background:#E4F2E8;border:1px solid #1B8A47;border-radius:999px"></div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F;margin-top:8px">pill</div></div>
+          <div style="text-align:center"><div style="width:56px;height:56px;background:#E4F2E8;border:1px solid #1B8A47;border-radius:20px"></div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F;margin-top:8px">20 card</div></div>
+          <div style="text-align:center"><div style="width:56px;height:56px;background:#E4F2E8;border:1px solid #1B8A47;border-radius:14px"></div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F;margin-top:8px">14 btn</div></div>
+          <div style="text-align:center"><div style="width:56px;height:56px;background:#E4F2E8;border:1px solid #1B8A47;border-radius:10px"></div><div style="font:500 12px 'Spline Sans Mono',monospace;color:#5A675F;margin-top:8px">10 chip</div></div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:260px">
+        <div style="font:700 13px 'Spline Sans Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#1B8A47;margin-bottom:14px">Spacing — 4px base</div>
+        <div style="display:flex;align-items:flex-end;gap:10px">
+          <div style="text-align:center"><div style="width:8px;height:8px;background:#1B8A47;border-radius:3px;margin:0 auto"></div><div style="font:500 11px 'Spline Sans Mono',monospace;color:#5A675F;margin-top:8px">8</div></div>
+          <div style="text-align:center"><div style="width:12px;height:12px;background:#1B8A47;border-radius:3px;margin:0 auto"></div><div style="font:500 11px 'Spline Sans Mono',monospace;color:#5A675F;margin-top:8px">12</div></div>
+          <div style="text-align:center"><div style="width:16px;height:16px;background:#1B8A47;border-radius:4px;margin:0 auto"></div><div style="font:500 11px 'Spline Sans Mono',monospace;color:#5A675F;margin-top:8px">16</div></div>
+          <div style="text-align:center"><div style="width:20px;height:20px;background:#1B8A47;border-radius:5px;margin:0 auto"></div><div style="font:500 11px 'Spline Sans Mono',monospace;color:#5A675F;margin-top:8px">20</div></div>
+          <div style="text-align:center"><div style="width:24px;height:24px;background:#1B8A47;border-radius:6px;margin:0 auto"></div><div style="font:500 11px 'Spline Sans Mono',monospace;color:#5A675F;margin-top:8px">24</div></div>
+          <div style="text-align:center"><div style="width:32px;height:32px;background:#1B8A47;border-radius:8px;margin:0 auto"></div><div style="font:500 11px 'Spline Sans Mono',monospace;color:#5A675F;margin-top:8px">32</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPONENTS -->
+    <div style="padding:40px 48px">
+      <div style="font:700 13px 'Spline Sans Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#1B8A47;margin-bottom:6px">Components</div>
+      <div style="font-size:24px;font-weight:700;margin-bottom:24px">The sideline kit</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+        <!-- buttons -->
+        <div style="border:1px solid #E2E7DC;border-radius:18px;padding:20px">
+          <div style="font:600 12px 'Spline Sans Mono',monospace;color:#5A675F;margin-bottom:14px">BUTTONS · 56px</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="height:56px;border-radius:14px;background:#1B8A47;color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font-size:18px;font-weight:700">Next Shift <span style="font-size:20px">→</span></div>
+            <div style="height:56px;border-radius:14px;background:#fff;border:2px solid #18211C;color:#18211C;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">Sub a player</div>
+          </div>
+        </div>
+        <!-- chips -->
+        <div style="border:1px solid #E2E7DC;border-radius:18px;padding:20px">
+          <div style="font:600 12px 'Spline Sans Mono',monospace;color:#5A675F;margin-bottom:14px">CHIPS &amp; PILLS</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <div style="background:#E4F2E8;color:#146536;border-radius:10px;padding:8px 14px;font-size:14px;font-weight:700">FWD</div>
+            <div style="background:#E4F2E8;color:#146536;border-radius:10px;padding:8px 14px;font-size:14px;font-weight:700">MID</div>
+            <div style="background:#18211C;color:#fff;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:700">GK</div>
+            <div style="background:#FCEFD9;color:#9A6212;border-radius:999px;padding:8px 14px;font-size:14px;font-weight:700">● Next on</div>
+            <div style="background:#fff;border:1.5px solid #E2E7DC;border-radius:999px;padding:8px 14px;font:600 14px 'Spline Sans Mono',monospace;color:#18211C">12′ played</div>
+          </div>
+        </div>
+        <!-- player card -->
+        <div style="border:1px solid #E2E7DC;border-radius:18px;padding:20px;grid-column:1 / -1">
+          <div style="font:600 12px 'Spline Sans Mono',monospace;color:#5A675F;margin-bottom:14px">PLAYER ROW — the workhorse</div>
+          <div style="display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #E2E7DC;border-radius:16px;padding:14px 16px">
+            <div style="width:46px;height:46px;border-radius:13px;background:#18211C;color:#fff;display:flex;align-items:center;justify-content:center;font:700 18px 'Spline Sans Mono',monospace;flex-shrink:0">7</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:18px;font-weight:700">Mia Thompson</div>
+              <div style="height:6px;border-radius:3px;background:#E2E7DC;margin-top:8px;overflow:hidden"><div style="width:58%;height:100%;background:#1B8A47;border-radius:3px"></div></div>
+            </div>
+            <div style="background:#E4F2E8;color:#146536;border-radius:10px;padding:7px 12px;font-size:13px;font-weight:700">FWD</div>
+            <div style="font:700 18px 'Spline Sans Mono',monospace;color:#18211C">18′</div>
+          </div>
+        </div>
+        <!-- alert -->
+        <div style="border:1px solid #E2E7DC;border-radius:18px;padding:20px;grid-column:1 / -1">
+          <div style="font:600 12px 'Spline Sans Mono',monospace;color:#5A675F;margin-bottom:14px">ALERT — shift &amp; halftime</div>
+          <div style="display:flex;align-items:center;gap:12px;background:#FCEFD9;border:1px solid #F2A33B;border-radius:14px;padding:14px 16px">
+            <div style="width:10px;height:10px;border-radius:999px;background:#F2A33B;animation:livedot 1.4s ease-in-out infinite;flex-shrink:0"></div>
+            <div style="font-size:16px;font-weight:700;color:#9A6212">Shift ending soon — get the next line ready</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ FRAME 2 — LIVE GAME (default) ============ -->
+<div style="position:absolute;left:980px;top:0;width:432px">
+  <div data-drags-parent="1" style="font:600 13px 'Spline Sans Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#5A675F;margin-bottom:14px">02 — Live Game · default</div>
+  <div style="--team:{{teamColor}};--team-strong:color-mix(in oklab, var(--team,#1B8A47), black 30%);--team-soft:color-mix(in srgb, var(--team,#1B8A47) 13%, white);--on-team:#fff;width:392px;background:#0E1411;border-radius:46px;padding:6px;box-shadow:0 22px 48px rgba(20,40,28,.22)">
+    <div style="background:#F2F5EE;border-radius:40px;overflow:hidden;position:relative">
+
+      <!-- header -->
+      <div style="background:var(--team,#1B8A47);color:#fff;padding:14px 20px 26px;border-radius:0 0 28px 28px">
+        <div style="display:flex;align-items:center;justify-content:space-between;font:600 14px 'Spline Sans Mono',monospace;height:28px">
+          <span>2:14</span>
+          <span style="display:flex;align-items:center;gap:6px"><span style="width:7px;height:7px;border-radius:999px;background:#fff;animation:livedot 1.4s ease-in-out infinite"></span>LIVE</span>
+          <span style="display:flex;align-items:center;gap:5px">100% <span style="width:22px;height:11px;border:1.5px solid #fff;border-radius:3px;display:inline-block;padding:1.5px"><span style="display:block;width:100%;height:100%;background:#fff;border-radius:1px"></span></span></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+          <div style="width:44px;height:44px;border-radius:13px;background:#fff;color:var(--team,#1B8A47);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;flex-shrink:0">N</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:20px;font-weight:800;line-height:1.1">Northside U10</div>
+            <div style="font-size:14px;font-weight:500;color:rgba(255,255,255,.85)">vs Riverside United</div>
+          </div>
+          <div style="text-align:center;background:rgba(255,255,255,.16);border-radius:14px;padding:6px 14px">
+            <div style="font:700 22px 'Spline Sans Mono',monospace;line-height:1">2–1</div>
+            <div style="font-size:11px;font-weight:600;letter-spacing:.08em;color:rgba(255,255,255,.85)">2ND HALF</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- hero shift card -->
+      <div style="margin:-14px 16px 0;background:#18211C;border-radius:22px;padding:20px;color:#fff;box-shadow:0 10px 24px rgba(20,40,28,.20)">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font:700 13px 'Spline Sans Mono',monospace;letter-spacing:.1em;color:#9DB0A4">SHIFT 4 OF 6</div>
+          <div style="display:{{rotationDisplay}};align-items:center;gap:6px;background:rgba(255,255,255,.1);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;color:#A8E0BD">⚖ Even rotation</div>
+        </div>
+        <div style="text-align:center;margin:6px 0 4px">
+          <div style="font:700 76px 'Spline Sans Mono',monospace;letter-spacing:-.02em;line-height:1">03:12</div>
+          <div style="font-size:14px;font-weight:600;color:#9DB0A4;margin-top:2px">until next shift</div>
+        </div>
+        <div style="height:8px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden"><div style="width:62%;height:100%;background:var(--team,#1B8A47);border-radius:4px"></div></div>
+        <div style="display:flex;justify-content:space-between;font:600 12px 'Spline Sans Mono',monospace;color:#9DB0A4;margin-top:8px"><span>Game 31:08</span><span>Shift 4:48 / 8:00</span></div>
+      </div>
+
+      <!-- alert -->
+      <div style="display:{{alertDisplay}};align-items:center;gap:10px;margin:14px 16px 0;background:#FCEFD9;border:1px solid #F2A33B;border-radius:14px;padding:12px 14px">
+        <div style="width:9px;height:9px;border-radius:999px;background:#F2A33B;animation:livedot 1.4s ease-in-out infinite;flex-shrink:0"></div>
+        <div style="font-size:14px;font-weight:700;color:#9A6212;line-height:1.25">Shift ending soon — get <b>Zoe</b> &amp; <b>Kai</b> ready</div>
+      </div>
+
+      <!-- on the pitch -->
+      <div style="padding:18px 16px 8px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:18px;font-weight:800">On the pitch</div>
+          <div style="font:600 13px 'Spline Sans Mono',monospace;color:#5A675F">7 players</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #E2E7DC;border-radius:14px;padding:11px 12px">
+            <div style="width:40px;height:40px;border-radius:11px;background:#18211C;color:#fff;display:flex;align-items:center;justify-content:center;font:700 16px 'Spline Sans Mono',monospace;flex-shrink:0">1</div>
+            <div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700">Eli Carter</div><div style="height:5px;border-radius:3px;background:#E2E7DC;margin-top:7px;overflow:hidden"><div style="width:96%;height:100%;background:var(--team,#1B8A47)"></div></div></div>
+            <div style="background:#18211C;color:#fff;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:700">GK</div>
+            <div style="font:700 16px 'Spline Sans Mono',monospace;width:34px;text-align:right">31′</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #E2E7DC;border-radius:14px;padding:11px 12px">
+            <div style="width:40px;height:40px;border-radius:11px;background:#18211C;color:#fff;display:flex;align-items:center;justify-content:center;font:700 16px 'Spline Sans Mono',monospace;flex-shrink:0">2</div>
+            <div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700">Sam Rivera</div><div style="height:5px;border-radius:3px;background:#E2E7DC;margin-top:7px;overflow:hidden"><div style="width:75%;height:100%;background:var(--team,#1B8A47)"></div></div></div>
+            <div style="background:var(--team-soft,#E4F2E8);color:var(--team-strong,#146536);border-radius:9px;padding:6px 11px;font-size:12px;font-weight:700">DEF</div>
+            <div style="font:700 16px 'Spline Sans Mono',monospace;width:34px;text-align:right">24′</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #E2E7DC;border-radius:14px;padding:11px 12px">
+            <div style="width:40px;height:40px;border-radius:11px;background:#18211C;color:#fff;display:flex;align-items:center;justify-content:center;font:700 16px 'Spline Sans Mono',monospace;flex-shrink:0">4</div>
+            <div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700">Leo Nguyen</div><div style="height:5px;border-radius:3px;background:#E2E7DC;margin-top:7px;overflow:hidden"><div style="width:69%;height:100%;background:var(--team,#1B8A47)"></div></div></div>
+            <div style="background:var(--team-soft,#E4F2E8);color:var(--team-strong,#146536);border-radius:9px;padding:6px 11px;font-size:12px;font-weight:700">MID</div>
+            <div style="font:700 16px 'Spline Sans Mono',monospace;width:34px;text-align:right">22′</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #E2E7DC;border-radius:14px;padding:11px 12px">
+            <div style="width:40px;height:40px;border-radius:11px;background:#18211C;color:#fff;display:flex;align-items:center;justify-content:center;font:700 16px 'Spline Sans Mono',monospace;flex-shrink:0">7</div>
+            <div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700">Mia Thompson</div><div style="height:5px;border-radius:3px;background:#E2E7DC;margin-top:7px;overflow:hidden"><div style="width:56%;height:100%;background:var(--team,#1B8A47)"></div></div></div>
+            <div style="background:var(--team-soft,#E4F2E8);color:var(--team-strong,#146536);border-radius:9px;padding:6px 11px;font-size:12px;font-weight:700">FWD</div>
+            <div style="font:700 16px 'Spline Sans Mono',monospace;width:34px;text-align:right">18′</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- next on -->
+      <div style="padding:6px 16px 14px">
+        <div style="font-size:18px;font-weight:800;margin-bottom:10px">Next on <span style="font:600 13px 'Spline Sans Mono',monospace;color:#5A675F">· least time</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px;background:#FCEFD9;border:1.5px solid #F2A33B;border-radius:999px;padding:7px 13px 7px 8px"><span style="width:26px;height:26px;border-radius:999px;background:#18211C;color:#fff;display:flex;align-items:center;justify-content:center;font:700 13px 'Spline Sans Mono',monospace">11</span><span style="font-size:15px;font-weight:700">Zoe</span><span style="font:700 13px 'Spline Sans Mono',monospace;color:#9A6212">9′</span></div>
+          <div style="display:flex;align-items:center;gap:8px;background:#FCEFD9;border:1.5px solid #F2A33B;border-radius:999px;padding:7px 13px 7px 8px"><span style="width:26px;height:26px;border-radius:999px;background:#18211C;color:#fff;display:flex;align-items:center;justify-content:center;font:700 13px 'Spline Sans Mono',monospace">8</span><span style="font-size:15px;font-weight:700">Kai</span><span style="font:700 13px 'Spline Sans Mono',monospace;color:#9A6212">11′</span></div>
+          <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid #E2E7DC;border-radius:999px;padding:7px 13px 7px 8px"><span style="width:26px;height:26px;border-radius:999px;background:#18211C;color:#fff;display:flex;align-items:center;justify-content:center;font:700 13px 'Spline Sans Mono',monospace">3</span><span style="font-size:15px;font-weight:700">Ivy</span><span style="font:700 13px 'Spline Sans Mono',monospace;color:#5A675F">13′</span></div>
+        </div>
+      </div>
+
+      <!-- bottom action bar -->
+      <div style="display:flex;gap:10px;padding:12px 16px 20px;background:#F2F5EE;position:sticky;bottom:0">
+        <div style="width:56px;height:56px;border-radius:16px;background:#fff;border:2px solid #18211C;display:flex;align-items:center;justify-content:center;gap:3px;flex-shrink:0"><span style="width:4px;height:18px;background:#18211C;border-radius:2px"></span><span style="width:4px;height:18px;background:#18211C;border-radius:2px"></span></div>
+        <div style="flex:1;height:56px;border-radius:16px;background:var(--team,#1B8A47);color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font-size:19px;font-weight:800;box-shadow:0 6px 16px color-mix(in srgb, var(--team,#1B8A47) 40%, transparent)">Next Shift <span style="font-size:22px">→</span></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============ FRAME 3 — TEAM THEMING STRIP ============ -->
+<div style="position:absolute;left:1500px;top:0;width:1010px">
+  <div data-drags-parent="1" style="font:600 13px 'Spline Sans Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#5A675F;margin-bottom:14px">03 — Same screen, the team's colors</div>
+  <div style="display:flex;gap:34px">
+
+    <!-- RED -->
+    <div style="--team:#D8442F;--team-strong:#A8301F;--team-soft:#FBE7E2;width:300px;background:#0E1411;border-radius:42px;padding:6px;box-shadow:0 18px 40px rgba(20,40,28,.2)">
+      <div style="background:#F2F5EE;border-radius:36px;overflow:hidden">
+        <div style="background:var(--team);color:#fff;padding:14px 16px 22px;border-radius:0 0 24px 24px">
+          <div style="display:flex;align-items:center;justify-content:space-between;font:600 12px 'Spline Sans Mono',monospace"><span>2:14</span><span style="display:flex;gap:5px;align-items:center"><span style="width:6px;height:6px;border-radius:999px;background:#fff;animation:livedot 1.4s infinite"></span>LIVE</span></div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
+            <div style="width:38px;height:38px;border-radius:11px;background:#fff;color:var(--team);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px">R</div>
+            <div style="flex:1;min-width:0"><div style="font-size:17px;font-weight:800">Riverside U12</div><div style="font-size:12px;color:rgba(255,255,255,.85)">vs Hilltop FC</div></div>
+            <div style="font:700 18px 'Spline Sans Mono',monospace;background:rgba(255,255,255,.16);border-radius:11px;padding:4px 10px">1–0</div>
+          </div>
+        </div>
+        <div style="margin:-12px 14px 0;background:#18211C;border-radius:18px;padding:16px;color:#fff;text-align:center">
+          <div style="font:700 11px 'Spline Sans Mono',monospace;letter-spacing:.1em;color:#9DB0A4">SHIFT 3 OF 5</div>
+          <div style="font:700 54px 'Spline Sans Mono',monospace;line-height:1.05">01:48</div>
+          <div style="height:7px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden;margin-top:6px"><div style="width:74%;height:100%;background:var(--team)"></div></div>
+        </div>
+        <div style="padding:14px 14px 8px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E2E7DC;border-radius:13px;padding:9px 11px"><div style="width:34px;height:34px;border-radius:10px;background:#18211C;color:#fff;display:flex;align-items:center;justify-content:center;font:700 14px 'Spline Sans Mono',monospace">9</div><div style="flex:1;font-size:15px;font-weight:700">Ava Brooks</div><div style="background:var(--team-soft);color:var(--team-strong);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700">FWD</div><div style="font:700 14px 'Spline Sans Mono',monospace">15′</div></div>
+          <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E2E7DC;border-radius:13px;padding:9px 11px"><div style="width:34px;height:34px;border-radius:10px;background:#18211C;color:#fff;display:flex;align-items:center;justify-content:center;font:700 14px 'Spline Sans Mono',monospace">5</div><div style="flex:1;font-size:15px;font-weight:700">Noah Diaz</div><div style="background:var(--team-soft);color:var(--team-strong);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700">DEF</div><div style="font:700 14px 'Spline Sans Mono',monospace">19′</div></div>
+        </div>
+        <div style="padding:8px 14px 18px"><div style="height:52px;border-radius:15px;background:var(--team);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:17px;font-weight:800">Next Shift <span style="font-size:20px">→</span></div></div>
+      </div>
+    </div>
+
+    <!-- BLUE -->
+    <div style="--team:#2563C9;--team-strong:#1A47A0;--team-soft:#E4EBFB;width:300px;background:#0E1411;border-radius:42px;padding:6px;box-shadow:0 18px 40px rgba(20,40,28,.2)">
+      <div style="background:#F2F5EE;border-radius:36px;overflow:hidden">
+        <div style="background:var(--team);color:#fff;padding:14px 16px 22px;border-radius:0 0 24px 24px">
+          <div style="display:flex;align-items:center;justify-content:space-between;font:600 12px 'Spline Sans Mono',monospace"><span>2:14</span><span style="display:flex;gap:5px;align-items:center"><span style="width:6px;height:6px;border-radius:999px;background:#fff;animation:livedot 1.4s infinite"></span>LIVE</span></div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
+            <div style="width:38px;height:38px;border-radius:11px;background:#fff;color:var(--team);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px">L</div>
+            <div style="flex:1;min-width:0"><div style="font-size:17px;font-weight:800">Lakeside U10</div><div style="font-size:12px;color:rgba(255,255,255,.85)">vs Northside</div></div>
+            <div style="font:700 18px 'Spline Sans Mono',monospace;background:rgba(255,255,255,.16);border-radius:11px;padding:4px 10px">3–2</div>
+          </div>
+        </div>
+        <div style="margin:-12px 14px 0;background:#18211C;border-radius:18px;padding:16px;color:#fff;text-align:center">
+          <div style="font:700 11px 'Spline Sans Mono',monospace;letter-spacing:.1em;color:#9DB0A4">SHIFT 5 OF 6</div>
+          <div style="font:700 54px 'Spline Sans Mono',monospace;line-height:1.05">04:30</div>
+          <div style="height:7px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden;margin-top:6px"><div style="width:44%;height:100%;background:var(--team)"></div></div>
+        </div>
+        <div style="padding:14px 14px 8px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E2E7DC;border-radius:13px;padding:9px 11px"><div style="width:34px;height:34px;border-radius:10px;background:#18211C;color:#fff;display:flex;align-items:center;justify-content:center;font:700 14px 'Spline Sans Mono',monospace">10</div><div style="flex:1;font-size:15px;font-weight:700">Jude Park</div><div style="background:var(--team-soft);color:var(--team-strong);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700">MID</div><div style="font:700 14px 'Spline Sans Mono',monospace">20′</div></div>
+          <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E2E7DC;border-radius:13px;padding:9px 11px"><div style="width:34px;height:34px;border-radius:10px;background:#18211C;color:#fff;display:flex;align-items:center;justify-content:center;font:700 14px 'Spline Sans Mono',monospace">6</div><div style="flex:1;font-size:15px;font-weight:700">Cora Webb</div><div style="background:var(--team-soft);color:var(--team-strong);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700">DEF</div><div style="font:700 14px 'Spline Sans Mono',monospace">17′</div></div>
+        </div>
+        <div style="padding:8px 14px 18px"><div style="height:52px;border-radius:15px;background:var(--team);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:17px;font-weight:800">Next Shift <span style="font-size:20px">→</span></div></div>
+      </div>
+    </div>
+
+    <!-- TEAL -->
+    <div style="--team:#0E8C8C;--team-strong:#0A6A6A;--team-soft:#DBF0F0;width:300px;background:#0E1411;border-radius:42px;padding:6px;box-shadow:0 18px 40px rgba(20,40,28,.2)">
+      <div style="background:#F2F5EE;border-radius:36px;overflow:hidden">
+        <div style="background:var(--team);color:#fff;padding:14px 16px 22px;border-radius:0 0 24px 24px">
+          <div style="display:flex;align-items:center;justify-content:space-between;font:600 12px 'Spline Sans Mono',monospace"><span>2:14</span><span style="display:flex;gap:5px;align-items:center"><span style="width:6px;height:6px;border-radius:999px;background:#fff;animation:livedot 1.4s infinite"></span>LIVE</span></div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
+            <div style="width:38px;height:38px;border-radius:11px;background:#fff;color:var(--team);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px">C</div>
+            <div style="flex:1;min-width:0"><div style="font-size:17px;font-weight:800">Coastal U14</div><div style="font-size:12px;color:rgba(255,255,255,.85)">vs Summit SC</div></div>
+            <div style="font:700 18px 'Spline Sans Mono',monospace;background:rgba(255,255,255,.16);border-radius:11px;padding:4px 10px">0–0</div>
+          </div>
+        </div>
+        <div style="margin:-12px 14px 0;background:#18211C;border-radius:18px;padding:16px;color:#fff;text-align:center">
+          <div style="font:700 11px 'Spline Sans Mono',monospace;letter-spacing:.1em;color:#9DB0A4">SHIFT 2 OF 6</div>
+          <div style="font:700 54px 'Spline Sans Mono',monospace;line-height:1.05">06:02</div>
+          <div style="height:7px;border-radius:4px;background:rgba(255,255,255,.14);overflow:hidden;margin-top:6px"><div style="width:25%;height:100%;background:var(--team)"></div></div>
+        </div>
+        <div style="padding:14px 14px 8px;display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E2E7DC;border-radius:13px;padding:9px 11px"><div style="width:34px;height:34px;border-radius:10px;background:#18211C;color:#fff;display:flex;align-items:center;justify-content:center;font:700 14px 'Spline Sans Mono',monospace">8</div><div style="flex:1;font-size:15px;font-weight:700">Reza Amari</div><div style="background:var(--team-soft);color:var(--team-strong);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700">MID</div><div style="font:700 14px 'Spline Sans Mono',monospace">12′</div></div>
+          <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E2E7DC;border-radius:13px;padding:9px 11px"><div style="width:34px;height:34px;border-radius:10px;background:#18211C;color:#fff;display:flex;align-items:center;justify-content:center;font:700 14px 'Spline Sans Mono',monospace">3</div><div style="flex:1;font-size:15px;font-weight:700">Tess Olsen</div><div style="background:var(--team-soft);color:var(--team-strong);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700">FWD</div><div style="font:700 14px 'Spline Sans Mono',monospace">10′</div></div>
+        </div>
+        <div style="padding:8px 14px 18px"><div style="height:52px;border-radius:15px;background:var(--team);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:17px;font-weight:800">Next Shift <span style="font-size:20px">→</span></div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: { &quot;width&quot;: 2560, &quot;height&quot;: 1480 },
+  &quot;teamColor&quot;: { &quot;editor&quot;: &quot;color&quot;, &quot;default&quot;: &quot;#1B8A47&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;options&quot;: [&quot;#1B8A47&quot;, &quot;#D8442F&quot;, &quot;#2563C9&quot;, &quot;#0E8C8C&quot;, &quot;#7A3FB8&quot;], &quot;section&quot;: &quot;Live game&quot; },
+  &quot;shiftAlert&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Live game&quot; },
+  &quot;evenRotation&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Live game&quot; }
+}">
+class Component extends DCLogic {
+  renderVals() {
+    const teamColor = this.props.teamColor ?? '#1B8A47';
+    const shiftAlert = this.props.shiftAlert ?? true;
+    const evenRotation = this.props.evenRotation ?? true;
+    return {
+      teamColor,
+      alertDisplay: shiftAlert ? 'flex' : 'none',
+      rotationDisplay: evenRotation ? 'flex' : 'none',
+    };
+  }
+}
+</script>
+</body>
+</html>

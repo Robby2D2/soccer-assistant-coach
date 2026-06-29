@@ -115,6 +115,10 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
             }
           }
 
+          // Team-scoped screens (game, roster, metrics…) cache the team theme,
+          // so refresh it now that colors/name/logo may have changed.
+          invalidateTeamTheme(ref, widget.teamId);
+
           if (!context.mounted) return;
           Navigator.pop(context);
         },

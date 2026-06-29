@@ -29,6 +29,7 @@ dependencies:
   intl: ^0.20.2
   # Ensures the SQLite native libraries (libsqlite3.so) are bundled on Android
   sqlite3_flutter_libs: any
+  google_fonts: ^8.1.0
 
 dev_dependencies:
   flutter_test:

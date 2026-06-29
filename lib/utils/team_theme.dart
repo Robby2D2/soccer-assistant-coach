@@ -32,6 +32,75 @@ class TeamColorContrast {
   }
 }
 
+/// Team-derived colors for the Sideline design system, exposed on the active
+/// [ThemeData] as a [ThemeExtension] so widgets can read the strong / soft /
+/// onTeam shades without re-deriving them.
+///
+/// `team` is the coach-selected color (== `colorScheme.primary`). The shades
+/// are derived per the handoff spec (README → Design Tokens → Team color
+/// derivation):
+///   strong = color-mix(team, black 30%)   → headers, on-soft text
+///   soft   = color-mix(team 13%, white)   → tinted chips / fills
+///   onTeam = white or ink by contrast     → text/icons on team color
+@immutable
+class TeamColors extends ThemeExtension<TeamColors> {
+  final Color team;
+  final Color strong;
+  final Color soft;
+  final Color onTeam;
+
+  const TeamColors({
+    required this.team,
+    required this.strong,
+    required this.soft,
+    required this.onTeam,
+  });
+
+  /// Derive the full set from the single coach-selected [team] color.
+  factory TeamColors.fromSeed(Color team) => TeamColors(
+    team: team,
+    strong: _strong(team),
+    soft: _soft(team),
+    onTeam: _onTeam(team),
+  );
+
+  // color-mix(team, black 30%)
+  static Color _strong(Color c) =>
+      Color.alphaBlend(Colors.black.withOpacity(0.30), c);
+
+  // color-mix(team 13%, white)
+  static Color _soft(Color c) =>
+      Color.alphaBlend(c.withOpacity(0.13), Colors.white);
+
+  // White or ink by luminance for readable contrast. TeamColorContrast stays
+  // the source of truth for foreground choice.
+  static Color _onTeam(Color c) => TeamColorContrast.onColorFor(c);
+
+  @override
+  TeamColors copyWith({
+    Color? team,
+    Color? strong,
+    Color? soft,
+    Color? onTeam,
+  }) => TeamColors(
+    team: team ?? this.team,
+    strong: strong ?? this.strong,
+    soft: soft ?? this.soft,
+    onTeam: onTeam ?? this.onTeam,
+  );
+
+  @override
+  TeamColors lerp(ThemeExtension<TeamColors>? other, double t) {
+    if (other is! TeamColors) return this;
+    return TeamColors(
+      team: Color.lerp(team, other.team, t)!,
+      strong: Color.lerp(strong, other.strong, t)!,
+      soft: Color.lerp(soft, other.soft, t)!,
+      onTeam: Color.lerp(onTeam, other.onTeam, t)!,
+    );
+  }
+}
+
 class TeamTheme {
   final Color primaryColor;
   final Color secondaryColor;
@@ -89,6 +158,13 @@ class TeamTheme {
     final scheme = colorSchemeFor(base.brightness);
     return base.copyWith(
       colorScheme: scheme,
+      // Expose the team-derived Sideline shades so descendants can read them
+      // via Theme.of(context).extension<TeamColors>(). TeamColors is the only
+      // extension in the app, so we set it outright — overriding the base
+      // theme's default TeamColors with this team's derived shades.
+      extensions: <ThemeExtension<dynamic>>[
+        TeamColors.fromSeed(primaryColor),
+      ],
       appBarTheme: base.appBarTheme.copyWith(
         backgroundColor: scheme.primaryContainer,
         foregroundColor: scheme.onPrimaryContainer,

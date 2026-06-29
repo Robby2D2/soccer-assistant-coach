@@ -10,11 +10,9 @@ import '../../data/services/stopwatch_service.dart';
 import '../../data/services/notification_service.dart';
 import '../../data/services/alert_service.dart';
 import '../../widgets/player_panel.dart';
-import '../../widgets/team_logo_widget.dart';
-import '../../widgets/team_color_picker.dart';
-// Minimal theming refactor (Option A): use GameScaffold + TeamAppBar
+import '../../widgets/sideline_widgets.dart';
+import '../../widgets/game_header.dart';
 import '../../core/game_scaffold.dart';
-import '../../core/team_theme_manager.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   final int gameId;
@@ -38,6 +36,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   int? _shiftLenForTeamId;
   bool _alertedThisShift = false;
   late final ValueNotifier<bool> _alertActiveNotifier;
+
+  /// Which shift the coach is currently *viewing* in the planning pager (may
+  /// differ from the active shift). Drives the context-aware bottom action bar:
+  /// viewing the current shift → "See Next Shift"; viewing an upcoming shift →
+  /// "Start Shift". Null until the first page settles (treated as the current
+  /// shift).
+  final ValueNotifier<int?> _viewedShiftId = ValueNotifier<int?>(null);
   final GlobalKey<_ShiftsListState> _shiftsListKey =
       GlobalKey<_ShiftsListState>();
 
@@ -72,6 +77,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     _lastTickSeconds = _secondsNotifier.value;
     _checkInitialRunningState();
     _loadFormationPositions();
+    _loadShiftLength();
     // Check if this is a new game with no shifts and reset stopwatch if needed
     _checkAndResetForNewGame();
     _stopwatchSubscription = ref.listenManual<int>(
@@ -124,6 +130,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     } catch (e) {
       // If we can't check shifts, just continue - not critical for initialization
     }
+  }
+
+  /// Lazy-load the per-team shift length (previously done as a side-effect in
+  /// the old app-bar title builder, which the branded header replaced).
+  Future<void> _loadShiftLength() async {
+    if (!mounted) return;
+    final db = ref.read(dbProvider);
+    final game = await db.getGame(widget.gameId);
+    if (game == null || !mounted || _shiftLenForTeamId == game.teamId) return;
+    final seconds = await db.getTeamShiftLengthSeconds(game.teamId);
+    if (!mounted) return;
+    setState(() {
+      _shiftLenForTeamId = game.teamId;
+      _shiftLengthSeconds = seconds;
+    });
   }
 
   Future<void> _loadFormationPositions() async {
@@ -191,6 +212,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     _secondsNotifier.dispose();
     _isRunningNotifier.dispose();
     _alertActiveNotifier.dispose();
+    _viewedShiftId.dispose();
     // Clean up shift countdown notifications when leaving the game screen
     NotificationService.instance.cancelShiftCountdown(widget.gameId);
     super.dispose();
@@ -339,104 +361,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     return GameScaffold(
       gameId: widget.gameId,
-      appBar: TeamAppBar(
-        teamId: null, // resolved via GameScaffold; title still handles colors
-        title: FutureBuilder<Game?>(
-          future: db.getGame(widget.gameId),
-          builder: (context, snap) {
-            final game = snap.data;
-            if (game != null && _shiftLenForTeamId != game.teamId) {
-              // Lazy-load per-team shift length
-              _shiftLenForTeamId = game.teamId;
-              db.getTeamShiftLengthSeconds(game.teamId).then((value) {
-                if (!mounted) return;
-                setState(() => _shiftLengthSeconds = value);
-              });
-            }
-
-            if (game == null) {
-              return const Text('Game');
-            }
-
-            // Create compact game header with team info and opponent
-            return FutureBuilder<Team?>(
-              future: db.getTeam(game.teamId),
-              builder: (context, teamSnap) {
-                final team = teamSnap.data;
-                final opponent = game.opponent?.isNotEmpty == true
-                    ? game.opponent!
-                    : 'Bad guys';
-
-                // Format game date/time
-                String gameTimeText = '';
-                if (game.startTime != null) {
-                  final DateTime startTime = game.startTime!;
-                  final String formattedDate =
-                      '${startTime.year}-${startTime.month.toString().padLeft(2, '0')}-${startTime.day.toString().padLeft(2, '0')}';
-                  final String formattedTime =
-                      '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
-                  gameTimeText = '$formattedDate • $formattedTime';
-                }
-
-                // Use team colors if available
-                final hasTeamColors = team?.primaryColor1 != null;
-                final teamPrimaryColor = hasTeamColors
-                    ? (ColorHelper.hexToColor(team!.primaryColor1!) ??
-                          Theme.of(context).colorScheme.primary)
-                    : Theme.of(context).colorScheme.primary;
-
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Team logo with team colors
-                    if (team != null)
-                      Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        child: TeamLogoWidget(
-                          logoPath: team.logoImagePath,
-                          size: 24,
-                          backgroundColor: Colors.transparent,
-                          iconColor: hasTeamColors ? teamPrimaryColor : null,
-                        ),
-                      ),
-                    // Game info with team color accent
-                    Flexible(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'vs $opponent',
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: hasTeamColors
-                                      ? teamPrimaryColor
-                                      : null,
-                                ),
-                          ),
-                          if (gameTimeText.isNotEmpty)
-                            Text(
-                              gameTimeText,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-        ),
-        actions: [
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SidelineGameHeader(
+            gameId: widget.gameId,
+            actions: [
           FutureBuilder<Game?>(
             future: db.getGame(widget.gameId),
             builder: (context, snap) {
@@ -541,9 +471,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           ),
         ],
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
           Expanded(
             child: FutureBuilder<Game?>(
               future: db.getGame(widget.gameId),
@@ -716,404 +643,39 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                   final remaining =
                                       _shiftLengthSeconds - shiftSeconds;
                                   final over = remaining <= 0;
-                                  final flashOn =
-                                      over && ((-remaining) % 2 == 0);
-                                  final theme = Theme.of(context);
-                                  final baseline =
-                                      theme.colorScheme.surfaceContainerHighest;
-                                  final panelColor = over
-                                      ? (flashOn
-                                            ? Colors.red.shade800
-                                            : baseline)
-                                      : baseline;
-                                  return Card(
-                                    color: panelColor,
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 16,
+                                  final heroProgress =
+                                      _shiftLengthSeconds > 0
+                                      ? (shiftSeconds / _shiftLengthSeconds)
+                                            .clamp(0.0, 1.0)
+                                      : 0.0;
+                                  final gameElapsed =
+                                      _currentShiftStartSeconds + shiftSeconds;
+                                  final curId =
+                                      _currentShiftId ?? game.currentShiftId;
+                                  final curOrder = curId == null
+                                      ? null
+                                      : shiftNumbers[curId];
+                                  return Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SidelineHeroShiftCard(
+                                        shiftLabel: curOrder == null
+                                            ? 'CURRENT SHIFT'
+                                            : 'SHIFT $curOrder',
+                                        countdownText: _hhmmssSigned(remaining),
+                                        countdownCaption: over
+                                            ? 'shift over — rotate'
+                                            : 'until next shift',
+                                        progress: heroProgress,
+                                        isOver: over,
+                                        action: _buildTimerControl(),
+                                        gameClockText:
+                                            'Game ${_formatTimeRemaining(gameElapsed)}',
+                                        shiftClockText:
+                                            'Shift ${_formatTimeRemaining(shiftSeconds)} / ${_formatTimeRemaining(_shiftLengthSeconds)}',
                                       ),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          // Timer display
-                                          Text(
-                                            _hhmmssSigned(remaining),
-                                            style: theme.textTheme.displayMedium
-                                                ?.copyWith(
-                                                  fontFeatures: const [
-                                                    FontFeature.tabularFigures(),
-                                                  ],
-                                                  letterSpacing: 2.0,
-                                                  fontWeight: FontWeight.w300,
-                                                ),
-                                          ),
-
-                                          const SizedBox(height: 12),
-
-                                          // Timeline
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'Current Shift',
-                                                style:
-                                                    theme.textTheme.labelSmall,
-                                              ),
-                                              const SizedBox(height: 4),
-                                              ValueListenableBuilder<int>(
-                                                valueListenable:
-                                                    _secondsNotifier,
-                                                builder: (context, seconds, _) {
-                                                  final progress =
-                                                      _shiftLengthSeconds > 0
-                                                      ? (seconds /
-                                                                _shiftLengthSeconds)
-                                                            .clamp(0.0, 1.0)
-                                                      : 0.0;
-
-                                                  return Column(
-                                                    children: [
-                                                      // Progress bar
-                                                      Container(
-                                                        height: 6,
-                                                        decoration: BoxDecoration(
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                3,
-                                                              ),
-                                                          color: theme
-                                                              .colorScheme
-                                                              .surfaceVariant,
-                                                        ),
-                                                        child: Stack(
-                                                          children: [
-                                                            Container(
-                                                              height: 6,
-                                                              decoration: BoxDecoration(
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      3,
-                                                                    ),
-                                                                color: theme
-                                                                    .colorScheme
-                                                                    .surfaceVariant,
-                                                              ),
-                                                            ),
-                                                            FractionallySizedBox(
-                                                              widthFactor:
-                                                                  progress,
-                                                              child: Container(
-                                                                height: 6,
-                                                                decoration: BoxDecoration(
-                                                                  borderRadius:
-                                                                      BorderRadius.circular(
-                                                                        3,
-                                                                      ),
-                                                                  color:
-                                                                      progress >=
-                                                                          1.0
-                                                                      ? theme
-                                                                            .colorScheme
-                                                                            .error
-                                                                      : theme
-                                                                            .colorScheme
-                                                                            .primary,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-
-                                                      const SizedBox(height: 4),
-
-                                                      // Timeline labels
-                                                      Row(
-                                                        mainAxisAlignment:
-                                                            MainAxisAlignment
-                                                                .spaceBetween,
-                                                        children: [
-                                                          Text(
-                                                            "0'",
-                                                            style: theme
-                                                                .textTheme
-                                                                .bodySmall,
-                                                          ),
-                                                          Text(
-                                                            "${(_shiftLengthSeconds / 60).round()}'",
-                                                            style: theme
-                                                                .textTheme
-                                                                .bodySmall,
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ],
-                                                  );
-                                                },
-                                              ),
-                                            ],
-                                          ),
-
-                                          const SizedBox(height: 12),
-
-                                          // Buttons inside Card - fully functional
-                                          ValueListenableBuilder<bool>(
-                                            valueListenable: _isRunningNotifier,
-                                            builder: (context, isRunning, _) => Row(
-                                              children: [
-                                                // Start / Pause button (intrinsic width, single line)
-                                                if (isRunning)
-                                                  Tooltip(
-                                                    message: 'Pause timer',
-                                                    child: FilledButton.icon(
-                                                      icon: const Icon(
-                                                        Icons.pause_rounded,
-                                                      ),
-                                                      label: const Text(
-                                                        'Pause',
-                                                        maxLines: 1,
-                                                        softWrap: false,
-                                                      ),
-                                                      style: FilledButton.styleFrom(
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                              horizontal: 12,
-                                                              vertical: 8,
-                                                            ),
-                                                        minimumSize: const Size(
-                                                          0,
-                                                          40,
-                                                        ),
-                                                        tapTargetSize:
-                                                            MaterialTapTargetSize
-                                                                .shrinkWrap,
-                                                      ),
-                                                      onPressed: () async {
-                                                        await ref
-                                                            .read(
-                                                              stopwatchProvider(
-                                                                widget.gameId,
-                                                              ).notifier,
-                                                            )
-                                                            .pause();
-                                                        await NotificationService
-                                                            .instance
-                                                            .cancelShiftEnd(
-                                                              widget.gameId,
-                                                            );
-                                                        await NotificationService
-                                                            .instance
-                                                            .cancelShiftCountdown(
-                                                              widget.gameId,
-                                                            );
-                                                        _isRunning = false;
-                                                      },
-                                                    ),
-                                                  )
-                                                else
-                                                  FutureBuilder<Game?>(
-                                                    future: db.getGame(
-                                                      widget.gameId,
-                                                    ),
-                                                    builder: (context, gameSnap) {
-                                                      final game =
-                                                          gameSnap.data;
-                                                      final hasCurrentShift =
-                                                          game?.currentShiftId !=
-                                                          null;
-                                                      final buttonText =
-                                                          hasCurrentShift
-                                                          ? 'Resume'
-                                                          : 'Start';
-                                                      final tooltipText =
-                                                          hasCurrentShift
-                                                          ? 'Resume current shift timer'
-                                                          : 'Start timer';
-                                                      return Tooltip(
-                                                        message: tooltipText,
-                                                        child: FilledButton.icon(
-                                                          icon: const Icon(
-                                                            Icons
-                                                                .play_arrow_rounded,
-                                                          ),
-                                                          label: Text(
-                                                            buttonText,
-                                                            maxLines: 1,
-                                                            softWrap: false,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .visible,
-                                                          ),
-                                                          style: FilledButton.styleFrom(
-                                                            padding:
-                                                                const EdgeInsets.symmetric(
-                                                                  horizontal:
-                                                                      12,
-                                                                  vertical: 8,
-                                                                ),
-                                                            minimumSize:
-                                                                const Size(
-                                                                  0,
-                                                                  40,
-                                                                ),
-                                                            tapTargetSize:
-                                                                MaterialTapTargetSize
-                                                                    .shrinkWrap,
-                                                          ),
-                                                          onPressed: () async {
-                                                            final stopwatchCtrl =
-                                                                ref.read(
-                                                                  stopwatchProvider(
-                                                                    widget
-                                                                        .gameId,
-                                                                  ).notifier,
-                                                                );
-                                                            final game = await db
-                                                                .getGame(
-                                                                  widget.gameId,
-                                                                );
-                                                            final int shiftId;
-                                                            final currentId = game
-                                                                ?.currentShiftId;
-                                                            if (currentId !=
-                                                                null) {
-                                                              shiftId =
-                                                                  currentId;
-                                                            } else {
-                                                              final positions =
-                                                                  await _positionsForNextShift(
-                                                                    db,
-                                                                  );
-                                                              shiftId = await db
-                                                                  .createAutoShift(
-                                                                    gameId: widget
-                                                                        .gameId,
-                                                                    startSeconds:
-                                                                        _currentShiftStartSeconds,
-                                                                    positions:
-                                                                        positions,
-                                                                  );
-                                                            }
-                                                            final shift =
-                                                                await db
-                                                                    .getShift(
-                                                                      shiftId,
-                                                                    );
-                                                            if (shift != null) {
-                                                              _currentShiftStartSeconds =
-                                                                  shift
-                                                                      .startSeconds;
-                                                            }
-                                                            final upcomingStart =
-                                                                _currentShiftStartSeconds +
-                                                                _shiftLengthSeconds;
-                                                            final hasPrepared =
-                                                                await db.nextShiftAfter(
-                                                                  widget.gameId,
-                                                                  _currentShiftStartSeconds,
-                                                                ) !=
-                                                                null;
-                                                            if (!hasPrepared) {
-                                                              final nextPositions =
-                                                                  await _positionsForNextShift(
-                                                                    db,
-                                                                  );
-                                                              await db.createAutoShift(
-                                                                gameId: widget
-                                                                    .gameId,
-                                                                startSeconds:
-                                                                    upcomingStart,
-                                                                positions:
-                                                                    nextPositions,
-                                                                activate: false,
-                                                              );
-                                                            }
-                                                            await stopwatchCtrl
-                                                                .start();
-                                                            if (!context
-                                                                .mounted) {
-                                                              return;
-                                                            }
-                                                            _currentShiftId =
-                                                                shiftId;
-                                                            _isRunning = true;
-                                                          },
-                                                        ),
-                                                      );
-                                                    },
-                                                  ),
-                                                const Spacer(),
-                                                if (!isRunning)
-                                                  FutureBuilder<Shift?>(
-                                                    future: db.nextShiftAfter(
-                                                      widget.gameId,
-                                                      _currentShiftStartSeconds,
-                                                    ),
-                                                    builder: (context, nextShiftSnap) {
-                                                      final nextShift =
-                                                          nextShiftSnap.data;
-                                                      if (nextShift == null) {
-                                                        return const SizedBox.shrink();
-                                                      }
-                                                      final isCompact =
-                                                          MediaQuery.of(
-                                                            context,
-                                                          ).size.width <
-                                                          360;
-                                                      return Tooltip(
-                                                        message:
-                                                            'Start next shift immediately',
-                                                        child: TextButton.icon(
-                                                          icon: const Icon(
-                                                            Icons
-                                                                .skip_next_rounded,
-                                                            size: 16,
-                                                          ),
-                                                          label: Text(
-                                                            isCompact
-                                                                ? 'Next'
-                                                                : 'Next Shift',
-                                                            maxLines: 1,
-                                                            softWrap: false,
-                                                          ),
-                                                          style: TextButton.styleFrom(
-                                                            padding:
-                                                                EdgeInsets.symmetric(
-                                                                  horizontal:
-                                                                      isCompact
-                                                                      ? 8
-                                                                      : 12,
-                                                                  vertical: 6,
-                                                                ),
-                                                            minimumSize:
-                                                                const Size(
-                                                                  0,
-                                                                  40,
-                                                                ),
-                                                            tapTargetSize:
-                                                                MaterialTapTargetSize
-                                                                    .shrinkWrap,
-                                                          ),
-                                                          onPressed: () async {
-                                                            await _handleStartNextShift(
-                                                              context,
-                                                              db,
-                                                              nextShift.id,
-                                                            );
-                                                          },
-                                                        ),
-                                                      );
-                                                    },
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
                                         ],
-                                      ),
-                                    ),
-                                  );
+                                      );
                                 },
                               ),
                             ),
@@ -1525,20 +1087,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 12,
                                     ),
-                                    child: Center(
-                                      child: FilledButton.icon(
-                                        onPressed: _acknowledgeAlert,
-                                        style: FilledButton.styleFrom(
-                                          backgroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.error,
-                                          foregroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.onError,
-                                        ),
-                                        icon: const Icon(Icons.alarm_off),
-                                        label: const Text('Stop Alert'),
-                                      ),
+                                    child: SidelineAlertBanner(
+                                      message:
+                                          'Shift ending — get your subs ready.',
+                                      onDismiss: _acknowledgeAlert,
                                     ),
                                   ),
                                 );
@@ -1659,7 +1211,28 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     _getPositionAbbreviation,
                                 getPositionsForNextShift:
                                     _positionsForNextShift,
+                                onShiftViewed: (id) =>
+                                    _viewedShiftId.value = id,
                               ),
+                            ),
+                          );
+                        }
+
+                        // Context-aware sticky bottom bar: "See Next Shift"
+                        // while viewing the current shift, "Start Shift" once
+                        // the coach has scrolled to an upcoming shift's lineup.
+                        if (game.gameStatus == 'in-progress' &&
+                            currentShift != null) {
+                          columnChildren.add(
+                            _ShiftActionBar(
+                              viewedShiftId: _viewedShiftId,
+                              activeShift: currentShift,
+                              upcomingShift: upcomingShift,
+                              shifts: chronological,
+                              onSeeShift: (id) =>
+                                  _shiftsListKey.currentState?.scrollToShift(id),
+                              onStartShift: (ctx, id) =>
+                                  _handleStartNextShift(ctx, db, id),
                             ),
                           );
                         }
@@ -1760,6 +1333,81 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
     if (!context.mounted) return;
     // No setState needed - StreamBuilder will update automatically
+  }
+
+  /// Compact play/pause control hosted in the hero card's top-right.
+  Widget _buildTimerControl() {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isRunningNotifier,
+      builder: (context, isRunning, _) {
+        if (isRunning) {
+          return _HeroControlButton(
+            icon: Icons.pause_rounded,
+            label: 'Pause',
+            onPressed: _pauseTimer,
+          );
+        }
+        return FutureBuilder<Game?>(
+          future: ref.read(dbProvider).getGame(widget.gameId),
+          builder: (context, snap) {
+            final hasCurrentShift = snap.data?.currentShiftId != null;
+            return _HeroControlButton(
+              icon: Icons.play_arrow_rounded,
+              label: hasCurrentShift ? 'Resume' : 'Start',
+              onPressed: () => _startOrResumeTimer(context),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _pauseTimer() async {
+    await ref.read(stopwatchProvider(widget.gameId).notifier).pause();
+    await NotificationService.instance.cancelShiftEnd(widget.gameId);
+    await NotificationService.instance.cancelShiftCountdown(widget.gameId);
+    _isRunning = false;
+  }
+
+  /// Start a fresh shift (creating one if needed) or resume the current one,
+  /// pre-creating the upcoming shift so the planning view stays one ahead.
+  Future<void> _startOrResumeTimer(BuildContext context) async {
+    final db = ref.read(dbProvider);
+    final stopwatchCtrl = ref.read(stopwatchProvider(widget.gameId).notifier);
+    final game = await db.getGame(widget.gameId);
+    final int shiftId;
+    final currentId = game?.currentShiftId;
+    if (currentId != null) {
+      shiftId = currentId;
+    } else {
+      final positions = await _positionsForNextShift(db);
+      shiftId = await db.createAutoShift(
+        gameId: widget.gameId,
+        startSeconds: _currentShiftStartSeconds,
+        positions: positions,
+      );
+    }
+    final shift = await db.getShift(shiftId);
+    if (shift != null) {
+      _currentShiftStartSeconds = shift.startSeconds;
+    }
+    final upcomingStart = _currentShiftStartSeconds + _shiftLengthSeconds;
+    final hasPrepared =
+        await db.nextShiftAfter(widget.gameId, _currentShiftStartSeconds) !=
+        null;
+    if (!hasPrepared) {
+      final nextPositions = await _positionsForNextShift(db);
+      await db.createAutoShift(
+        gameId: widget.gameId,
+        startSeconds: upcomingStart,
+        positions: nextPositions,
+        activate: false,
+      );
+    }
+    await stopwatchCtrl.start();
+    if (!context.mounted) return;
+    _currentShiftId = shiftId;
+    _isRunning = true;
   }
 
   Future<void> _handleStartNextShift(
@@ -1954,6 +1602,7 @@ class _ShiftsList extends StatefulWidget {
     this.onRemovePlayer,
     required this.getPositionAbbreviation,
     required this.getPositionsForNextShift,
+    this.onShiftViewed,
   });
 
   final List<Shift> shifts;
@@ -1966,6 +1615,9 @@ class _ShiftsList extends StatefulWidget {
   onRemovePlayer;
   final String Function(String) getPositionAbbreviation;
   final Future<List<String>> Function(AppDb) getPositionsForNextShift;
+
+  /// Fires with the shift id of the page the coach has scrolled to.
+  final void Function(int shiftId)? onShiftViewed;
 
   @override
   State<_ShiftsList> createState() => _ShiftsListState();
@@ -1982,10 +1634,18 @@ class _ShiftsListState extends State<_ShiftsList> {
         widget.currentShiftId != null && widget.shifts.isNotEmpty
         ? widget.shifts.indexWhere((shift) => shift.id == widget.currentShiftId)
         : 0;
+    final startIndex = initialIndex >= 0 ? initialIndex : 0;
     _pageController = PageController(
       viewportFraction: 1.0,
-      initialPage: initialIndex >= 0 ? initialIndex : 0,
+      initialPage: startIndex,
     );
+    // onPageChanged doesn't fire for the initial page, so report it once the
+    // first frame is laid out.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.shifts.isEmpty) return;
+      final i = startIndex.clamp(0, widget.shifts.length - 1);
+      widget.onShiftViewed?.call(widget.shifts[i].id);
+    });
   }
 
   void scrollToShift(int shiftId) {
@@ -2009,12 +1669,17 @@ class _ShiftsListState extends State<_ShiftsList> {
       return const SizedBox.shrink();
     }
 
-    return SizedBox(
-      height: 280, // Fixed height for horizontal scrolling
-      child: PageView.builder(
-        padEnds: false, // Allow pages to start from the edge
-        controller: _pageController,
-        itemCount: widget.shifts.length,
+    // Fills the available vertical space (it sits inside an Expanded), so the
+    // compacted timer above leaves more room to see the shift's players.
+    return PageView.builder(
+      padEnds: false, // Allow pages to start from the edge
+      controller: _pageController,
+      itemCount: widget.shifts.length,
+      onPageChanged: (index) {
+        if (index >= 0 && index < widget.shifts.length) {
+          widget.onShiftViewed?.call(widget.shifts[index].id);
+        }
+      },
         itemBuilder: (context, index) {
           final shift = widget.shifts[index];
           final isCurrent = shift.id == widget.currentShiftId;
@@ -2038,8 +1703,7 @@ class _ShiftsListState extends State<_ShiftsList> {
             ),
           );
         },
-      ),
-    );
+      );
   }
 }
 
@@ -2333,6 +1997,132 @@ String _formatTimeRemaining(int seconds) {
   final minutes = seconds ~/ 60;
   final remainingSeconds = seconds % 60;
   return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
+}
+
+/// Pill-shaped play/pause control styled for the dark hero card.
+class _HeroControlButton extends StatelessWidget {
+  const _HeroControlButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final Future<void> Function() onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: () => onPressed(),
+      icon: Icon(icon, size: 18),
+      label: Text(label, maxLines: 1, softWrap: false),
+      style: FilledButton.styleFrom(
+        backgroundColor: Colors.white.withOpacity(0.14),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        minimumSize: const Size(0, 36),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+      ),
+    );
+  }
+}
+
+/// Sticky bottom action bar whose label/action depends on which shift the coach
+/// is viewing in the planning pager:
+/// - viewing the active shift  → "See Next Shift" (scrolls to the next lineup)
+/// - viewing an upcoming shift  → "Start Shift" (activates that shift)
+/// - viewing a past shift       → "Back to Current Shift"
+class _ShiftActionBar extends StatelessWidget {
+  const _ShiftActionBar({
+    required this.viewedShiftId,
+    required this.activeShift,
+    required this.upcomingShift,
+    required this.shifts,
+    required this.onSeeShift,
+    required this.onStartShift,
+  });
+
+  final ValueNotifier<int?> viewedShiftId;
+  final Shift activeShift;
+  final Shift? upcomingShift;
+  final List<Shift> shifts;
+  final void Function(int shiftId) onSeeShift;
+  final Future<void> Function(BuildContext context, int shiftId) onStartShift;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return ValueListenableBuilder<int?>(
+      valueListenable: viewedShiftId,
+      builder: (context, viewedId, _) {
+        final activeId = activeShift.id;
+        final viewed = shifts.firstWhere(
+          (s) => s.id == (viewedId ?? activeId),
+          orElse: () => activeShift,
+        );
+        final viewingCurrent = viewed.id == activeId;
+        final viewingUpcoming = viewed.startSeconds > activeShift.startSeconds;
+
+        final String label;
+        final IconData icon;
+        final bool primary;
+        final VoidCallback onTap;
+        if (viewingCurrent) {
+          // Nothing prepared to preview yet — hide the bar entirely.
+          if (upcomingShift == null) return const SizedBox.shrink();
+          label = 'See Next Shift';
+          icon = Icons.visibility_outlined;
+          primary = false;
+          final nextId = upcomingShift!.id;
+          onTap = () => onSeeShift(nextId);
+        } else if (viewingUpcoming) {
+          label = 'Start Shift';
+          icon = Icons.play_arrow_rounded;
+          primary = true;
+          final startId = viewed.id;
+          onTap = () => onStartShift(context, startId);
+        } else {
+          label = 'Back to Current Shift';
+          icon = Icons.arrow_back_rounded;
+          primary = false;
+          onTap = () => onSeeShift(activeId);
+        }
+
+        final style = FilledButton.styleFrom(minimumSize: const Size(0, 52));
+        final button = primary
+            ? FilledButton.icon(
+                onPressed: onTap,
+                icon: Icon(icon),
+                label: Text(label),
+                style: style,
+              )
+            : FilledButton.tonalIcon(
+                onPressed: onTap,
+                icon: Icon(icon),
+                label: Text(label),
+                style: style,
+              );
+
+        return Material(
+          color: scheme.surface,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: scheme.outlineVariant)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                child: SizedBox(width: double.infinity, child: button),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 enum _GameMenuAction {
