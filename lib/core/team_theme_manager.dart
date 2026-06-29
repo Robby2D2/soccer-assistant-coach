@@ -3,7 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/team_theme.dart';
 import 'providers.dart';
 
-/// Provides a TeamTheme for a given team id (or null for fallback app theme colors)
+/// Provides a TeamTheme for a given team id (or null for fallback app theme
+/// colors).
+///
+/// This caches the fetched team, so it must be invalidated when the coach edits
+/// a team's colors — see [invalidateTeamTheme], called from the team editor —
+/// otherwise team-scoped screens keep showing the old colors.
 final teamThemeProvider = FutureProvider.family<TeamTheme?, int?>((
   ref,
   teamId,
@@ -14,6 +19,12 @@ final teamThemeProvider = FutureProvider.family<TeamTheme?, int?>((
   if (team == null) return null;
   return TeamTheme.fromTeam(team);
 });
+
+/// Refresh team theming after a team's colors/name change so every team-scoped
+/// screen (game, roster, metrics…) picks up the new colors immediately.
+void invalidateTeamTheme(WidgetRef ref, int teamId) {
+  ref.invalidate(teamThemeProvider(teamId));
+}
 
 /// A widget that optionally applies a TeamTheme (if teamId provided) to descendants.
 class TeamThemeScope extends ConsumerWidget {
