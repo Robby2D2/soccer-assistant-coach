@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../core/providers.dart';
 import '../../core/team_theme_manager.dart';
+import '../../widgets/sideline_header.dart';
 import '../../l10n/app_localizations.dart';
 import '../../utils/csv.dart';
 import '../../utils/roster_diff.dart';
@@ -106,9 +107,9 @@ class _RosterImportScreenState extends ConsumerState<RosterImportScreen> {
     final loc = AppLocalizations.of(context);
     return TeamScaffold(
       teamId: widget.teamId,
-      appBar: TeamAppBar(
+      header: SidelineScreenHeader(
         teamId: widget.teamId,
-        titleText: loc.importRosterCsv,
+        subtitle: loc.importRosterCsv,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),

@@ -301,6 +301,11 @@ class GameCompactTitle extends ConsumerWidget {
 class TeamScaffold extends StatelessWidget {
   final int? teamId;
   final PreferredSizeWidget? appBar;
+
+  /// A full-bleed branded header band (e.g. [SidelineScreenHeader]) shown at the
+  /// top of the body in place of an [appBar]. When provided, no AppBar is used
+  /// and the band sits above the body (it paints behind the status bar itself).
+  final Widget? header;
   final Widget body;
   final Widget? floatingActionButton;
   final Widget? bottomNavigationBar;
@@ -310,6 +315,7 @@ class TeamScaffold extends StatelessWidget {
     super.key,
     this.teamId,
     this.appBar,
+    this.header,
     required this.body,
     this.floatingActionButton,
     this.bottomNavigationBar,
@@ -319,8 +325,13 @@ class TeamScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scaffold = Scaffold(
-      appBar: appBar,
-      body: body,
+      appBar: header == null ? appBar : null,
+      body: header == null
+          ? body
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [header!, Expanded(child: body)],
+            ),
       floatingActionButton: floatingActionButton,
       bottomNavigationBar: bottomNavigationBar,
       backgroundColor: backgroundColor,

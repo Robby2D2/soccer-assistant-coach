@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/providers.dart';
 import '../core/sideline.dart';
+import 'sideline_header.dart';
 import 'sideline_widgets.dart';
 
 /// The Live Game branded header band: a full-bleed team-colored band with a
@@ -51,106 +51,21 @@ class SidelineGameHeader extends ConsumerWidget {
                 : 'vs $opponentName';
             final isLive = game?.gameStatus == 'in-progress';
 
-            // The band paints behind the status bar, so match the status-bar
-            // icon brightness to the band: light icons on a dark team color,
-            // dark icons on a light one.
-            final bandIsDark =
-                ThemeData.estimateBrightnessForColor(band) == Brightness.dark;
-            final overlay =
-                (bandIsDark
-                        ? SystemUiOverlayStyle.light
-                        : SystemUiOverlayStyle.dark)
-                    .copyWith(statusBarColor: Colors.transparent);
-
-            return AnnotatedRegion<SystemUiOverlayStyle>(
-              value: overlay,
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: band,
-                  borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(SidelineRadius.headerBottom),
-                  ),
-                ),
-                child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 4, 12, 16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          if (Navigator.of(context).canPop())
-                            IconButton(
-                              onPressed: () => Navigator.of(context).maybePop(),
-                              icon: const Icon(Icons.arrow_back),
-                              color: onBand,
-                              tooltip: 'Back',
-                            )
-                          else
-                            const SizedBox(width: 12),
-                          if (isLive) _LivePill(color: onBand),
-                          const Spacer(),
-                          if (actions != null && actions!.isNotEmpty)
-                            IconTheme.merge(
-                              data: IconThemeData(color: onBand),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: actions!,
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: Row(
-                          children: [
-                            _Crest(initial: initial, teamColor: band),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    teamName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w800,
-                                      color: onBand,
-                                    ),
-                                  ),
-                                  Text(
-                                    opponent,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: onBand.withOpacity(0.85),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            _ScoreBox(
-                              teamScore: game?.teamScore ?? 0,
-                              opponentScore: game?.opponentScore ?? 0,
-                              periodLabel: _halfLabel(game?.currentHalf ?? 1),
-                              onBand: onBand,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                ),
+            return SidelineHeaderBand(
+              title: teamName,
+              subtitle: opponent,
+              crestInitial: initial,
+              band: band,
+              onBand: onBand,
+              actions: actions,
+              statusLeading: isLive ? _LivePill(color: onBand) : null,
+              trailing: _ScoreBox(
+                teamScore: game?.teamScore ?? 0,
+                opponentScore: game?.opponentScore ?? 0,
+                periodLabel: game?.gameStatus == 'completed'
+                    ? 'FINAL'
+                    : _halfLabel(game?.currentHalf ?? 1),
+                onBand: onBand,
               ),
             );
           },
@@ -214,33 +129,6 @@ class _PulsingDotState extends State<_PulsingDot>
         width: 8,
         height: 8,
         decoration: BoxDecoration(color: widget.color, shape: BoxShape.circle),
-      ),
-    );
-  }
-}
-
-class _Crest extends StatelessWidget {
-  final String initial;
-  final Color teamColor;
-  const _Crest({required this.initial, required this.teamColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 44,
-      height: 44,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        initial,
-        style: TextStyle(
-          color: teamColor,
-          fontSize: 22,
-          fontWeight: FontWeight.w800,
-        ),
       ),
     );
   }

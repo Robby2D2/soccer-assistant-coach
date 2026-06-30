@@ -1816,24 +1816,6 @@ class _ShiftDetailsPage extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(
-                    Icons.timer_outlined,
-                    color: onBackgroundColor,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    _hhmmss(shift.actualSeconds),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: onBackgroundColor,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                ],
-              ),
               // Show notes except for formation helper text and auto-generated labels
               if (((shift.notes ?? '').isNotEmpty) &&
                   !(shift.notes ?? '').startsWith('Formation: ') &&
@@ -1886,27 +1868,6 @@ class _ShiftDetailsPage extends StatelessWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header showing player count
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Row(
-                          children: [
-                            Text(
-                              'Players (${assignments.length})',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: onBackgroundColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const Spacer(),
-                            Icon(
-                              Icons.people,
-                              size: 16,
-                              color: onBackgroundColor,
-                            ),
-                          ],
-                        ),
-                      ),
                       // Players grid
                       GridView.builder(
                         shrinkWrap: true,

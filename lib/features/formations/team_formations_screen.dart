@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../core/team_theme_manager.dart';
 import '../../l10n/app_localizations.dart';
-import '../../widgets/team_header.dart';
+import '../../widgets/sideline_header.dart';
 import '../../widgets/team_accent_widgets.dart';
 
 class TeamFormationsScreen extends ConsumerWidget {
@@ -55,13 +56,11 @@ class TeamFormationsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final db = ref.watch(dbProvider);
     final loc = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: TeamHeader(
-          teamId: teamId,
-          suffix: ' ${loc.formations}',
-          logoSize: 28,
-        ),
+    return TeamScaffold(
+      teamId: teamId,
+      header: SidelineScreenHeader(
+        teamId: teamId,
+        subtitle: loc.formations,
       ),
       floatingActionButton: TeamFloatingActionButton(
         teamId: teamId,

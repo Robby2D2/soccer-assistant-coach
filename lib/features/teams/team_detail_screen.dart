@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
-import '../../widgets/team_header.dart';
+import '../../widgets/sideline_header.dart';
 import '../../core/team_theme_manager.dart';
 import '../../widgets/team_color_picker.dart';
 import '../../widgets/standardized_app_bar_actions.dart';
@@ -91,9 +91,9 @@ class TeamDetailScreen extends ConsumerWidget {
 
     return TeamScaffold(
       teamId: id,
-      appBar: TeamAppBar(
+      header: SidelineScreenHeader(
         teamId: id,
-        titleText: 'Team',
+        subtitle: loc.teamManagementHub,
         actions: StandardizedAppBarActions.createActionsWidgets([
           CommonNavigationActions.home(context),
           CommonNavigationActions.edit(context, '/team/$id/edit'),
@@ -104,15 +104,6 @@ class TeamDetailScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Team info header with team branding
-            Container(
-              margin: const EdgeInsets.only(bottom: 24),
-              child: TeamBrandedHeader(
-                teamId: id,
-                subtitle: loc.teamManagementHub,
-              ),
-            ),
-
             // Management sections
             Text(
               loc.teamManagement,

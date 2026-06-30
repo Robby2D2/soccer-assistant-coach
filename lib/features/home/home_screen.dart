@@ -592,18 +592,12 @@ class _ActiveGameGradientCard extends StatelessWidget {
               Theme.of(context).colorScheme.primary)
         : Theme.of(context).colorScheme.primary;
 
-    final teamSecondaryColor = team.primaryColor2 != null
-        ? (ColorHelper.hexToColor(team.primaryColor2!) ??
-              teamPrimaryColor.withOpacity(0.7))
-        : teamPrimaryColor.withOpacity(0.7);
-
-    // Determine on-colors for gradient
-    final onPrimary = TeamColorContrast.onColorFor(teamPrimaryColor);
-    final onSecondary = TeamColorContrast.onColorFor(teamSecondaryColor);
-    final onGradient =
-        onPrimary.computeLuminance() > onSecondary.computeLuminance()
-        ? onSecondary
-        : onPrimary;
+    // Sideline team tokens: a contrast-correct foreground (onTeam) for the solid
+    // band and a darkened shade (strong) for the crest icon, so a light team
+    // color stays readable on the white crest instead of washing out the way a
+    // low-opacity gradient did.
+    final tc = TeamColors.fromSeed(teamPrimaryColor);
+    final onGradient = tc.onTeam;
     final isShiftMode = team.teamMode == 'shift';
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -615,16 +609,7 @@ class _ActiveGameGradientCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           child: Container(
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  teamPrimaryColor.withOpacity(0.9),
-                  teamSecondaryColor.withOpacity(0.8),
-                  teamPrimaryColor.withOpacity(0.7),
-                ],
-                stops: const [0.0, 0.5, 1.0],
-              ),
+              color: tc.team,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Padding(
@@ -651,7 +636,7 @@ class _ActiveGameGradientCard extends StatelessWidget {
                           logoPath: team.logoImagePath,
                           size: 32,
                           backgroundColor: Colors.transparent,
-                          iconColor: teamPrimaryColor,
+                          iconColor: tc.strong,
                         ),
                       ),
                       Positioned(
@@ -668,9 +653,7 @@ class _ActiveGameGradientCard extends StatelessWidget {
                           ),
                           child: Icon(
                             game.isGameActive ? Icons.play_arrow : Icons.pause,
-                            color: game.isGameActive
-                                ? Colors.white
-                                : teamPrimaryColor,
+                            color: game.isGameActive ? Colors.white : tc.strong,
                             size: 14,
                           ),
                         ),
@@ -808,6 +791,9 @@ class _RecentTeamCard extends StatelessWidget {
         ? (ColorHelper.hexToColor(team.primaryColor1!) ??
               Theme.of(context).colorScheme.primary)
         : Theme.of(context).colorScheme.primary;
+    // Use the darkened "strong" shade for text/icons so a light team color is
+    // readable on the soft tinted background.
+    final tc = TeamColors.fromSeed(teamPrimaryColor);
 
     return Material(
       elevation: 3,
@@ -838,14 +824,14 @@ class _RecentTeamCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: teamPrimaryColor.withOpacity(0.1),
+                    color: tc.soft,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: TeamLogoWidget(
                     logoPath: team.logoImagePath,
                     size: 24,
                     backgroundColor: Colors.transparent,
-                    iconColor: teamPrimaryColor,
+                    iconColor: tc.strong,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -853,7 +839,7 @@ class _RecentTeamCard extends StatelessWidget {
                   team.name,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: teamPrimaryColor,
+                    color: tc.strong,
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 2,
@@ -866,13 +852,13 @@ class _RecentTeamCard extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: teamPrimaryColor.withOpacity(0.1),
+                    color: tc.soft,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     'Recent Games',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: teamPrimaryColor,
+                      color: tc.strong,
                       fontWeight: FontWeight.w600,
                       fontSize: 10,
                     ),
@@ -902,6 +888,9 @@ class _TeamBrandedCard extends StatelessWidget {
         ? (ColorHelper.hexToColor(team.primaryColor1!) ??
               Theme.of(context).colorScheme.primary)
         : Theme.of(context).colorScheme.primary;
+    // Use the darkened "strong" shade for text/icons so a light team color is
+    // readable on the soft tinted background.
+    final tc = TeamColors.fromSeed(teamPrimaryColor);
 
     return Material(
       elevation: 3,
@@ -932,14 +921,14 @@ class _TeamBrandedCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: teamPrimaryColor.withOpacity(0.1),
+                    color: tc.soft,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: TeamLogoWidget(
                     logoPath: team.logoImagePath,
                     size: 28,
                     backgroundColor: Colors.transparent,
-                    iconColor: teamPrimaryColor,
+                    iconColor: tc.strong,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -947,7 +936,7 @@ class _TeamBrandedCard extends StatelessWidget {
                   team.name,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: teamPrimaryColor,
+                    color: tc.strong,
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 2,
@@ -960,13 +949,13 @@ class _TeamBrandedCard extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: teamPrimaryColor.withOpacity(0.1),
+                    color: tc.soft,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     'Team Details',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: teamPrimaryColor,
+                      color: tc.strong,
                       fontWeight: FontWeight.w600,
                     ),
                     textAlign: TextAlign.center,

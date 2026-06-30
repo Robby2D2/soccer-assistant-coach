@@ -6,7 +6,7 @@ import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/team_accent_widgets.dart';
 import '../../core/team_theme_manager.dart';
-import '../../widgets/team_header.dart';
+import '../../widgets/sideline_header.dart';
 import '../../widgets/standardized_app_bar_actions.dart';
 
 class GamesScreen extends ConsumerStatefulWidget {
@@ -168,9 +168,9 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
     final loc = AppLocalizations.of(context);
     return TeamScaffold(
       teamId: widget.teamId,
-      appBar: TeamAppBar(
+      header: SidelineScreenHeader(
         teamId: widget.teamId,
-        titleText: loc.games,
+        subtitle: loc.games,
         actions: StandardizedAppBarActions.createActionsWidgets(
           [CommonNavigationActions.home(context)],
           additionalMenuItems: [
@@ -204,15 +204,6 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: TeamBrandedHeader(
-              teamId: widget.teamId,
-              title: 'Games',
-              subtitle: 'Game History & Management',
-              padding: const EdgeInsets.all(20),
-            ),
-          ),
           Expanded(
             child: StreamBuilder<List<Game>>(
               stream: stream,

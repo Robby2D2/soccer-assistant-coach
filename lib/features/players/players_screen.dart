@@ -9,6 +9,7 @@ import '../../utils/files.dart';
 import '../../widgets/player_avatar.dart';
 import '../../core/team_theme_manager.dart';
 import 'package:go_router/go_router.dart';
+import '../../widgets/sideline_header.dart';
 import '../../widgets/standardized_app_bar_actions.dart';
 
 class PlayersScreen extends ConsumerWidget {
@@ -101,9 +102,9 @@ class PlayersScreen extends ConsumerWidget {
     final db = ref.watch(dbProvider);
     return TeamScaffold(
       teamId: teamId,
-      appBar: TeamAppBar(
+      header: SidelineScreenHeader(
         teamId: teamId,
-        titleText: loc.players,
+        subtitle: loc.players,
         actions: StandardizedAppBarActions.createActionsWidgets(
           [
             CommonNavigationActions.export(context, () async {

@@ -6,7 +6,7 @@ import 'dart:io';
 import '../../core/providers.dart';
 import '../../widgets/player_avatar.dart';
 import '../../core/team_theme_manager.dart';
-import '../../widgets/team_header.dart';
+import '../../widgets/sideline_header.dart';
 
 class PlayerEditScreen extends ConsumerStatefulWidget {
   final int playerId;
@@ -125,7 +125,12 @@ class _PlayerEditScreenState extends ConsumerState<PlayerEditScreen> {
         final teamId = player?.teamId;
         return TeamScaffold(
           teamId: teamId,
-          appBar: const TeamAppBar(titleText: 'Edit Player'),
+          appBar: teamId == null
+              ? const TeamAppBar(titleText: 'Edit Player')
+              : null,
+          header: teamId == null
+              ? null
+              : SidelineScreenHeader(teamId: teamId, subtitle: 'Edit Player'),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () async {
               final f = _first.text.trim();
@@ -157,17 +162,6 @@ class _PlayerEditScreenState extends ConsumerState<PlayerEditScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                if (teamId != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: TeamBrandedHeader(
-                      teamId: teamId,
-                      title:
-                          '${_first.text.isEmpty ? 'Player' : _first.text} ${_last.text}',
-                      subtitle: 'Update roster details',
-                      padding: const EdgeInsets.all(16),
-                    ),
-                  ),
                 TextField(
                   controller: _first,
                   decoration: const InputDecoration(labelText: 'First name'),
