@@ -5,54 +5,15 @@ import '../../core/providers.dart';
 import '../../core/team_theme_manager.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/sideline_header.dart';
+import '../../core/positions.dart';
 import '../../core/sideline.dart';
 import '../../widgets/sideline_team_tabs.dart';
+import '../../widgets/sideline_widgets.dart';
 import '../../widgets/standardized_app_bar_actions.dart';
 
 class TeamFormationsScreen extends ConsumerWidget {
   final int teamId;
   const TeamFormationsScreen({super.key, required this.teamId});
-
-  void _showFormationDetails(
-    BuildContext context,
-    Formation f,
-    AppDb db,
-  ) async {
-    final loc = AppLocalizations.of(context);
-    final positions = await db.getFormationPositions(f.id);
-    if (!context.mounted) return;
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(f.name),
-        content: SizedBox(
-          width: 320,
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: positions
-                .map((p) => Chip(label: Text(p.positionName)))
-                .toList(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(loc.close),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              GoRouter.of(
-                context,
-              ).push('/team/$teamId/formations/${f.id}/edit');
-            },
-            child: Text(loc.edit),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -108,146 +69,10 @@ class TeamFormationsScreen extends ConsumerWidget {
           if (formations.isEmpty) {
             return _buildEmptyState(context);
           }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: formations.length,
-            itemBuilder: (context, index) {
-              final f = formations[index];
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Card(
-                  elevation: 2,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () {
-                      _showFormationDetails(context, f, db);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        children: [
-                          // Formation icon
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.secondaryContainer,
-                            ),
-                            child: Icon(
-                              Icons.grid_view_rounded,
-                              color: Theme.of(context).colorScheme.secondary,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-
-                          // Formation info
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  f.name,
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w600),
-                                ),
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(12),
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.tertiaryContainer,
-                                  ),
-                                  child: Text(
-                                    loc.playersCount(f.playerCount),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelSmall
-                                        ?.copyWith(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onTertiaryContainer,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Action menu
-                          PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert),
-                            onSelected: (value) async {
-                              switch (value) {
-                                case 'edit':
-                                  context.push(
-                                    '/team/$teamId/formations/${f.id}/edit',
-                                  );
-                                  break;
-                                case 'delete':
-                                  final confirm =
-                                      await showDialog<bool>(
-                                        context: context,
-                                        builder: (_) => AlertDialog(
-                                          title: Text(loc.deleteFormationTitle),
-                                          content: Text(
-                                            loc.deleteFormationMessage(f.name),
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context, false),
-                                              child: Text(loc.cancel),
-                                            ),
-                                            FilledButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context, true),
-                                              child: Text(loc.delete),
-                                            ),
-                                          ],
-                                        ),
-                                      ) ??
-                                      false;
-                                  if (!confirm) return;
-                                  await db.deleteFormation(f.id);
-                                  break;
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              PopupMenuItem(
-                                value: 'edit',
-                                child: ListTile(
-                                  leading: const Icon(Icons.edit_outlined),
-                                  title: Text(loc.editFormation),
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                              ),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: ListTile(
-                                  leading: const Icon(Icons.delete_outline),
-                                  title: Text(loc.deleteFormation),
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
+          return _FormationPicker(
+            formations: formations,
+            teamId: teamId,
+            db: db,
           );
         },
             ),
@@ -305,4 +130,309 @@ class TeamFormationsScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Formation picker + pitch preview: chips select a saved formation, and the
+/// dark pitch below lays its positions out by category (GK at the top,
+/// forwards at the bottom).
+class _FormationPicker extends StatefulWidget {
+  final List<Formation> formations;
+  final int teamId;
+  final AppDb db;
+
+  const _FormationPicker({
+    required this.formations,
+    required this.teamId,
+    required this.db,
+  });
+
+  @override
+  State<_FormationPicker> createState() => _FormationPickerState();
+}
+
+class _FormationPickerState extends State<_FormationPicker> {
+  int? _selectedId;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedId = widget.formations.isNotEmpty
+        ? widget.formations.first.id
+        : null;
+  }
+
+  @override
+  void didUpdateWidget(covariant _FormationPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_selectedId == null ||
+        !widget.formations.any((f) => f.id == _selectedId)) {
+      _selectedId = widget.formations.isNotEmpty
+          ? widget.formations.first.id
+          : null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(
+          'Current setup',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: SidelineColors.ink,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [for (final f in widget.formations) _chip(f)],
+        ),
+        const SizedBox(height: 16),
+        if (_selectedId != null)
+          FutureBuilder<List<FormationPosition>>(
+            future: widget.db.getFormationPositions(_selectedId!),
+            builder: (context, snap) {
+              return _FormationField(
+                positions: snap.data ?? const <FormationPosition>[],
+              );
+            },
+          ),
+        const SizedBox(height: 12),
+        if (_selectedId != null)
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => context.push(
+                    '/team/${widget.teamId}/formations/$_selectedId/edit',
+                  ),
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Edit'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton.icon(
+                onPressed: _deleteSelected,
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Delete'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _chip(Formation f) {
+    final team = teamColorsOf(context);
+    final active = f.id == _selectedId;
+    return Material(
+      color: active ? team.team : SidelineColors.surface,
+      borderRadius: BorderRadius.circular(SidelineRadius.row),
+      child: InkWell(
+        onTap: () => setState(() => _selectedId = f.id),
+        borderRadius: BorderRadius.circular(SidelineRadius.row),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(SidelineRadius.row),
+            border: active ? null : Border.all(color: SidelineColors.hairline),
+          ),
+          child: Text(
+            f.name,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: active ? team.onTeam : SidelineColors.ink,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteSelected() async {
+    final id = _selectedId;
+    if (id == null) return;
+    final loc = AppLocalizations.of(context);
+    final f = widget.formations.firstWhere((x) => x.id == id);
+    final confirm =
+        await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text(loc.deleteFormationTitle),
+            content: Text(loc.deleteFormationMessage(f.name)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(loc.cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(loc.delete),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirm) return;
+    await widget.db.deleteFormation(id);
+  }
+}
+
+/// A dark pitch showing a formation's positions as team-colored badges, laid
+/// out in category rows (GK at the top, forwards at the bottom).
+class _FormationField extends StatelessWidget {
+  final List<FormationPosition> positions;
+  const _FormationField({required this.positions});
+
+  @override
+  Widget build(BuildContext context) {
+    final team = teamColorsOf(context);
+    final byCat = <String, List<FormationPosition>>{};
+    for (final p in positions) {
+      byCat.putIfAbsent(positionCategory(p.positionName), () => []).add(p);
+    }
+    final rows = kPositionCategories
+        .where((c) => byCat[c]?.isNotEmpty ?? false)
+        .toList();
+
+    return AspectRatio(
+      aspectRatio: 0.74,
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: SidelineColors.ink,
+          borderRadius: BorderRadius.circular(SidelineRadius.card),
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(child: CustomPaint(painter: _PitchPainter())),
+            if (rows.isEmpty)
+              const Center(
+                child: Text(
+                  'No positions in this formation',
+                  style: TextStyle(color: Colors.white54),
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 18,
+                  horizontal: 12,
+                ),
+                child: Column(
+                  children: [
+                    for (final cat in rows)
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            for (final p in byCat[cat]!)
+                              _PositionBadge(
+                                label: p.abbreviation.isNotEmpty
+                                    ? p.abbreviation
+                                    : cat,
+                                badgeColor: team.team,
+                                textColor: team.onTeam,
+                              ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PositionBadge extends StatelessWidget {
+  final String label;
+  final Color badgeColor;
+  final Color textColor;
+  const _PositionBadge({
+    required this.label,
+    required this.badgeColor,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 46,
+      height: 46,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: badgeColor,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white.withOpacity(0.25), width: 2),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+}
+
+/// Subtle white pitch markings for the dark formation field.
+class _PitchPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.14)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    const inset = 10.0;
+    final rect = Rect.fromLTWH(
+      inset,
+      inset,
+      size.width - inset * 2,
+      size.height - inset * 2,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(10)),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(inset, size.height / 2),
+      Offset(size.width - inset, size.height / 2),
+      paint,
+    );
+    canvas.drawCircle(
+      Offset(size.width / 2, size.height / 2),
+      size.width * 0.13,
+      paint,
+    );
+    final boxW = size.width * 0.46;
+    final boxH = size.height * 0.13;
+    canvas.drawRect(
+      Rect.fromLTWH((size.width - boxW) / 2, inset, boxW, boxH),
+      paint,
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(
+        (size.width - boxW) / 2,
+        size.height - inset - boxH,
+        boxW,
+        boxH,
+      ),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
