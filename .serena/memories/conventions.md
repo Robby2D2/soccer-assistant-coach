@@ -1,0 +1,11 @@
+- KISS/DRY, no speculative abstractions/config beyond what's asked. Match surrounding code style.
+- Never use raw `Scaffold`/`AppBar` — use `TeamScaffold`/`GameScaffold` + `TeamAppBar` (team-scoped, global, or game-scoped per the table in ARCHITECTURE.md). `GameScaffold` resolves `teamId` from `gameId` internally.
+- Never hardcode colors — use `Theme.of(context).colorScheme.*` and `TeamColorContrast.onColorFor()` (≥4.5:1 WCAG contrast) for anything drawn over team-colored surfaces.
+- Never edit generated files (`*.g.dart`, `*.drift.dart`) — regenerate via build_runner (see `mem:suggested_commands`).
+- Never touch the on-disk DB in tests — always `AppDb.test()` (in-memory) or `AppDb.forTesting(executor)` (file-backed, for migration tests only).
+- Avoid `dynamic`/implicit `Object`; consistent async/await.
+- Theming pipeline: base Material3 theme (`core/theme.dart`) → `TeamTheme` derives a `ColorScheme` from team color → `teamThemeProvider` exposes it → `TeamScaffold`/`GameScaffold` apply it to subtree. "Sideline" design system layers on top: tokens in `core/sideline.dart`, the single `TeamColors` ThemeExtension in `utils/team_theme.dart` (read via `teamColorsOf(context)`), components in `widgets/sideline_widgets.dart`. `TeamColors.applyTo` sets extensions outright — do not spread `base.extensions`, it breaks type inference.
+- Prefer `StreamProvider`/`AsyncNotifierProvider` over one-shot futures so UI reacts to DB changes; `dbProvider` is the root dependency every data provider depends on.
+- autoDispose Riverpod providers do NOT auto-cancel Dart `Timer`s — must `ref.onDispose(() => timer?.cancel())` explicitly.
+- Patrol E2E specifics: must live in `patrol_test/` (not `integration_test/`, Windows path bug in patrol_cli 4.x); always `pumpAndSettle(timeout: ...)` (uncapped spins ~19min on open Drift streams — 5s initial load, 3s post-tap); journeys that push deep-link routes directly (e.g. `/game/:id/assign/:shiftId`) are preferred over driving full UI when deterministic write-path coverage is the goal; screenshot fixed UI via `patrol_test/helpers/screenshot.dart` `captureScreenshot($, name)` before any pop/nav-away, best-effort only.
+- Commits: small/focused, explain *why* not *what*. Don't commit generated files.

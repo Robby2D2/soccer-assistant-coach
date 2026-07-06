@@ -1,0 +1,9 @@
+- Dart SDK >=3.8.0 <4.0.0. Flutter (Material 3).
+- State: flutter_riverpod ^3.0.3 (Riverpod v3) throughout.
+- Routing: go_router ^16.2.5, all routes defined in lib/core/router.dart.
+- DB: drift ^2.18.0 (type-safe SQLite) + drift_dev (codegen) + sqlite3_flutter_libs (bundles native lib on Android).
+- Codegen: build_runner ^2.7.1, json_serializable ^6.11.1 (json_annotation ^4.9.0). build_runner upgrade currently blocked by analyzer/test_api graph — don't bump casually.
+- E2E: patrol pinned to exactly 4.5.0 in pubspec, must stay paired with patrol_cli version pinned in .github/workflows/ci.yml — bump both together.
+- Theming extras: flex_color_picker, google_fonts (Hanken Grotesk / Spline Sans Mono for the "Sideline" design system).
+- dependency_overrides pins: device_info_plus, characters, material_color_utilities, meta — compatibility shims, check before removing.
+- App IDs: Android `com.useunix.soccerassistantcoach`, iOS bundle id same — must match patrol config in pubspec.yaml.
