@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../core/team_theme_manager.dart';
+import '../../core/sideline.dart';
 import '../../widgets/sideline_header.dart';
 import '../../widgets/sideline_team_tabs.dart';
 import '../../widgets/team_logo_widget.dart';
@@ -285,12 +286,98 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
               ),
             ],
             const SizedBox(height: 16),
+
+            _TeamInfoSection(teamId: widget.teamId, teamMode: _teamMode),
+            const SizedBox(height: 16),
           ],
         ),
               ),
             ),
           ],
         ),
+    );
+  }
+}
+
+/// Read-only team info card (mode, season, roster size) for the settings screen.
+class _TeamInfoSection extends ConsumerWidget {
+  final int teamId;
+  final String teamMode;
+
+  const _TeamInfoSection({required this.teamId, required this.teamMode});
+
+  Future<(String, int)> _load(AppDb db) async {
+    final team = await db.getTeam(teamId);
+    final players = await db.getPlayersByTeam(teamId);
+    var season = '—';
+    if (team != null) {
+      final s = await db.getSeason(team.seasonId);
+      season = s?.name ?? '—';
+    }
+    return (season, players.length);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(dbProvider);
+    return FutureBuilder<(String, int)>(
+      future: _load(db),
+      builder: (context, snap) {
+        final season = snap.data?.$1 ?? '—';
+        final rosterSize = snap.data?.$2 ?? 0;
+        final modeLabel = teamMode == 'traditional' ? 'Traditional' : 'Shift';
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Team info',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: SidelineColors.surface,
+                borderRadius: BorderRadius.circular(SidelineRadius.row),
+                border: Border.all(color: SidelineColors.hairline),
+              ),
+              child: Column(
+                children: [
+                  _infoRow('Mode', modeLabel),
+                  const Divider(height: 1, color: SidelineColors.hairline),
+                  _infoRow('Season', season),
+                  const Divider(height: 1, color: SidelineColors.hairline),
+                  _infoRow('Roster size', '$rosterSize players'),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 14, color: SidelineColors.muted),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: SidelineColors.ink,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
