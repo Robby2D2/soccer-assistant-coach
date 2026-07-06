@@ -10,6 +10,7 @@ import '../../widgets/player_avatar.dart';
 import '../../core/team_theme_manager.dart';
 import 'package:go_router/go_router.dart';
 import '../../widgets/sideline_header.dart';
+import '../../widgets/sideline_team_tabs.dart';
 import '../../widgets/standardized_app_bar_actions.dart';
 
 class PlayersScreen extends ConsumerWidget {
@@ -183,6 +184,10 @@ class PlayersScreen extends ConsumerWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  SidelineTeamTabs(
+                    teamId: teamId,
+                    current: SidelineTeamTab.roster,
+                  ),
                   _RosterCountSummary(total: rows.length, active: activeCount),
                   Expanded(
                     child: rows.isEmpty
