@@ -2009,6 +2009,34 @@ extension TeamMetricsQueries on AppDb {
     );
   }
 
+  /// Win/loss/draw record and goals for/against across the team's completed
+  /// games (from each game's final team/opponent score).
+  Future<TeamRecord> getTeamRecord(int teamId) async {
+    final rows =
+        await (select(games)..where(
+          (g) => g.teamId.equals(teamId) & g.gameStatus.equals('completed'),
+        )).get();
+    var wins = 0, losses = 0, draws = 0, goalsFor = 0, goalsAgainst = 0;
+    for (final g in rows) {
+      goalsFor += g.teamScore;
+      goalsAgainst += g.opponentScore;
+      if (g.teamScore > g.opponentScore) {
+        wins++;
+      } else if (g.teamScore < g.opponentScore) {
+        losses++;
+      } else {
+        draws++;
+      }
+    }
+    return TeamRecord(
+      wins: wins,
+      losses: losses,
+      draws: draws,
+      goalsFor: goalsFor,
+      goalsAgainst: goalsAgainst,
+    );
+  }
+
   /// Watch for changes in team metrics (simplified version for now)
   Stream<TeamMetricsSummary> watchTeamMetricsSummary(int teamId) async* {
     // For now, just yield current data - in a real implementation you'd want to watch

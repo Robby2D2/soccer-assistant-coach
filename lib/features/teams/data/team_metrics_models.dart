@@ -1,3 +1,28 @@
+/// Win/loss/draw record and goals for/against across a team's completed games.
+class TeamRecord {
+  final int wins;
+  final int losses;
+  final int draws;
+  final int goalsFor;
+  final int goalsAgainst;
+
+  const TeamRecord({
+    this.wins = 0,
+    this.losses = 0,
+    this.draws = 0,
+    this.goalsFor = 0,
+    this.goalsAgainst = 0,
+  });
+
+  int get gamesPlayed => wins + losses + draws;
+
+  /// e.g. "4-1-2" (W-L-D).
+  String get recordLabel => '$wins-$losses-$draws';
+
+  /// e.g. "18/9" (GF/GA).
+  String get goalDifferenceLabel => '$goalsFor/$goalsAgainst';
+}
+
 /// Aggregated metrics for a player across all games for a team
 class PlayerTeamMetrics {
   final int playerId;
