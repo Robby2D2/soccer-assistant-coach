@@ -11,9 +11,8 @@ name: Fix issues (agent sweep)
 # trigger via `gh workflow run` — this job never boots an emulator itself.
 
 on:
-  schedule:
-    # 12:00 UTC ≈ early morning US-Central. Adjust to taste.
-    - cron: '0 12 * * *'
+  # Manual-only. The scheduled daily sweep was removed — this workflow no longer runs
+  # automatically; trigger it from the Actions tab (or `gh workflow run`) when needed.
   workflow_dispatch:
     inputs:
       args:
