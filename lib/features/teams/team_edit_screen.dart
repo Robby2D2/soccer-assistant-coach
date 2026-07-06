@@ -5,6 +5,7 @@ import '../../core/team_theme_manager.dart';
 import '../../core/sideline.dart';
 import '../../widgets/sideline_header.dart';
 import '../../widgets/sideline_team_tabs.dart';
+import '../../widgets/standardized_app_bar_actions.dart';
 import '../../widgets/team_logo_widget.dart';
 import '../../widgets/team_color_picker.dart';
 import '../../utils/team_image_picker.dart';
@@ -87,6 +88,9 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
       header: SidelineScreenHeader(
         teamId: widget.teamId,
         subtitle: 'Edit Team',
+        actions: StandardizedAppBarActions.createActionsWidgets([
+          CommonNavigationActions.home(context),
+        ]),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {

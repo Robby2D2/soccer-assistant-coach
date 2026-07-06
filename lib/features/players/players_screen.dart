@@ -110,6 +110,7 @@ class PlayersScreen extends ConsumerWidget {
         subtitle: loc.players,
         actions: StandardizedAppBarActions.createActionsWidgets(
           [
+            CommonNavigationActions.home(context),
             CommonNavigationActions.export(context, () async {
               final players = await db.getPlayersByTeam(teamId);
               final rows = players

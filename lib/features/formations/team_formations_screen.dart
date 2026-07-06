@@ -5,8 +5,9 @@ import '../../core/providers.dart';
 import '../../core/team_theme_manager.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/sideline_header.dart';
+import '../../core/sideline.dart';
 import '../../widgets/sideline_team_tabs.dart';
-import '../../widgets/team_accent_widgets.dart';
+import '../../widgets/standardized_app_bar_actions.dart';
 
 class TeamFormationsScreen extends ConsumerWidget {
   final int teamId;
@@ -62,12 +63,31 @@ class TeamFormationsScreen extends ConsumerWidget {
       header: SidelineScreenHeader(
         teamId: teamId,
         subtitle: loc.formations,
+        actions: StandardizedAppBarActions.createActionsWidgets([
+          CommonNavigationActions.home(context),
+        ]),
       ),
-      floatingActionButton: TeamFloatingActionButton(
-        teamId: teamId,
-        tooltip: loc.createFormationTooltip,
-        onPressed: () => context.push('/team/$teamId/formations/new'),
-        child: const Icon(Icons.add),
+      bottomNavigationBar: Material(
+        color: SidelineColors.surface,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+            child: SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton.icon(
+                onPressed: () => context.push('/team/$teamId/formations/new'),
+                icon: const Icon(Icons.add),
+                label: const Text('Add formation'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: SidelineColors.ink,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

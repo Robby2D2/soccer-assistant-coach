@@ -5,6 +5,7 @@ import '../../core/sideline.dart';
 import '../../core/team_theme_manager.dart';
 import '../../widgets/sideline_header.dart';
 import '../../widgets/sideline_widgets.dart';
+import '../../widgets/standardized_app_bar_actions.dart';
 import '../../utils/files.dart';
 import '../../widgets/player_avatar.dart';
 import '../teams/data/team_metrics_models.dart';
@@ -21,11 +22,9 @@ class TeamMetricsOverviewScreen extends ConsumerWidget {
       header: SidelineScreenHeader(
         teamId: teamId,
         subtitle: 'Season stats',
-        actions: [
-          IconButton(
-            tooltip: 'Export CSV',
-            icon: const Icon(Icons.file_download),
-            onPressed: () async {
+        actions: StandardizedAppBarActions.createActionsWidgets([
+          CommonNavigationActions.home(context),
+          CommonNavigationActions.export(context, () async {
               final summary = await db.getTeamMetricsSummary(teamId);
               final buffer = StringBuffer();
               buffer.writeln(
@@ -47,9 +46,8 @@ class TeamMetricsOverviewScreen extends ConsumerWidget {
                   context,
                 ).showSnackBar(SnackBar(content: Text('Saved CSV to $path')));
               }
-            },
-          ),
-        ],
+            }),
+        ]),
       ),
       body: FutureBuilder<(Team?, TeamMetricsSummary, TeamRecord)>(
         future:
