@@ -5,6 +5,7 @@ import '../../core/providers.dart';
 import '../../core/team_theme_manager.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/sideline_header.dart';
+import '../../widgets/sideline_team_tabs.dart';
 import '../../widgets/team_accent_widgets.dart';
 
 class TeamFormationsScreen extends ConsumerWidget {
@@ -68,8 +69,16 @@ class TeamFormationsScreen extends ConsumerWidget {
         onPressed: () => context.push('/team/$teamId/formations/new'),
         child: const Icon(Icons.add),
       ),
-      body: StreamBuilder<List<Formation>>(
-        stream: db.watchTeamFormations(teamId),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SidelineTeamTabs(
+            teamId: teamId,
+            current: SidelineTeamTab.formation,
+          ),
+          Expanded(
+            child: StreamBuilder<List<Formation>>(
+              stream: db.watchTeamFormations(teamId),
         builder: (context, snapshot) {
           final formations = snapshot.data ?? const <Formation>[];
           if (snapshot.connectionState == ConnectionState.waiting &&
@@ -221,6 +230,9 @@ class TeamFormationsScreen extends ConsumerWidget {
             },
           );
         },
+            ),
+          ),
+        ],
       ),
     );
   }

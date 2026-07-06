@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
+import '../../core/sideline.dart';
 import '../../core/team_theme_manager.dart';
 import '../../widgets/sideline_header.dart';
+import '../../widgets/sideline_widgets.dart';
 import '../../utils/files.dart';
 import '../../widgets/player_avatar.dart';
 import '../teams/data/team_metrics_models.dart';
@@ -18,7 +20,7 @@ class TeamMetricsOverviewScreen extends ConsumerWidget {
       teamId: teamId,
       header: SidelineScreenHeader(
         teamId: teamId,
-        subtitle: 'Team Metrics',
+        subtitle: 'Season stats',
         actions: [
           IconButton(
             tooltip: 'Export CSV',
@@ -49,14 +51,18 @@ class TeamMetricsOverviewScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: FutureBuilder<(Team?, TeamMetricsSummary)>(
+      body: FutureBuilder<(Team?, TeamMetricsSummary, TeamRecord)>(
         future:
             Future.wait([
               db.getTeam(teamId),
               db.getTeamMetricsSummary(teamId),
+              db.getTeamRecord(teamId),
             ]).then(
-              (results) =>
-                  (results[0] as Team?, results[1] as TeamMetricsSummary),
+              (results) => (
+                results[0] as Team?,
+                results[1] as TeamMetricsSummary,
+                results[2] as TeamRecord,
+              ),
             ),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -85,7 +91,7 @@ class TeamMetricsOverviewScreen extends ConsumerWidget {
             );
           }
 
-          final (team, summary) = snapshot.data!;
+          final (team, summary, record) = snapshot.data!;
           if (team == null) {
             return const Center(
               child: Column(
@@ -131,71 +137,49 @@ class TeamMetricsOverviewScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Team Summary Card
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.analytics),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Team Overview',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        GridView.count(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 2.5,
-                          children: [
-                            _SummaryItem(
-                              icon: Icons.sports_soccer,
-                              label: 'Total Games',
-                              value: summary.totalGames.toString(),
-                            ),
-                            _SummaryItem(
-                              icon: Icons.timer,
-                              label: 'Total Play Time',
-                              value: _formatMinutes(
-                                summary.totalPlayTimeMinutes,
-                              ),
-                            ),
-                            _SummaryItem(
-                              icon: Icons.sports_soccer,
-                              label: 'Total Goals',
-                              value: summary.totalGoals.toString(),
-                            ),
-                            _SummaryItem(
-                              icon: Icons.sports,
-                              label: 'Total Assists',
-                              value: summary.totalAssists.toString(),
-                            ),
-                            _SummaryItem(
-                              icon: Icons.sports_handball,
-                              label: 'Total Saves',
-                              value: summary.totalSaves.toString(),
-                            ),
-                            _SummaryItem(
-                              icon: Icons.trending_up,
-                              label: 'Avg Goals/Game',
-                              value: summary.averageGoalsPerGame
-                                  .toStringAsFixed(1),
-                            ),
-                          ],
-                        ),
-                      ],
+                // Headline: record + goals for / against.
+                Row(
+                  children: [
+                    Expanded(
+                      child: _StatBox(
+                        label: 'RECORD',
+                        value: record.recordLabel,
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatBox(
+                        label: 'GF/GA',
+                        value: record.goalDifferenceLabel,
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 20),
+                // Top scorers.
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      'Top scorers',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: SidelineColors.ink,
+                      ),
+                    ),
+                    const Text(
+                      'this season',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: SidelineColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _TopScorers(players: summary.playerMetrics),
                 const SizedBox(height: 16),
 
                 // Playing Time Chart
@@ -272,67 +256,143 @@ class TeamMetricsOverviewScreen extends ConsumerWidget {
     );
   }
 
-  String _formatMinutes(double minutes) {
-    if (minutes < 60) {
-      return '${minutes.toStringAsFixed(0)} min';
-    }
-    final hours = minutes ~/ 60;
-    final remainingMinutes = (minutes % 60).round();
-    return '${hours}h ${remainingMinutes}m';
-  }
 }
 
-class _SummaryItem extends StatelessWidget {
-  const _SummaryItem({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+/// A headline stat card: uppercase mono label over a big mono value.
+class _StatBox extends StatelessWidget {
+  const _StatBox({required this.label, required this.value});
 
-  final IconData icon;
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        color: SidelineColors.surface,
+        borderRadius: BorderRadius.circular(SidelineRadius.row),
+        border: Border.all(color: SidelineColors.hairline),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Icon(icon, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Text(
-                    value,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Flexible(
-                  child: Text(
-                    label,
-                    style: Theme.of(context).textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+          Text(
+            label,
+            style: sidelineMono(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: SidelineColors.muted,
+              letterSpacing: 1.0,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: sidelineMono(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              color: SidelineColors.ink,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Top scorers list — players with goals, most first, as clean Sideline rows.
+class _TopScorers extends StatelessWidget {
+  const _TopScorers({required this.players});
+
+  final List<PlayerTeamMetrics> players;
+
+  @override
+  Widget build(BuildContext context) {
+    final scorers = [...players.where((p) => p.totalGoals > 0)]
+      ..sort((a, b) => b.totalGoals.compareTo(a.totalGoals));
+    if (scorers.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: SidelineColors.surface,
+          borderRadius: BorderRadius.circular(SidelineRadius.row),
+          border: Border.all(color: SidelineColors.hairline),
+        ),
+        child: const Text(
+          'No goals recorded yet.',
+          style: TextStyle(color: SidelineColors.muted),
+        ),
+      );
+    }
+    final team = teamColorsOf(context);
+    return Column(
+      children: [
+        for (final p in scorers.take(8))
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(11),
+            decoration: BoxDecoration(
+              color: SidelineColors.surface,
+              borderRadius: BorderRadius.circular(SidelineRadius.row),
+              border: Border.all(color: SidelineColors.hairline),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: team.team,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    p.jerseyNumber?.toString() ?? '–',
+                    style: sidelineMono(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: team.onTeam,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '${p.firstName} ${p.lastName}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: SidelineColors.ink,
+                    ),
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${p.totalGoals}',
+                      style: sidelineMono(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: SidelineColors.ink,
+                      ),
+                    ),
+                    const Text(
+                      'goals',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: SidelineColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

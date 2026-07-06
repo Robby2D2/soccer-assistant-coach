@@ -2009,6 +2009,75 @@ extension TeamMetricsQueries on AppDb {
     );
   }
 
+  /// Win/loss/draw record and goals for/against across the team's completed
+  /// games (from each game's final team/opponent score).
+  Future<TeamRecord> getTeamRecord(int teamId) async {
+    final rows =
+        await (select(games)..where(
+          (g) => g.teamId.equals(teamId) & g.gameStatus.equals('completed'),
+        )).get();
+    var wins = 0, losses = 0, draws = 0, goalsFor = 0, goalsAgainst = 0;
+    for (final g in rows) {
+      goalsFor += g.teamScore;
+      goalsAgainst += g.opponentScore;
+      if (g.teamScore > g.opponentScore) {
+        wins++;
+      } else if (g.teamScore < g.opponentScore) {
+        losses++;
+      } else {
+        draws++;
+      }
+    }
+    return TeamRecord(
+      wins: wins,
+      losses: losses,
+      draws: draws,
+      goalsFor: goalsFor,
+      goalsAgainst: goalsAgainst,
+    );
+  }
+
+  /// Each player's most-played position (raw position name) across the team,
+  /// derived from accumulated position totals. Used to show a primary-position
+  /// chip on the roster.
+  Future<Map<int, String>> primaryPositionByPlayer(int teamId) async {
+    final playerRows =
+        await (select(players)..where((p) => p.teamId.equals(teamId))).get();
+    final ids = playerRows.map((p) => p.id).toList();
+    if (ids.isEmpty) return {};
+    final totals =
+        await (select(playerPositionTotals)
+              ..where((ppt) => ppt.playerId.isIn(ids)))
+            .get();
+    final best = <int, ({String position, int seconds})>{};
+    for (final row in totals) {
+      final cur = best[row.playerId];
+      if (cur == null || row.totalSeconds > cur.seconds) {
+        best[row.playerId] = (position: row.position, seconds: row.totalSeconds);
+      }
+    }
+    return {for (final e in best.entries) e.key: e.value.position};
+  }
+
+  /// Number of distinct games each player has appeared in (had a shift
+  /// assignment), across the team. Used for the roster "N appearances" line.
+  Future<Map<int, int>> appearancesByPlayer(int teamId) async {
+    final rows = await customSelect(
+      'SELECT ps.player_id AS playerId, COUNT(DISTINCT s.game_id) AS games '
+      'FROM player_shifts ps '
+      'INNER JOIN shifts s ON s.id = ps.shift_id '
+      'INNER JOIN games g ON g.id = s.game_id '
+      'WHERE g.team_id = ? '
+      'GROUP BY ps.player_id',
+      variables: [Variable<int>(teamId)],
+      readsFrom: {playerShifts, shifts, games},
+    ).get();
+    return {
+      for (final row in rows)
+        row.read<int>('playerId'): row.read<int>('games'),
+    };
+  }
+
   /// Watch for changes in team metrics (simplified version for now)
   Stream<TeamMetricsSummary> watchTeamMetricsSummary(int teamId) async* {
     // For now, just yield current data - in a real implementation you'd want to watch
