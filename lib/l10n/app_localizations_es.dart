@@ -448,6 +448,26 @@ class AppLocalizationsEs extends AppLocalizations {
   String get teamManagementHub => 'Centro de gestión del equipo';
 
   @override
+  String get mostRecentGame => 'Juego más reciente';
+
+  @override
+  String get nextGame => 'Próximo juego';
+
+  @override
+  String get createNewGame => 'Crear nuevo juego';
+
+  @override
+  String get noRecentGamesYet => 'Aún no se han jugado juegos';
+
+  @override
+  String get noUpcomingGames => 'No hay juegos programados';
+
+  @override
+  String playedOn(String date) {
+    return 'Jugado el $date';
+  }
+
+  @override
   String get teamManagement => 'Gestión del equipo';
 
   @override

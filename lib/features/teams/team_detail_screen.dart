@@ -1,87 +1,49 @@
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
+import '../../core/sideline.dart';
 import '../../l10n/app_localizations.dart';
 import '../../widgets/sideline_header.dart';
+import '../../widgets/sideline_widgets.dart';
 import '../../core/team_theme_manager.dart';
-import '../../widgets/team_color_picker.dart';
 import '../../widgets/standardized_app_bar_actions.dart';
 
+/// Game-first team landing screen (`/team/:id`). Surfaces the most recent game
+/// result and the next scheduled game with a one-tap "Create new game" action.
+/// Team management (players, formations, settings) lives under Settings.
 class TeamDetailScreen extends ConsumerWidget {
   final int id;
   const TeamDetailScreen({super.key, required this.id});
 
-  Widget _buildManagementCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required Color iconColor,
-    required VoidCallback onTap,
-    Team? team, // Add team parameter for color theming
-  }) {
-    // Use team colors if available, fallback to provided colors
-    final cardColor = team?.primaryColor1 != null
-        ? (ColorHelper.hexToColor(team!.primaryColor1!) ??
-                  Theme.of(context).colorScheme.primary)
-              .withOpacity(0.15)
-        : color;
-    final cardIconColor = team?.primaryColor1 != null
-        ? (ColorHelper.hexToColor(team!.primaryColor1!) ??
-              Theme.of(context).colorScheme.primary)
-        : iconColor;
+  String _formatDate(DateTime value) {
+    final year = value.year.toString().padLeft(4, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    return '$year-$month-$day';
+  }
 
-    return Card(
-      elevation: 2,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: cardColor,
-                ),
-                child: Icon(icon, color: cardIconColor, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
+  String _formatTime(DateTime value) {
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  Future<void> _createGame(BuildContext context, WidgetRef ref) async {
+    final db = ref.read(dbProvider);
+    final team = await db.getTeam(id);
+    if (team == null) return;
+    final gameId = await db.addGame(
+      GamesCompanion.insert(
+        teamId: id,
+        seasonId: team.seasonId,
+        startTime: const drift.Value.absent(),
+        opponent: const drift.Value.absent(),
       ),
     );
+    if (!context.mounted) return;
+    context.push('/game/$gameId/edit');
   }
 
   @override
@@ -93,10 +55,24 @@ class TeamDetailScreen extends ConsumerWidget {
       teamId: id,
       header: SidelineScreenHeader(
         teamId: id,
-        subtitle: loc.teamManagementHub,
+        subtitle: loc.games,
         actions: StandardizedAppBarActions.createActionsWidgets([
           CommonNavigationActions.home(context),
-          CommonNavigationActions.edit(context, '/team/$id/edit'),
+          NavigationAction(
+            label: loc.games,
+            icon: Icons.sports_soccer,
+            onPressed: () => context.push('/team/$id/games'),
+          ),
+          NavigationAction(
+            label: loc.settings,
+            icon: Icons.settings,
+            onPressed: () => context.push('/team/$id/edit'),
+          ),
+          NavigationAction(
+            label: loc.metrics,
+            icon: Icons.analytics,
+            onPressed: () => context.push('/team/$id/metrics'),
+          ),
         ]),
       ),
       body: SingleChildScrollView(
@@ -104,85 +80,214 @@ class TeamDetailScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Management sections
             Text(
-              loc.teamManagement,
+              loc.mostRecentGame,
               style: Theme.of(
                 context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            StreamBuilder<Game?>(
+              stream: db.watchMostRecentCompletedGame(id),
+              builder: (context, snap) =>
+                  _recentGameCard(context, snap.data, loc),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              loc.nextGame,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            StreamBuilder<Game?>(
+              stream: db.watchNextUpcomingGame(id),
+              builder: (context, snap) => _nextGameCard(context, snap.data, loc),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => _createGame(context, ref),
+                icon: const Icon(Icons.add),
+                label: Text(loc.createNewGame),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push('/team/$id/edit'),
+                    icon: const Icon(Icons.settings),
+                    label: Text(loc.settings),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push('/team/$id/metrics'),
+                    icon: const Icon(Icons.analytics),
+                    label: Text(loc.viewMetrics),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-            // Players card
-            FutureBuilder<Team?>(
-              future: db.getTeam(id),
-              builder: (context, snapshot) {
-                final team = snapshot.data;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildManagementCard(
-                      context,
-                      icon: Icons.people,
-                      title: loc.players,
-                      subtitle: loc.manageTeamRosterDescription,
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      iconColor: Theme.of(context).colorScheme.primary,
-                      team: team,
-                      onTap: () => context.push('/team/$id/players'),
+  Widget _recentGameCard(
+    BuildContext context,
+    Game? game,
+    AppLocalizations loc,
+  ) {
+    if (game == null) {
+      return _emptyGameCard(context, Icons.history, loc.noRecentGamesYet);
+    }
+    final team = teamColorsOf(context);
+    final opponent = game.opponent?.isNotEmpty == true
+        ? game.opponent!
+        : 'Opponent';
+    return _gameCard(
+      context,
+      accent: team.team,
+      onTap: () => context.push('/game/${game.id}'),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'vs $opponent',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                if (game.startTime != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    loc.playedOn(_formatDate(game.startTime!)),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(height: 12),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            '${game.teamScore}–${game.opponentScore}',
+            style: sidelineMono(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: team.strong,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                    // Formations card
-                    _buildManagementCard(
-                      context,
-                      icon: Icons.grid_view_rounded,
-                      title: loc.formations,
-                      subtitle: loc.setupTacticalFormationsDescription,
-                      color: Theme.of(context).colorScheme.secondaryContainer,
-                      iconColor: Theme.of(context).colorScheme.secondary,
-                      team: team,
-                      onTap: () => context.push('/team/$id/formations'),
-                    ),
+  Widget _nextGameCard(
+    BuildContext context,
+    Game? game,
+    AppLocalizations loc,
+  ) {
+    if (game == null || game.startTime == null) {
+      return _emptyGameCard(context, Icons.event, loc.noUpcomingGames);
+    }
+    final team = teamColorsOf(context);
+    final opponent = game.opponent?.isNotEmpty == true
+        ? game.opponent!
+        : 'Opponent';
+    return _gameCard(
+      context,
+      accent: team.team,
+      onTap: () => context.push('/game/${game.id}'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'vs $opponent',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_today,
+                size: 15,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '${_formatDate(game.startTime!)} • ${_formatTime(game.startTime!)}',
+                style: sidelineMono(
+                  fontSize: 14,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
-                    const SizedBox(height: 32),
+  Widget _emptyGameCard(BuildContext context, IconData icon, String label) {
+    return _gameCard(
+      context,
+      accent: Theme.of(context).colorScheme.outlineVariant,
+      onTap: null,
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                    // Game management section
-                    Text(
-                      loc.gameManagement,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Games card
-                    _buildManagementCard(
-                      context,
-                      icon: Icons.sports_soccer,
-                      title: loc.games,
-                      subtitle: loc.scheduleGamesDescription,
-                      color: Theme.of(context).colorScheme.tertiaryContainer,
-                      iconColor: Theme.of(context).colorScheme.tertiary,
-                      team: team,
-                      onTap: () => context.push('/team/$id/games'),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Team Metrics card
-                    _buildManagementCard(
-                      context,
-                      icon: Icons.analytics,
-                      title: loc.teamMetrics,
-                      subtitle: loc.viewPlayerStatisticsDescription,
-                      color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                      iconColor: Theme.of(context).colorScheme.onSurface,
-                      team: team,
-                      onTap: () => context.push('/team/$id/metrics'),
-                    ),
-                  ],
-                );
-              },
+  Widget _gameCard(
+    BuildContext context, {
+    required Color accent,
+    required VoidCallback? onTap,
+    required Widget child,
+  }) {
+    return Card(
+      elevation: 2,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(SidelineRadius.card),
+        onTap: onTap,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(width: 4, color: accent),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: child,
+              ),
             ),
           ],
         ),

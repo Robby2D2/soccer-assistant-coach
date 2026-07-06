@@ -934,6 +934,42 @@ abstract class AppLocalizations {
   /// **'Team Management Hub'**
   String get teamManagementHub;
 
+  /// No description provided for @mostRecentGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Most Recent Game'**
+  String get mostRecentGame;
+
+  /// No description provided for @nextGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Next Game'**
+  String get nextGame;
+
+  /// No description provided for @createNewGame.
+  ///
+  /// In en, this message translates to:
+  /// **'Create New Game'**
+  String get createNewGame;
+
+  /// No description provided for @noRecentGamesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No games played yet'**
+  String get noRecentGamesYet;
+
+  /// No description provided for @noUpcomingGames.
+  ///
+  /// In en, this message translates to:
+  /// **'No upcoming games scheduled'**
+  String get noUpcomingGames;
+
+  /// No description provided for @playedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Played {date}'**
+  String playedOn(String date);
+
   /// No description provided for @teamManagement.
   ///
   /// In en, this message translates to:
