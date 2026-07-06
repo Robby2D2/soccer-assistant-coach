@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../core/team_theme_manager.dart';
 import '../../widgets/sideline_header.dart';
+import '../../widgets/sideline_team_tabs.dart';
 import '../../widgets/team_logo_widget.dart';
 import '../../widgets/team_color_picker.dart';
 import '../../utils/team_image_picker.dart';
@@ -128,13 +129,21 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
         icon: const Icon(Icons.save),
         label: const Text('Save'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _name,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SidelineTeamTabs(
+            teamId: widget.teamId,
+            current: SidelineTeamTab.settings,
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: _name,
               decoration: const InputDecoration(labelText: 'Team name'),
             ),
             const SizedBox(height: 24),
@@ -278,7 +287,10 @@ class _TeamEditScreenState extends ConsumerState<TeamEditScreen> {
             const SizedBox(height: 16),
           ],
         ),
-      ),
+              ),
+            ),
+          ],
+        ),
     );
   }
 }
