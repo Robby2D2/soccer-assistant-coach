@@ -34,7 +34,7 @@ import 'helpers/app_harness.dart';
 /// the game screen is settleable — exactly what we need.
 void main() {
   patrolTest(
-    'tapping Next Shift advances the current shift after confirmation',
+    'See Next Shift then Start Shift advances the current shift after confirmation',
     (PatrolIntegrationTester $) async {
       await initApp();
 
@@ -108,12 +108,19 @@ void main() {
       // for the full job timeout (~24+ min) instead of tearing down cleanly.
       // Popping first turns any failure into a fast (~seconds) failure.
       try {
-        // The "Next Shift" control appears because there's a shift queued after
-        // the current one. Use a plain expect (not waitUntilVisible): a synchronous
-        // expect failure tears down fast, whereas a waitUntilVisible timeout is
-        // what triggers the multi-minute teardown hang.
-        expect($('Next Shift'), findsAtLeastNWidgets(1));
-        await $('Next Shift').first.tap(settlePolicy: SettlePolicy.noSettle);
+        // The bottom action bar shows "See Next Shift" while the coach is viewing
+        // the current shift (a shift is queued after it). Use a plain expect (not
+        // waitUntilVisible): a synchronous expect failure tears down fast, whereas
+        // a waitUntilVisible timeout is what triggers the multi-minute teardown hang.
+        expect($('See Next Shift'), findsAtLeastNWidgets(1));
+        // Tapping it scrolls the planning pager to the queued shift; the bar then
+        // flips to "Start Shift".
+        await $('See Next Shift').first.tap(settlePolicy: SettlePolicy.noSettle);
+        await Future.delayed(const Duration(seconds: 1));
+
+        // Now viewing the queued shift, so the bar offers "Start Shift".
+        expect($('Start Shift'), findsAtLeastNWidgets(1));
+        await $('Start Shift').first.tap(settlePolicy: SettlePolicy.noSettle);
         await Future.delayed(const Duration(seconds: 1));
 
         // Time is left on the current shift, so the confirmation dialog surfaces.
