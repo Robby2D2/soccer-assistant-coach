@@ -113,7 +113,19 @@ class _PulsingDotState extends State<_PulsingDot>
   late final AnimationController _c = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1400),
-  )..repeat(reverse: true);
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    // Skip the infinite pulse when the platform disables animations (the OS
+    // "reduce motion" setting, and the patrol gate's emulator, which sets the
+    // animation scales to 0). A perpetually repeating animation makes
+    // tester.pumpAndSettle() never return, which hangs the journey tests.
+    if (!WidgetsBinding.instance.disableAnimations) {
+      _c.repeat(reverse: true);
+    }
+  }
 
   @override
   void dispose() {

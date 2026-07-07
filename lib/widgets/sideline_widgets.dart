@@ -229,7 +229,18 @@ class _SidelineAlertBannerState extends State<SidelineAlertBanner>
   late final AnimationController _pulse = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1400),
-  )..repeat(reverse: true);
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    // See _PulsingDot in game_header.dart: don't run an infinite pulse when the
+    // platform disables animations (reduce-motion / the patrol gate's
+    // emulator), or tester.pumpAndSettle() never returns.
+    if (!WidgetsBinding.instance.disableAnimations) {
+      _pulse.repeat(reverse: true);
+    }
+  }
 
   @override
   void dispose() {
