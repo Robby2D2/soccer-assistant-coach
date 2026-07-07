@@ -74,6 +74,13 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          # Pinned: floating `stable` rolled to Flutter 3.44.5, which dropped the
+          # `compileFlutterBuildDebug` Gradle task that patrol 4.5.0's Android
+          # plugin depends on — breaking `patrol build android` (all shards fail
+          # before any test runs). 3.44.1 is the last stable that builds the
+          # patrol test APK. Bump this in lockstep with a patrol/patrol_cli
+          # upgrade (which fixes the task dependency for newer Flutter).
+          flutter-version: 3.44.1
           channel: stable
           cache: true
 
