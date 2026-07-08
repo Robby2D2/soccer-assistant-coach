@@ -25,7 +25,7 @@ $ErrorActionPreference = 'Stop'
 $pkg       = 'com.useunix.soccerassistantcoach'
 $markerDir = "/sdcard/Android/data/$pkg/files"
 $rawDir    = Join-Path $PSScriptRoot 'raw'
-$screens   = @('teams', 'formations', 'live_game', 'roster', 'stats')
+$screens   = @('team_landing', 'teams', 'formations', 'live_game', 'roster', 'stats')
 
 if (-not (Test-Path $rawDir)) { New-Item -ItemType Directory -Path $rawDir | Out-Null }
 

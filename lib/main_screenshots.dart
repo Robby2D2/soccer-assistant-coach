@@ -96,12 +96,21 @@ Future<void> _captureCycle() async {
 
   Future<void> step(String route, String name) async {
     router.go(route);
-    // Let nav transitions + FutureBuilders + Streams settle. 1.2s is generous
-    // for non-animated routes; bump if a screen looks half-loaded.
-    await Future.delayed(const Duration(milliseconds: 1200));
+    // Let nav transitions + FutureBuilders + Streams settle. Some screens (the
+    // team landing wraps the body in TeamThemeScope + two Drift watch-streams for
+    // the recent/next game cards) need longer than a plain list to paint their
+    // first real frame, so settle 2.5s to avoid capturing a half-loaded body.
+    await Future.delayed(const Duration(milliseconds: 2500));
     await waitForRunner(name);
   }
 
+  // Let the initial route ('/') fully mount before the FIRST navigation. The very
+  // first router.go() otherwise races app startup and is silently dropped, leaving
+  // the app on '/' (home) instead of the requested screen — subsequent (warm)
+  // navigations are fine, so this one-time settle is all that's needed.
+  await Future.delayed(const Duration(seconds: 2));
+
+  await step('/team/1', 'team_landing');
   await step('/teams', 'teams');
   await step('/team/1/formations', 'formations');
   await step('/game/1', 'live_game');
