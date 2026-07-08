@@ -176,7 +176,20 @@
   "color": "Couleur",
   
   "teamManagementHub": "Centre de gestion d'équipe",
-  "teamManagement": "Gestion d'équipe", 
+  "mostRecentGame": "Match le plus récent",
+  "nextGame": "Prochain match",
+  "createNewGame": "Créer un nouveau match",
+  "noRecentGamesYet": "Aucun match joué pour le moment",
+  "noUpcomingGames": "Aucun match à venir programmé",
+  "playedOn": "Joué le {date}",
+  "@playedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "teamManagement": "Gestion d'équipe",
   "gameManagement": "Gestion des matchs",
   "manageTeamRosterDescription": "Gérer l'effectif de l'équipe et le statut des joueurs",
   "setupTacticalFormationsDescription": "Configurer les formations tactiques et les positions",

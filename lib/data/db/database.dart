@@ -1455,6 +1455,39 @@ extension GameQueries on AppDb {
         .getSingleOrNull();
   }
 
+  /// Watch the most recently played (completed) game for a team, or null when
+  /// the team has no completed games. Used by the game-first team landing screen.
+  Stream<Game?> watchMostRecentCompletedGame(int teamId) {
+    return (select(games)
+          ..where(
+            (g) =>
+                g.teamId.equals(teamId) &
+                g.gameStatus.equals('completed') &
+                g.isArchived.equals(false),
+          )
+          ..orderBy([(g) => OrderingTerm.desc(g.startTime)])
+          ..limit(1))
+        .watchSingleOrNull();
+  }
+
+  /// Watch the next upcoming game for a team: the soonest not-yet-completed,
+  /// not-cancelled game with a scheduled start time in the future, or null when
+  /// there is none. Used by the game-first team landing screen.
+  Stream<Game?> watchNextUpcomingGame(int teamId) {
+    return (select(games)
+          ..where(
+            (g) =>
+                g.teamId.equals(teamId) &
+                g.isArchived.equals(false) &
+                g.gameStatus.isNotIn(['completed', 'cancelled']) &
+                g.startTime.isNotNull() &
+                g.startTime.isBiggerOrEqualValue(DateTime.now()),
+          )
+          ..orderBy([(g) => OrderingTerm.asc(g.startTime)])
+          ..limit(1))
+        .watchSingleOrNull();
+  }
+
   /// Save traditional game lineup configuration
   Future<void> saveTraditionalLineup({
     required int gameId,

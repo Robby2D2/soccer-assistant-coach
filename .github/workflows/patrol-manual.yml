@@ -32,6 +32,10 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          # Pinned: Flutter stable 3.44.5 dropped the compileFlutterBuildDebug
+          # Gradle task patrol 4.5.0 needs for `patrol build android`; 3.44.1 is
+          # the last stable that builds the patrol APK. See patrol-gate.yml.
+          flutter-version: 3.44.1
           channel: stable
           cache: true
 

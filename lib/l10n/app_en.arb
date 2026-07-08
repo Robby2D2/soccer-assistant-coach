@@ -176,6 +176,19 @@
   "color": "Color",
   
   "teamManagementHub": "Team Management Hub",
+  "mostRecentGame": "Most Recent Game",
+  "nextGame": "Next Game",
+  "createNewGame": "Create New Game",
+  "noRecentGamesYet": "No games played yet",
+  "noUpcomingGames": "No upcoming games scheduled",
+  "playedOn": "Played {date}",
+  "@playedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "teamManagement": "Team Management",
   "gameManagement": "Game Management",
   "manageTeamRosterDescription": "Manage team roster and player status",

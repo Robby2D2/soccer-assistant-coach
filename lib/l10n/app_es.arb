@@ -199,6 +199,19 @@
   "color": "Color",
   
   "teamManagementHub": "Centro de gestión del equipo",
+  "mostRecentGame": "Juego más reciente",
+  "nextGame": "Próximo juego",
+  "createNewGame": "Crear nuevo juego",
+  "noRecentGamesYet": "Aún no se han jugado juegos",
+  "noUpcomingGames": "No hay juegos programados",
+  "playedOn": "Jugado el {date}",
+  "@playedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "teamManagement": "Gestión del equipo",
   "gameManagement": "Gestión de juegos",
   "manageTeamRosterDescription": "Gestionar plantilla del equipo y estado de jugadores",
