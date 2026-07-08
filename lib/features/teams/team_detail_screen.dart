@@ -279,17 +279,24 @@ class TeamDetailScreen extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(SidelineRadius.card),
         onTap: onTap,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(width: 4, color: accent),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: child,
+        // IntrinsicHeight bounds the Row's height so the accent strip can stretch
+        // to the card height. Without it, CrossAxisAlignment.stretch resolves to an
+        // unbounded cross-axis (the card sits in a SingleChildScrollView), which
+        // throws a RenderFlex layout assertion, blanks the whole body, and hangs the
+        // team-landing journey test.
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 4, color: accent),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: child,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

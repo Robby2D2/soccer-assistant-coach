@@ -55,15 +55,15 @@ void main() {
         reason: 'New team should appear in the active-season roster',
       );
 
-      // Verify by drilling into the team detail screen. Since #38 this is the
-      // game-first landing screen (most-recent-game / next-game cards + a
-      // "Create New Game" action) — not the old "Team Management" grid.
+      // Verify by drilling into the team detail screen — the game-first landing
+      // (#38) opens with the recent/next game sections and a Create New Game
+      // action (there's no longer a "Team Management" hub card grid).
       await $('Galaxy FC').tap();
       await $.pumpAndSettle(timeout: const Duration(seconds: 5));
       expect(
         $('Create New Game'),
         findsOneWidget,
-        reason: 'Tapping the team should open the game-first team landing screen',
+        reason: 'Tapping the team should open the game-first team landing',
       );
 
       await captureScreenshot($, 'team-detail-after-create');
