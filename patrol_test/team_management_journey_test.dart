@@ -54,13 +54,15 @@ void main() {
         reason: 'New team should appear in the active-season roster',
       );
 
-      // Verify by drilling into the team detail screen.
+      // Verify by drilling into the team detail screen — the game-first landing
+      // (#38) opens with the recent/next game sections and a Create New Game
+      // action (there's no longer a "Team Management" hub card grid).
       await $('Galaxy FC').tap();
       await $.pumpAndSettle(timeout: const Duration(seconds: 5));
       expect(
-        $('Team Management'),
+        $('Create New Game'),
         findsOneWidget,
-        reason: 'Tapping the team should open the Team Management hub',
+        reason: 'Tapping the team should open the game-first team landing',
       );
 
       // DB-side sanity check: the team is owned by the seeded season.
