@@ -50,10 +50,12 @@ jobs:
     name: ${{ matrix.test }}
     needs: discover
     runs-on: ubuntu-22.04
-    # build (~9 min) + emulator boot (up to 10 min) + single test (~2 min) ≈ 21 min minimum; 30 min
-    # gives a comfortable buffer on slow runner days. shift_management navigates a GameScreen with
-    # many always-open Drift StreamBuilders and can run longer, so it gets 35.
-    timeout-minutes: ${{ contains(matrix.test, 'shift_management') && 35 || 30 }}
+    # build (~9 min) + TWO emulator attempts, each boot (~2 min, 10 min cap) + single test
+    # (~2 min, 11 min cap via run_and_capture.sh). A flaky first attempt is retried on a fresh
+    # emulator, so the budget must fit both: 9 + 2×(2+11) ≈ 35 worst case ⇒ 45 min with buffer.
+    # shift_management navigates a GameScreen with many always-open Drift StreamBuilders and can
+    # run longer, so it gets 50.
+    timeout-minutes: ${{ contains(matrix.test, 'shift_management') && 50 || 45 }}
     strategy:
       fail-fast: false
       matrix:
@@ -121,28 +123,54 @@ jobs:
           sudo rm -rf /usr/share/miniconda /opt/az /usr/lib/google-cloud-sdk 2>/dev/null || true
           df -h /
 
-      - name: Run Patrol test (single test via -t)
+      # ── Emulator boot + test, with one shard-level retry on a flake ──────────────────────────
+      # The emulator itself is the flaky part: ~1-in-12 shards either fails to boot (a corrupt
+      # "Archive is not a ZIP archive" SDK download ⇒ "could not connect to TCP port 5554") or the
+      # patrol orchestrator hangs mid-test (now killed fast by run_and_capture.sh's timeout). Both
+      # are transient, so we run the emulator step up to twice on a FRESH emulator and let the gate
+      # step below decide. `continue-on-error` on both attempts keeps the job going; the gate is the
+      # single source of truth. The retry is SKIPPED when run_and_capture.sh dropped
+      # genuine_failure.flag — a real red test must fail immediately, not be re-run or masked.
+      #
+      # The two steps are byte-for-byte identical `with:` blocks (GitHub Actions has no YAML anchors
+      # for reuse across `uses:` steps) — keep them in sync if you edit the emulator config.
+      #
+      # Emulator config notes retained from the single-step version:
+      #  - profile: pixel_6 pins a ~411 dp phone; the image default AVD can render <360 dp, which
+      #    flips responsive widgets to compact (game screen shows "Next" not "Next Shift") and a
+      #    finder for "Next Shift" then finds nothing — green locally, red in CI.
+      #  - NO -partition-size: an oversized userdata partition overruns the runner disk.
+      #  - script MUST be one line: android-emulator-runner runs `script:` line-by-line in separate
+      #    `sh -c` shells, so multi-line inline logic breaks; one line -> one shell -> bash runs the
+      #    committed run_and_capture.sh (which owns the test invocation, hang timeout, screenshots).
+      - name: Run Patrol test (attempt 1)
+        id: patrol1
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
           arch: x86_64
           target: google_apis
-          # Pin a real phone profile (~411 logical dp wide). Without this the image's
-          # default AVD can render under 360 dp, which flips responsive widgets into
-          # their compact layout — e.g. the game screen shows a "Next" button instead
-          # of "Next Shift", so a finder for "Next Shift" finds nothing and the test
-          # fails in CI while passing on a normal-width local emulator.
           profile: pixel_6
           disable-animations: true
           emulator-boot-timeout: 600
-          # NB: no -partition-size — an oversized userdata partition overruns the runner disk.
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
-          # -d emulator-5554 is explicit so patrol doesn't log "No device specified".
-          # Run the test + pull its captured screenshots via a committed script. This MUST be a
-          # single line: android-emulator-runner executes `script:` line-by-line in separate
-          # `sh -c` shells, so inline multi-line logic (the screenshot for-loop, the $? capture)
-          # breaks — the loop's do/done end up in different shells and every shard fails even
-          # when the tests pass. One line -> one shell -> bash runs run_and_capture.sh normally.
+          script: bash patrol_test/ci/run_and_capture.sh ${{ matrix.test }}
+
+      - name: Run Patrol test (attempt 2 — retry on flake)
+        id: patrol2
+        # Retry only when attempt 1 was NOT a genuine test failure (no marker) and it did fail.
+        if: steps.patrol1.outcome == 'failure' && hashFiles('genuine_failure.flag') == ''
+        continue-on-error: true
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: pixel_6
+          disable-animations: true
+          emulator-boot-timeout: 600
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           script: bash patrol_test/ci/run_and_capture.sh ${{ matrix.test }}
 
       - name: Upload screenshot artifact
@@ -155,3 +183,20 @@ jobs:
           name: screenshot-${{ strategy.job-index }}
           path: screenshots/*.png
           if-no-files-found: ignore
+
+      - name: Gate on patrol outcome
+        # Single source of truth for the shard: both emulator attempts have continue-on-error, so
+        # the job passes iff EITHER attempt succeeded. A skipped attempt 2 (attempt 1 was green, or
+        # attempt 1 was a genuine red) yields outcome '' — never 'success' — so a real failure or a
+        # persistent double-flake correctly fails the shard.
+        if: always()
+        run: |
+          a1='${{ steps.patrol1.outcome }}'
+          a2='${{ steps.patrol2.outcome }}'
+          echo "attempt1=$a1  attempt2=${a2:-skipped}"
+          if [ "$a1" = "success" ] || [ "$a2" = "success" ]; then
+            echo "Patrol shard passed."
+            exit 0
+          fi
+          echo "::error::Patrol shard failed on both attempts (or a genuine test failure)."
+          exit 1
