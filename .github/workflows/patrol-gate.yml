@@ -155,3 +155,16 @@ jobs:
           name: screenshot-${{ strategy.job-index }}
           path: screenshots/*.png
           if-no-files-found: ignore
+
+      - name: Upload logcat artifact
+        # Diagnostic (issue #39): the device logcat captured by run_and_capture.sh for the
+        # whole duration of the run. Uploaded even when the job is cancelled by the
+        # timeout (a hung shard never reaches "Total:" in patrol's own output, so this is
+        # the only way to see what was happening on-device during the hang) — the file on
+        # disk survives the step that was writing to it being killed.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logcat-${{ strategy.job-index }}
+          path: logcat.txt
+          if-no-files-found: ignore

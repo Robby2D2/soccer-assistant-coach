@@ -48,6 +48,8 @@ class TeamDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // TEMP DIAGNOSTIC (issue #39): remove before merge.
+    debugPrint('[DIAG39] TeamDetailScreen.build id=$id at ${DateTime.now()}');
     final loc = AppLocalizations.of(context);
     final db = ref.watch(dbProvider);
 
@@ -89,8 +91,14 @@ class TeamDetailScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             StreamBuilder<Game?>(
               stream: db.watchMostRecentCompletedGame(id),
-              builder: (context, snap) =>
-                  _recentGameCard(context, snap.data, loc),
+              builder: (context, snap) {
+                // TEMP DIAGNOSTIC (issue #39): remove before merge.
+                debugPrint(
+                  '[DIAG39] mostRecentGame builder state=${snap.connectionState} '
+                  'hasData=${snap.hasData} at ${DateTime.now()}',
+                );
+                return _recentGameCard(context, snap.data, loc);
+              },
             ),
             const SizedBox(height: 24),
             Text(
@@ -102,7 +110,14 @@ class TeamDetailScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             StreamBuilder<Game?>(
               stream: db.watchNextUpcomingGame(id),
-              builder: (context, snap) => _nextGameCard(context, snap.data, loc),
+              builder: (context, snap) {
+                // TEMP DIAGNOSTIC (issue #39): remove before merge.
+                debugPrint(
+                  '[DIAG39] nextUpcomingGame builder state=${snap.connectionState} '
+                  'hasData=${snap.hasData} at ${DateTime.now()}',
+                );
+                return _nextGameCard(context, snap.data, loc);
+              },
             ),
             const SizedBox(height: 24),
             SizedBox(

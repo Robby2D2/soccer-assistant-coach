@@ -12,9 +12,16 @@ import 'providers.dart';
 /// any screen that is *already* mounted while the colors change.
 final teamThemeProvider = FutureProvider.autoDispose
     .family<TeamTheme?, int?>((ref, teamId) async {
+      // TEMP DIAGNOSTIC (issue #39): remove before merge.
+      debugPrint(
+        '[DIAG39] teamThemeProvider build teamId=$teamId at ${DateTime.now()}',
+      );
       if (teamId == null) return null;
       final db = ref.watch(dbProvider);
       final team = await db.getTeam(teamId);
+      debugPrint(
+        '[DIAG39] teamThemeProvider got team=${team?.name} teamId=$teamId at ${DateTime.now()}',
+      );
       if (team == null) return null;
       return TeamTheme.fromTeam(team);
     });
@@ -34,6 +41,12 @@ class TeamThemeScope extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final teamThemeAsync = ref.watch(teamThemeProvider(teamId));
+    // TEMP DIAGNOSTIC (issue #39): remove before merge.
+    debugPrint(
+      '[DIAG39] TeamThemeScope.build teamId=$teamId '
+      'isLoading=${teamThemeAsync.isLoading} hasValue=${teamThemeAsync.hasValue} '
+      'hasError=${teamThemeAsync.hasError} at ${DateTime.now()}',
+    );
     final baseTheme = Theme.of(context);
     return teamThemeAsync.maybeWhen(
       data: (t) =>
@@ -324,6 +337,8 @@ class TeamScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // TEMP DIAGNOSTIC (issue #39): remove before merge.
+    debugPrint('[DIAG39] TeamScaffold.build teamId=$teamId at ${DateTime.now()}');
     final scaffold = Scaffold(
       appBar: header == null ? appBar : null,
       body: header == null

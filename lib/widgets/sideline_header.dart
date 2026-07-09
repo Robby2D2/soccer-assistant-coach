@@ -221,12 +221,21 @@ class SidelineScreenHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // TEMP DIAGNOSTIC (issue #39): remove before merge.
+    debugPrint(
+      '[DIAG39] SidelineScreenHeader.build teamId=$teamId at ${DateTime.now()}',
+    );
     final db = ref.watch(dbProvider);
     final team = teamColorsOf(context);
 
     return FutureBuilder<Team?>(
       future: db.getTeam(teamId),
       builder: (context, snap) {
+        // TEMP DIAGNOSTIC (issue #39): remove before merge.
+        debugPrint(
+          '[DIAG39] SidelineScreenHeader FutureBuilder state=${snap.connectionState} '
+          'hasData=${snap.hasData} at ${DateTime.now()}',
+        );
         final teamName = snap.data?.name ?? 'Team';
         final trimmed = teamName.trim();
         final initial = trimmed.isEmpty
