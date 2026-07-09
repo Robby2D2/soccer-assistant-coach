@@ -50,10 +50,11 @@ jobs:
     name: ${{ matrix.test }}
     needs: discover
     runs-on: ubuntu-22.04
-    # build (~9 min) + emulator boot (up to 10 min) + single test (~2 min) ≈ 21 min minimum; 30 min
-    # gives a comfortable buffer on slow runner days. shift_management navigates a GameScreen with
-    # many always-open Drift StreamBuilders and can run longer, so it gets 35.
-    timeout-minutes: ${{ contains(matrix.test, 'shift_management') && 35 || 30 }}
+    # Observed successful shards complete in ~10-12 min end-to-end (build + boot + test). 15 min
+    # gives a few minutes of buffer without making a hung shard sit for half an hour before it
+    # trips the timeout. shift_management navigates a GameScreen with many always-open Drift
+    # StreamBuilders and can run longer, so it keeps the same +5 min differential.
+    timeout-minutes: ${{ contains(matrix.test, 'shift_management') && 20 || 15 }}
     strategy:
       fail-fast: false
       matrix:
