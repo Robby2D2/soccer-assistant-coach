@@ -4,6 +4,7 @@ import 'package:patrol/patrol.dart';
 import 'package:soccer_assistant_coach/data/db/database.dart';
 
 import 'helpers/app_harness.dart';
+import 'helpers/screenshot.dart';
 
 /// End-to-end team management journey.
 ///
@@ -54,14 +55,18 @@ void main() {
         reason: 'New team should appear in the active-season roster',
       );
 
-      // Verify by drilling into the team detail screen.
+      // Verify by drilling into the team detail screen. Since #38 this is the
+      // game-first landing screen (most-recent-game / next-game cards + a
+      // "Create New Game" action) — not the old "Team Management" grid.
       await $('Galaxy FC').tap();
       await $.pumpAndSettle(timeout: const Duration(seconds: 5));
       expect(
-        $('Team Management'),
+        $('Create New Game'),
         findsOneWidget,
-        reason: 'Tapping the team should open the Team Management hub',
+        reason: 'Tapping the team should open the game-first team landing screen',
       );
+
+      await captureScreenshot($, 'team-detail-after-create');
 
       // DB-side sanity check: the team is owned by the seeded season.
       final teams = await db.getAllTeams();
