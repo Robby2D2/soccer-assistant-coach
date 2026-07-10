@@ -29,8 +29,11 @@ IOS_DIR    = os.path.join(ROOT, 'fastlane', 'screenshots', 'en-US')
 # intentional rather than letterboxed.
 BG_COLOR   = (27, 94, 32)  # G900
 
-# Captured in the order the patrol test produces them.
+# Captured in the order the patrol test produces them. Must stay in sync with the
+# navigation order in lib/main_screenshots.dart and the $screens list in
+# store/capture_screenshots.ps1 — the index here drives the NN_ store filename prefix.
 SCREENS = [
+    'team_landing',
     'teams',
     'formations',
     'live_game',
