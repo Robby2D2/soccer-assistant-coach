@@ -12,6 +12,8 @@ and writes:
 
   App Store (fastlane/screenshots/en-US/):
     iphone69_<i>_<name>.png     1320 x 2868
+    ipadPro129_<i>_<name>.png   2048 x 2732
+    ipadPro13_<i>_<name>.png    2064 x 2752
 
 Each raw capture is contained-fit into the target dimension on a brand-green
 background — preserves the actual app pixels rather than stretching/cropping.
@@ -48,8 +50,12 @@ PLAY_TARGETS = [
     ('tenInchScreenshots',   1600, 2560),
 ]
 
+# Filename prefixes match fastlane deliver's device detection (iphone69,
+# ipadPro129 = 12.9" 3rd gen APP_IPAD_PRO_3GEN_129, ipadPro13 = 13" M4).
 IOS_TARGETS = [
-    ('iphone69', 1320, 2868),
+    ('iphone69',   1320, 2868),
+    ('ipadPro129', 2048, 2732),
+    ('ipadPro13',  2064, 2752),
 ]
 
 
