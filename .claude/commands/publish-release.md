@@ -1,137 +1,89 @@
 # Publish Release
 
-Automatically determine release info and walk through publishing Soccer Assistant Coach to both the Google Play Store and Apple App Store with minimal user input.
+Cut a release of Soccer Assistant Coach from this Windows machine with minimal user input,
+following the manual release flow in [docs/RELEASING.md](../../docs/RELEASING.md). Use TodoWrite
+to track progress.
 
-## Your role
+Fastlane runs only from WSL: every fastlane command is
+`wsl bash -c "cd /mnt/c/Users/rdane/Documents/Projects/soccer-assistant-coach && bundle exec fastlane … 2>&1"`
+with a 5-minute timeout. Everything else (git, gh, flutter) runs from PowerShell — `gh` by full
+path: `& "C:\Program Files\GitHub CLI\gh.exe" …`.
 
-You are a release manager for this Flutter app. Gather all information automatically, present a single confirmation summary, then execute the release steps in order. Use the TodoWrite tool to track progress.
+## Step 1 — Gather release info (in parallel)
 
-## Step 1 — Gather release info automatically
+- Current `version: X.Y.Z+N` from `pubspec.yaml`.
+- Last tags: `git tag --sort=-version:refname | head -5`.
+- Changes: `git log $(git describe --tags --abbrev=0)..HEAD --oneline --no-merges`
+  (no tags yet → last 20 commits).
 
-Run these in parallel:
+## Step 2 — Propose the release and wait for confirmation
 
-**Current version and build:**
-Read `pubspec.yaml` and extract the `version:` line (format: `X.Y.Z+N`).
+- **New version:** patch +1; suggest minor instead if the range includes a feature. Show reasoning.
+- **New build:** current build +1.
+- **Release notes:** 1–3 plain-English sentences from the user-facing commits (omit chore/CI/bump)
+  for the store "What's New" section.
 
-**Last release tag:**
-```
-git tag --sort=-version:refname | head -5
-```
+Present a summary (version, build, notes, included commits) and **wait for the user to confirm or
+adjust before continuing**.
 
-**Commits since last tag (what changed):**
-```
-git log $(git describe --tags --abbrev=0)..HEAD --oneline --no-merges
-```
-If there are no tags yet, use `git log --oneline --no-merges -20`.
+## Step 3 — Write the confirmed notes
 
-**Current build number** is the `+N` part of the version line in pubspec.yaml.
+To `fastlane/metadata/en-US/release_notes.txt`.
 
-## Step 2 — Propose the release
-
-From the information gathered, determine:
-- **New version**: bump the patch number by 1 (e.g. `1.0.6` → `1.0.7`). If commits include a feature (not just fixes/chores), suggest bumping minor instead. Show your reasoning.
-- **New build number**: current build number + 1.
-- **Release notes**: synthesize the git commits into 1–3 plain-English sentences suitable for the App Store / Play Store "What's New" section. Omit chore/CI/bump commits. Focus on user-facing changes.
-
-Show a confirmation summary like:
+## Step 4 — Cut the release
 
 ```
-Ready to publish:
-  Version:       1.0.7 (was 1.0.6)
-  Build:         9 (was 8)
-  Release notes: [your drafted notes]
-
-Changes included:
-  abc1234 feat: add CSV import for creating teams
-  def5678 fix: lineup builder crash on empty roster
-
-Proceed? (or say what to change)
+wsl bash -c "cd /mnt/c/… && bundle exec fastlane create_release version:VERSION build:BUILD 2>&1"
 ```
 
-Wait for the user to confirm or request adjustments before continuing.
+This bumps pubspec, commits, tags `vVERSION`, and pushes — the tag push triggers `release.yml`
+(Android → Play beta) and `release-ios.yml` (iOS → TestFlight).
 
-## Step 3 — Update release notes
+**Then verify the push actually happened** — fastlane's push can fail silently from WSL (see
+docs/RELEASING.md). From PowerShell:
 
-Write the confirmed release notes to `fastlane/metadata/en-US/release_notes.txt`.
-
-## Step 4 — Bump the version
-
-Run from WSL (replace VERSION and BUILD with confirmed values):
-```
-wsl bash -c "cd /mnt/c/Users/rdane/Documents/Projects/soccer-assistant-coach && bundle exec fastlane bump version:VERSION build:BUILD 2>&1"
-```
-This commits pubspec.yaml, tags the release, and pushes — which triggers both CI pipelines (Android AAB build + iOS IPA build) automatically.
-
-Confirm the tag was pushed successfully before continuing.
-
-## Step 5 — Build the Android AAB
-
-The AAB must be built on Windows (not WSL) due to Flutter SDK line-ending issues.
-
-Run using the Bash tool (not WSL):
-```
-flutter build appbundle --release
-```
-Wait for it to complete. If it fails, report the error and stop.
-
-## Step 6 — Upload Android AAB to Play Store
-
-Run from WSL:
-```
-wsl bash -c "cd /mnt/c/Users/rdane/Documents/Projects/soccer-assistant-coach && bundle exec fastlane android deploy 2>&1"
-```
-Confirm it succeeded (look for "fastlane.tools finished successfully").
-
-## Step 7 — Upload iOS metadata
-
-Run from WSL:
-```
-wsl bash -c "cd /mnt/c/Users/rdane/Documents/Projects/soccer-assistant-coach && bundle exec fastlane ios metadata 2>&1"
-```
-Confirm it succeeded. Known non-fatal warnings to ignore:
-- "Error fetching app store review detail - No data" — harmless on first run per version
-- "Skipping release_notes... this is the first version" — only appears for v1.0; ignore for subsequent versions
-
-## Step 8 — Wait for iOS CI build
-
-The iOS IPA is built by GitHub Actions (triggered by the tag push in step 4). It takes ~15–20 minutes.
-
-Check CI status (use full path — `gh` is not in the sandboxed PATH):
 ```powershell
+git ls-remote --tags origin vVERSION
+# If empty, recover:
+git push origin main
+git push origin vVERSION
+```
+
+Do not continue until the tag is on origin.
+
+## Step 5 — Confirm CI fired and watch it
+
+```powershell
+& "C:\Program Files\GitHub CLI\gh.exe" run list --workflow=release.yml --limit=3
 & "C:\Program Files\GitHub CLI\gh.exe" run list --workflow=release-ios.yml --limit=3
 ```
-If the run is still in progress, tell the user and ask them to confirm when TestFlight shows the build as processed before you continue to step 9. You can also check with:
-```powershell
-& "C:\Program Files\GitHub CLI\gh.exe" run watch
+
+Both should be queued/in-progress on the new tag. iOS takes ~15–20 min; watch with `gh run watch`
+or report status and let the user check back.
+
+## Step 6 — (Optional) refresh store metadata
+
+If listing text/screenshots changed this release:
+
+```
+wsl bash -c "cd /mnt/c/… && bundle exec fastlane ios metadata 2>&1"
 ```
 
-## Step 9 — Submit iOS for App Store review
+Ignorable warnings: "Error fetching app store review detail — No data" and "Skipping
+release_notes… this is the first version".
 
-Run from WSL:
-```
-wsl bash -c "cd /mnt/c/Users/rdane/Documents/Projects/soccer-assistant-coach && bundle exec fastlane ios submit 2>&1"
-```
-Confirm it succeeded.
+## Step 7 — Wrap up
 
-## Step 10 — Wrap up
+Summarize: version tagged, Android → Play **beta**, iOS → TestFlight. Next steps for the user:
 
-Print a final summary:
-```
-Release 1.0.7 published:
-  ✅ Version bumped and tagged v1.0.7
-  ✅ Android AAB uploaded to Play Store (internal track)
-  ✅ iOS metadata and screenshots uploaded
-  ✅ iOS build submitted for App Store review
-
-Next steps:
-  • Apple review: ~24–48h. Release manually in App Store Connect when approved.
-  • Android: promote to production when ready:
-      bundle exec fastlane android promote from:internal to:production
-```
+- QA the build on beta/TestFlight.
+- Promote when satisfied: `bundle exec fastlane promote_release version:VERSION` (WSL) or the
+  `promote-release.yml` workflow — Android goes live in minutes; iOS enters Apple review
+  (~24–48 h), then release manually in App Store Connect.
 
 ## Notes
 
-- All `bundle exec fastlane` commands must run via `wsl bash -c "..."`.
-- The `fastlane/.env` file holds local App Store Connect API credentials. If a command fails with "No value found for key_id", the user needs to check that file is populated.
-- Set a 5-minute timeout on each WSL fastlane command.
-- Do not proceed past step 4 if the tag push fails — the CI pipelines depend on it.
+- `fastlane/.env` holds local App Store Connect credentials — "No value found for key_id" means it
+  needs populating.
+- Stop and report rather than proceeding past a failed tag push (Step 4) — everything downstream
+  depends on it.

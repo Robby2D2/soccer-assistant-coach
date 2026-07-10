@@ -18,6 +18,9 @@
   flutter pub run build_runner build --delete-conflicting-outputs
   ```
 - Do **not** touch the on-disk database in tests — use `AppDb.test()` (in-memory).
+- User-facing strings go in `lib/l10n/app_{en,es,fr}.arb`. After editing ARB files, run
+  `flutter gen-l10n` — the generated `app_localizations*.dart` files are tracked, so commit them
+  alongside the ARB changes or a fresh checkout won't compile.
 - Always use proper types; avoid `dynamic` or implicit `Object`.
 - Use async/await patterns consistently.
 

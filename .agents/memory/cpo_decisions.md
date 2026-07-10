@@ -8,11 +8,11 @@ how many weeks apart two issues arrive.
 
 1. **Live precedent — GitHub (authoritative, self-truing).** The actual record of what was
    greenlit or declined lives on the issues themselves. Before deciding, the CPO queries it:
-   ```powershell
+   ```bash
    # Past declines (with the "why" in each thread's cpo-agent:declined comment)
-   & "C:\Program Files\GitHub CLI\gh.exe" issue list --state closed --label wont-fix --json number,title,closedAt --limit 30
+   gh issue list --state closed --label wont-fix --json number,title,closedAt --limit 30
    # A specific past rationale
-   & "C:\Program Files\GitHub CLI\gh.exe" issue view <N> --json comments
+   gh issue view <N> --json comments
    ```
    This layer cannot drift from reality — it *is* reality. Always prefer it for "have we seen
    this before?"

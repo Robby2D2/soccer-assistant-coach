@@ -65,43 +65,16 @@ testWidgets('description of expected behavior', (tester) async {
 
 ---
 
-## Existing Test Files
+## Existing Tests
 
-### Widget / DB (`test/`)
-| File | Covers |
-|---|---|
-| `team_app_bar_test.dart` | `TeamAppBar` fallback title and team-name rendering |
-| `game_scaffold_test.dart` | `GameScaffold` resolves `teamId` from `gameId` |
-| `game_screen_test.dart` | Game screen integration |
-| `game_screen_hang_test.dart` | Regression: game screen no longer hangs |
-| `game_screen_simple_test.dart` | Lightweight game screen smoke test |
-| `import_json_test.dart` | JSON season import round-trip |
-| `database_migration_test.dart` | DB schema migration integrity |
-| `widget_test.dart` | Basic app smoke test |
-| `alarm_settings_test.dart` | `AlarmSettings` model + `AlarmSettingsNotifier` persistence |
-| `alert_service_test.dart` | `AlertService` gates on `shiftsEnabled` / `halftimeEnabled` |
-| `substitution_test.dart` | `setPlayerPosition` insert/replace, attendance rules, present-player filtering |
-| `team_config_test.dart` | Shift length / half duration getters, setters, defaults |
-| `shift_lifecycle_test.dart` | `incrementShiftDuration`, `watchActiveShift`, `watchGameShifts` |
-| `game_lifecycle_test.dart` | Game completion, `startGameTimer` / `pauseGameTimer`, export/import round-trip |
-| `stopwatch_ctrl_test.dart` | `StopwatchCtrl` meta persistence + restore on a fresh container |
+Browse `test/` and `patrol_test/` directly — file names describe what each covers (e.g.
+`shift_lifecycle_test.dart`, `roster_import_journey_test.dart`). Before writing a new test, find
+the closest existing one and match its patterns.
 
-Shared fixture helpers in `test/helpers/fixtures.dart` (`seedTeam`, `seedPlayer`, `seedShift`).
-
-### Patrol E2E (`patrol_test/`)
-| File | Flow |
-|---|---|
-| `smoke_test.dart` | App boots, navigates Home → Settings |
-| `settings_test.dart` | Shift / halftime alarm toggles persist across navigation |
-| `shift_alarm_journey_test.dart` | Seeded 3-second shift fires the alarm SnackBar; user acknowledges |
-| `halftime_journey_test.dart` | Seeded 6-second half advances `currentHalf` (traditional mode) |
-| `notifications_test.dart` | Notification permission + countdown plumbing on a real device |
-| `json_import_test.dart` | `AppDb.importDatabase` against the seeded fixture, on-device |
-| `team_management_journey_test.dart` | Home → Manage Teams → Create Team dialog → new team in active season |
-| `substitution_journey_test.dart` | Direct route push to `/game/:id/assign/:shiftId` → dropdown writes a `player_shifts` row |
-| `shift_management_journey_test.dart` | Two queued shifts → "Next Shift" → confirmation → `currentShiftId` advances |
-| `season_clone_journey_test.dart` | Manage Seasons → Create New Season with a checked previous-season team → cloned roster lands in the new season |
-| `roster_import_journey_test.dart` | Paste CSV into import screen → confirmation dialog shows add/update/archive → import writes correct DB state (add, update jersey, archive) |
+- Shared widget/DB fixture helpers: `test/helpers/fixtures.dart` (`seedTeam`, `seedPlayer`, `seedShift`).
+- Patrol harness: `patrol_test/helpers/app_harness.dart` (`appUnderTest(db:)`, overflow-error
+  filter, screenshot boundary); every journey seeds `AppDb.test()` and ends with a DB-level
+  assertion so a lost write fails the test.
 
 ---
 

@@ -69,3 +69,53 @@ Added four Patrol journey tests covering team creation, substitution, shift adva
 - **`cloneSelectedTeamsToSeason`** is what Create-New-Season calls; cloned team gets new ID, same name, duplicated roster.
 - **Active-Games card filters on `startTime IS NOT NULL`** — seed `startTime: drift.Value(DateTime.now())` or the home card won't appear.
 - Every journey test ends with a DB-level assertion to catch "tap succeeded but write was lost" regressions.
+
+---
+
+## Patrol on CI — stabilization learnings (May 19–21, 2026)
+
+### Version pinning
+- **The only known-working pair is `patrol_cli 4.3.1` + `patrol 4.5.0`.** patrol_cli 4.4.0 rejects
+  patrol 4.4.0 *and* 4.5.0 as "not compatible". Pin both.
+
+### The orchestrator hang (why the gate is sharded)
+- Patrol 4.x's native test orchestrator **hangs unpredictably between sequential tests** on CI
+  emulators (~26+ min, not in any test body). Unfixable from our code. This is why patrol was
+  removed from `ci.yml` (2026-05-21) and why `patrol-gate.yml` runs **one matrix job per test
+  file** (`fail-fast: false`) — a hang is isolated to one shard.
+
+### Timer / teardown discipline (real bugs, fixes kept)
+- **Cancel game timers before `db.close()`**: `_TraditionalGameScreenState._gameTimer`
+  (`Timer.periodic`, DB write every 5 s) deadlocks Drift's executor if it outlives the test body.
+  Pattern: `router.pop()` (triggers `dispose()` → timer cancel) + `await Future.delayed(600ms)`
+  before teardown. Bit `halftime_journey_test` (76-minute hang), `shift_alarm_journey_test`,
+  `shift_management_journey_test`.
+- **`triggerHalftimeAlert()` is never called by `TraditionalGameScreen`** — halftime needs explicit
+  user interaction ("2nd Half" button). Don't write tests that wait for an automatic halftime alarm;
+  assert `isGameActive` instead.
+
+### Emulator/device quirks
+- **`pumpAndSettle(timeout:)` may not be honored in integration-test mode** — use
+  `SettlePolicy.noSettle` for taps while a `Timer.periodic` runs, and `Future.delayed` for real
+  wall-clock waits (not `pump()` loops).
+- **SharedPreferences persists across patrol test runs** — in-memory DB IDs restart at 1, so stale
+  `timer_started_at_1` keys auto-start timers. `await prefs.clear()` at test start.
+- **`_ensureInitialShift` flips the button text**: if any player is present, GameScreen auto-creates
+  a shift on mount → button reads "Resume", not "Start". Tests tapping "Start" must not seed present
+  attendance.
+- **RenderFlex overflow = test failure in test mode**; the narrow emulator triggers cosmetic
+  overflows. `patrol_test/helpers/app_harness.dart` installs a `FlutterError.onError` filter that
+  prints but doesn't fail on overflow warnings.
+- **No `dart:io` file access on device** — load fixtures via `rootBundle.loadString()` and declare
+  them as Flutter assets in `pubspec.yaml`.
+- **Patrol cannot drive the OS file picker** — test the paste-text path (same
+  diff/confirm/write pipeline, deterministic on an emulator).
+- **Screens with always-open Drift StreamBuilders can't be widget-tested directly** — they leave a
+  pending `FakeAsync` timer that fails `_verifyInvariants`. Test l10n strings / non-stream
+  components in isolation, or cover at DB level + patrol.
+- **False coverage claims are blocking** — QA rejects comments claiming automated coverage that
+  doesn't exist; write the real test.
+- **`_ensureActiveSeason` auto-creates a season on first launch** (via `Future.microtask`), so the
+  "no season" home state is too transient to test; the real first-run state is "season, no teams".
+- **SQLite quoting**: `"shift"` in a SQL literal position parses as a *column name*. Single quotes
+  for string literals in raw SQL (bit `getTeamMode`'s COALESCE).

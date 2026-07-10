@@ -9,11 +9,11 @@ draw the same scope boundaries — so the developer and QA agents see a stable t
 1. **Live precedent — GitHub (authoritative, self-truing).** Past specs live on the issues.
    Before writing a new spec, the PM can skim recent ones for wording and structure it should
    match:
-   ```powershell
+   ```bash
    # Recent dev-ready / spec'd issues
-   & "C:\Program Files\GitHub CLI\gh.exe" issue list --state all --label dev_ready --json number,title --limit 20
+   gh issue list --state all --label dev_ready --json number,title --limit 20
    # A specific past spec
-   & "C:\Program Files\GitHub CLI\gh.exe" issue view <N> --json comments
+   gh issue view <N> --json comments
    ```
 
 2. **Distilled conventions — this file (curated).** The terminology and patterns below. The PM
