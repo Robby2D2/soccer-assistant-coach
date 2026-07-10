@@ -37,7 +37,14 @@ void main() {
       );
 
       final games = await db.select(db.games).get();
-      expect(games, hasLength(60), reason: '6 games per club per season');
+      expect(games, hasLength(380), reason: '38-game league season per club per season');
+      for (final team in teams) {
+        expect(
+          games.where((g) => g.teamId == team.id),
+          hasLength(38),
+          reason: 'every club plays a full 38-game season',
+        );
+      }
     } finally {
       await db.close();
     }
