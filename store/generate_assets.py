@@ -5,7 +5,8 @@ from PIL import Image, ImageDraw, ImageFont
 import os
 
 ICON_PATH = r'c:\Users\rdane\Documents\Projects\soccer-assistant-coach\soccer-assistant-coach.png'
-OUT_DIR   = r'c:\Users\rdane\Documents\Projects\soccer-assistant-coach\store\assets'
+# fastlane supply layout — uploaded to the Play listing by promote_release / update_listing.
+OUT_DIR   = r'c:\Users\rdane\Documents\Projects\soccer-assistant-coach\fastlane\metadata\android\en-US\images'
 os.makedirs(OUT_DIR, exist_ok=True)
 
 # Brand colors
@@ -114,8 +115,8 @@ def make_feature_graphic():
         draw.ellipse([378, by + 10, 396, by + 28], fill=G500)
         draw.text((406, by + 4), b, fill=W, font=fnt(24))
 
-    img.save(os.path.join(OUT_DIR, 'feature_graphic.png'), 'PNG')
-    print("✓ feature_graphic.png  (1024×500)")
+    img.save(os.path.join(OUT_DIR, 'featureGraphic.png'), 'PNG')
+    print("✓ featureGraphic.png  (1024×500)")
 
 
 # ─── Teams Screen ────────────────────────────────────────────────────────────
@@ -400,14 +401,17 @@ def make_lineup_screen(IW, IH, fname, out_dir=None):
 if __name__ == '__main__':
     make_feature_graphic()
 
-    make_teams_screen(1080, 1920, 'phone_01_teams.png')
-    make_lineup_screen(1080, 1920, 'phone_02_lineup.png')
-
-    make_teams_screen(1200, 1920, 'tablet7_01_teams.png')
-    make_lineup_screen(1200, 1920, 'tablet7_02_lineup.png')
-
-    make_teams_screen(1600, 2560, 'tablet10_01_teams.png')
-    make_lineup_screen(1600, 2560, 'tablet10_02_lineup.png')
+    # Play phone/tablet screenshots are REAL captures from the running app
+    # (store/capture_screenshots.ps1 → fastlane/metadata/android/en-US/images/).
+    # Do NOT regenerate them synthetically — uncomment only if you want to fall
+    # back to synthetic placeholders.
+    #
+    # make_teams_screen(1080, 1920, 'phoneScreenshots/01_teams.png')
+    # make_lineup_screen(1080, 1920, 'phoneScreenshots/02_lineup.png')
+    # make_teams_screen(1200, 1920, 'sevenInchScreenshots/01_teams.png')
+    # make_lineup_screen(1200, 1920, 'sevenInchScreenshots/02_lineup.png')
+    # make_teams_screen(1600, 2560, 'tenInchScreenshots/01_teams.png')
+    # make_lineup_screen(1600, 2560, 'tenInchScreenshots/02_lineup.png')
 
     print(f"\nAll assets saved to:\n{OUT_DIR}")
 

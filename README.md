@@ -252,12 +252,18 @@ For a permanent fix to this bug, see [`docs/wsl-git-credentials.md`](docs/wsl-gi
 
 ### Store listing assets
 
-- **Android** screenshots and feature graphic: `store/assets/`
+- **Android** screenshots and feature graphic: `fastlane/metadata/android/en-US/images/`
+  (fastlane `supply` layout — uploaded by `promote_release` or `android update_listing`)
 - **iOS** screenshots: `fastlane/screenshots/en-US/`
 - **App Store metadata** (description, keywords, etc.): `fastlane/metadata/en-US/`
 - **Privacy policy**: hosted at `https://robby2d2.github.io/soccer-assistant-coach/privacy-policy` via `docs/` on `main`
 
-Regenerate all screenshots (Android + iOS) from Windows:
+Recapture all screenshots (Android + iOS) from the running app on an emulator:
+```powershell
+store/capture_screenshots.ps1
+```
+
+Regenerate the feature graphic (synthetic, PIL) from Windows:
 ```bash
 python -X utf8 store/generate_assets.py
 ```

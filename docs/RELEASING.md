@@ -56,6 +56,7 @@ bundle exec fastlane promote_release version:1.0.9
 | `promote_release version:X.Y.Z` | Play beta → production; iOS submit for App Store review |
 | `bump version:X.Y.Z build:N` | bump + tag + push only |
 | `android promote from:beta to:production` | Play Store track promotion only |
+| `android update_listing` | upload Play listing images (screenshots + feature graphic) only |
 | `android deploy [track:internal\|alpha\|beta\|production]` | upload an existing AAB |
 | `android build` | build signed AAB — **Windows terminal only** |
 | `ios release` / `ios build` / `ios deploy` | full TestFlight flow / build only / upload existing IPA — **macOS only** |
@@ -77,8 +78,16 @@ No local iOS build path exists from Windows/WSL. One-time setup checklist:
 
 ## Store assets & metadata
 
-- Android listing assets: `store/assets/`; iOS screenshots: `fastlane/screenshots/en-US/`.
-  Regenerate with `python -X utf8 store/generate_assets.py`.
+- Android listing images (screenshots + feature graphic): `fastlane/metadata/android/en-US/images/`
+  in fastlane `supply` layout (`phoneScreenshots/`, `sevenInchScreenshots/`, `tenInchScreenshots/`,
+  `featureGraphic.png`). iOS screenshots: `fastlane/screenshots/en-US/`.
+- Recapture from the running app with `store/capture_screenshots.ps1` (drives
+  `lib/main_screenshots.dart` on an emulator, then `store/process_screenshots.py` fans out to all
+  store sizes, writing straight into the two directories above).
+- Play listing images upload automatically with `promote_release` / `promote_release_android`, or
+  on demand with `bundle exec fastlane android update_listing` (WSL). They are **not** uploaded by
+  the beta `release`/`deploy` lanes — a recapture goes live at the next promote unless you push it
+  with `update_listing`.
 - App Store text metadata: `fastlane/metadata/en-US/`.
 
 ## Privacy policy & support pages

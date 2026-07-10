@@ -4,13 +4,13 @@
 Reads PNGs from `store/raw/<name>.png` (produced by capture_screenshots.ps1)
 and writes:
 
-  Play Store (store/assets/):
-    phone_<i>_<name>.png        1080 x 1920
-    tablet7_<i>_<name>.png      1200 x 1920
-    tablet10_<i>_<name>.png     1600 x 2560
+  Play Store (fastlane/metadata/android/en-US/images/ — the `supply` layout,
+  uploaded by the promote lanes / `android update_listing`):
+    phoneScreenshots/<i>_<name>.png       1080 x 1920
+    sevenInchScreenshots/<i>_<name>.png   1200 x 1920
+    tenInchScreenshots/<i>_<name>.png     1600 x 2560
 
   App Store (fastlane/screenshots/en-US/):
-    iphone67_<i>_<name>.png     1290 x 2796
     iphone69_<i>_<name>.png     1320 x 2868
 
 Each raw capture is contained-fit into the target dimension on a brand-green
@@ -22,7 +22,7 @@ import os
 
 ROOT       = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW_DIR    = os.path.join(ROOT, 'store', 'raw')
-PLAY_DIR   = os.path.join(ROOT, 'store', 'assets')
+PLAY_DIR   = os.path.join(ROOT, 'fastlane', 'metadata', 'android', 'en-US', 'images')
 IOS_DIR    = os.path.join(ROOT, 'fastlane', 'screenshots', 'en-US')
 
 # Match the brand bands in the existing PIL mockups so the padding looks
@@ -41,10 +41,11 @@ SCREENS = [
     'stats',
 ]
 
+# (supply subdir, width, height) — subdir names are fastlane supply's convention.
 PLAY_TARGETS = [
-    ('phone',    1080, 1920),
-    ('tablet7',  1200, 1920),
-    ('tablet10', 1600, 2560),
+    ('phoneScreenshots',     1080, 1920),
+    ('sevenInchScreenshots', 1200, 1920),
+    ('tenInchScreenshots',   1600, 2560),
 ]
 
 IOS_TARGETS = [
@@ -84,8 +85,10 @@ def main() -> None:
 
     for i, name, src_path in found:
         src = Image.open(src_path).convert('RGB')
-        for prefix, w, h in PLAY_TARGETS:
-            out = os.path.join(PLAY_DIR, f'{prefix}_{i:02d}_{name}.png')
+        for subdir, w, h in PLAY_TARGETS:
+            out_dir = os.path.join(PLAY_DIR, subdir)
+            os.makedirs(out_dir, exist_ok=True)
+            out = os.path.join(out_dir, f'{i:02d}_{name}.png')
             fit_onto(src, w, h).save(out, 'PNG')
             print(f'  PLAY  {out}  ({w}x{h})')
         for prefix, w, h in IOS_TARGETS:

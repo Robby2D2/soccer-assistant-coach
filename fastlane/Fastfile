@@ -73,8 +73,11 @@ lane :promote_release do |options|
     skip_upload_aab:         true,
     skip_upload_metadata:    true,
     skip_upload_changelogs:  true,
-    skip_upload_images:      true,
-    skip_upload_screenshots: true,
+    # Listing images live in fastlane/metadata/android/en-US/images/ (written by
+    # store/process_screenshots.py) so the Play listing can't drift from the repo.
+    skip_upload_images:      false,
+    skip_upload_screenshots: false,
+    sync_image_upload:       true,
   )
   UI.success("Android v#{version} live on Play Store production track.")
 
@@ -90,8 +93,9 @@ lane :promote_release_android do
     skip_upload_aab:         true,
     skip_upload_metadata:    true,
     skip_upload_changelogs:  true,
-    skip_upload_images:      true,
-    skip_upload_screenshots: true,
+    skip_upload_images:      false,
+    skip_upload_screenshots: false,
+    sync_image_upload:       true,
   )
   UI.success("Android promoted from beta → production track.")
 end
@@ -154,6 +158,20 @@ platform :android do
   lane :release do |options|
     build
     deploy(options)
+  end
+
+  desc "Upload ONLY the Play listing images (screenshots + feature graphic) from fastlane/metadata/android/en-US/images/ — no binary, no track change. Run from WSL after recapturing screenshots. Usage: update_listing"
+  lane :update_listing do
+    upload_to_play_store(
+      skip_upload_apk:         true,
+      skip_upload_aab:         true,
+      skip_upload_metadata:    true,
+      skip_upload_changelogs:  true,
+      skip_upload_images:      false,
+      skip_upload_screenshots: false,
+      sync_image_upload:       true,
+    )
+    UI.success("Play Store listing images updated (screenshots + feature graphic).")
   end
 
   desc "Promote an existing release from one track to another. Run from WSL. Usage: promote from:internal to:beta"
