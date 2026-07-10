@@ -50,10 +50,11 @@ jobs:
     name: ${{ matrix.test }}
     needs: discover
     runs-on: ubuntu-22.04
-    # build (~9 min) + emulator boot (up to 10 min) + single test (~2 min) ≈ 21 min minimum; 30 min
-    # gives a comfortable buffer on slow runner days. shift_management navigates a GameScreen with
-    # many always-open Drift StreamBuilders and can run longer, so it gets 35.
-    timeout-minutes: ${{ contains(matrix.test, 'shift_management') && 35 || 30 }}
+    # Observed successful shards complete in ~10-12 min end-to-end (build + boot + test). 15 min
+    # gives a few minutes of buffer without making a hung shard sit for half an hour before it
+    # trips the timeout. shift_management navigates a GameScreen with many always-open Drift
+    # StreamBuilders and can run longer, so it keeps the same +5 min differential.
+    timeout-minutes: ${{ contains(matrix.test, 'shift_management') && 20 || 15 }}
     strategy:
       fail-fast: false
       matrix:
@@ -154,4 +155,17 @@ jobs:
         with:
           name: screenshot-${{ strategy.job-index }}
           path: screenshots/*.png
+          if-no-files-found: ignore
+
+      - name: Upload logcat artifact
+        # Diagnostic (issue #39): the device logcat captured by run_and_capture.sh for the
+        # whole duration of the run. Uploaded even when the job is cancelled by the
+        # timeout (a hung shard never reaches "Total:" in patrol's own output, so this is
+        # the only way to see what was happening on-device during the hang) — the file on
+        # disk survives the step that was writing to it being killed.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logcat-${{ strategy.job-index }}
+          path: logcat.txt
           if-no-files-found: ignore

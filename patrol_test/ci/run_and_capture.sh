@@ -21,6 +21,16 @@ set +e
 
 test_target="$1"
 
+# Diagnostic (issue #39): capture full device logcat for the duration of the run. A
+# genuine on-device hang produces zero patrol/gradle output (no "Total:" line), so
+# without this there is no way to see what Flutter/Android were doing during the
+# hang. Best-effort: runs in the background so it never blocks/affects the real
+# patrol result, and the file on disk survives even if this whole step gets killed
+# by the job timeout.
+adb -s emulator-5554 logcat -c 2>/dev/null || true
+adb -s emulator-5554 logcat -v time > logcat.txt 2>&1 &
+logcat_pid=$!
+
 run_patrol() {
   # --no-uninstall keeps the app installed after the test so we can pull its captured
   # screenshots with run-as. By default patrol (AGP 8.2+) uninstalls the app once the test
@@ -32,6 +42,9 @@ run_patrol() {
 
 run_patrol
 status=$?
+
+# Stop the background logcat capture (best-effort).
+kill "$logcat_pid" 2>/dev/null || true
 
 # Flake guard: non-zero exit + "Total: 0" => gradle never handed off to the instrumented test.
 # A genuine red test reports Total: 1 with Failed: 1, so it will not match this regex.
