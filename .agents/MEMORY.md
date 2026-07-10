@@ -28,6 +28,21 @@ an entry stops being "recent", distill it into a topic file under `.agents/memor
 
 ---
 
+## Session: 2026-07-10 — Play listing images now repo-driven (supply layout)
+
+- Root cause of "old screenshots on Play": listing images were only ever uploaded by hand in Play
+  Console; every `upload_to_play_store` had `skip_upload_screenshots: true`, and the recapture
+  commit (369f4d4) sat unmerged on `screenshots/restyle-recapture`. Merged it (layout-fix
+  dependency was already in main via #40).
+- Android listing images moved from `store/assets/` to the fastlane supply layout at
+  `fastlane/metadata/android/en-US/images/` (`phoneScreenshots/`, `sevenInchScreenshots/`,
+  `tenInchScreenshots/`, `featureGraphic.png`). `process_screenshots.py` + `generate_assets.py`
+  write there directly; `store/assets/` is gone. Stale synthetic `*_02_lineup.png` mockups deleted.
+- `promote_release` / `promote_release_android` now upload listing images
+  (`sync_image_upload: true` = checksum-skip unchanged); new `android update_listing` lane pushes
+  images on demand (WSL). Ran it — new 6-screen set live on Play (uploaded ~09:31, Play web can
+  cache the old ones a bit). NB: desktop Play web shows the **tablet** screenshots.
+
 ## Session: 2026-07-10 — Released v1.1.0+21 (Sideline design); Apple agreement gotcha
 
 - Cut v1.1.0 (build 21) via `create_release`: Sideline design system, Live Game screen, Sideline
