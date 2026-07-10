@@ -2840,6 +2840,11 @@ extension AutoRotation on AppDb {
         'data': {},
       };
 
+      // Export seasons
+      final seasons = await select(this.seasons).get();
+      exportData['data']['seasons'] = seasons.map((s) => s.toJson()).toList();
+      debugPrint('📊 Exported ${seasons.length} seasons');
+
       // Export teams
       final teams = await select(this.teams).get();
       exportData['data']['teams'] = teams.map((t) => t.toJson()).toList();
@@ -2968,6 +2973,40 @@ extension AutoRotation on AppDb {
 
       // Import in correct order to respect foreign key constraints
       await customStatement('PRAGMA foreign_keys = OFF');
+
+      // 0. Import seasons first - teams/players/games/formations reference
+      // them. resetDatabaseSafely intentionally preserves the seasons table,
+      // so replace its rows only when the backup actually contains seasons
+      // (older exports don't; those keep the fallback-season behavior below).
+      if (importData.containsKey('seasons')) {
+        final seasons = importData['seasons'] as List;
+        if (seasons.isNotEmpty) {
+          await delete(this.seasons).go();
+          for (var i = 0; i < seasons.length; i++) {
+            final seasonData = seasons[i];
+            final Map<String, dynamic> s = Map<String, dynamic>.from(seasonData as Map<String, dynamic>);
+            // Normalize timestamp fields that may be exported as epoch millis
+            for (final key in ['startDate', 'endDate', 'createdAt']) {
+              if (s.containsKey(key) && s[key] is int) {
+                try {
+                  s[key] = DateTime.fromMillisecondsSinceEpoch(s[key] as int).toIso8601String();
+                } catch (_) {
+                  // leave as-is on failure
+                }
+              }
+            }
+            try {
+              await into(this.seasons).insert(Season.fromJson(s));
+            } catch (e, st) {
+              debugPrint('❌ Failed to insert season at index $i: $seasonData');
+              debugPrint('Error: $e');
+              debugPrint(st.toString());
+              rethrow;
+            }
+          }
+          debugPrint('✅ Imported ${seasons.length} seasons');
+        }
+      }
 
       // Determine fallback season id (use active season if available)
       final activeSeason = await getActiveSeason();

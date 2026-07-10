@@ -22,8 +22,19 @@ void main() {
 
       expect(result, isTrue, reason: 'Import should complete without errors');
 
+      final seasons = await db.getSeasons();
+      expect(seasons, hasLength(5), reason: 'all 5 seasons must be imported');
+
+      final activeSeason = await db.getActiveSeason();
+      expect(activeSeason?.name, 'La Liga 2025-26');
+
       final teams = await db.getAllTeams();
       expect(teams, hasLength(10), reason: '2 clubs x 5 seasons');
+      expect(
+        teams.map((t) => t.seasonId).toSet(),
+        seasons.map((s) => s.id).toSet(),
+        reason: 'every team must reference an imported season',
+      );
 
       final games = await db.select(db.games).get();
       expect(games, hasLength(60), reason: '6 games per club per season');

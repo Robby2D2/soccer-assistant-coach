@@ -36,10 +36,12 @@ an entry stops being "recent", distill it into a topic file under `.agents/memor
   hand-edited); regenerate via the same approach if the schema changes. Verified by
   `test/import_five_seasons_fixture_test.dart`. Intentionally NOT in pubspec assets (unit test
   reads it via `File`; listing it would ship it in release binaries like the other two fixtures).
-- **Importer gap found**: `AppDb.importDatabase` never inserts the `seasons` array — it only
-  creates one default season on an empty DB. Multi-season backups import "successfully" but teams
-  with `seasonId` 2..5 dangle (invisible in season-scoped UI). Fix would go in
-  `lib/data/db/database.dart` before the teams step (export side doesn't emit seasons either).
+- **Importer gap found + fixed**: export/import previously dropped the `seasons` table entirely
+  (import only created one default season on an empty DB, so multi-season backups left teams with
+  `seasonId` 2..5 dangling). Now `exportDatabase` emits `seasons` and `importDatabase` imports them
+  as step 0 before teams, **replacing** existing season rows only when the backup contains a
+  non-empty `seasons` array — `resetDatabaseSafely` intentionally preserves seasons, and legacy
+  backups without the key keep the old fallback-season behavior.
 
 ## Session: 2026-07-10 — App Store screenshots refreshed (reject + resubmit v1.1.0)
 
