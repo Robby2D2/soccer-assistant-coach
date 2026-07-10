@@ -50,12 +50,13 @@ PLAY_TARGETS = [
     ('tenInchScreenshots',   1600, 2560),
 ]
 
-# Filename prefixes match fastlane deliver's device detection (iphone69,
-# ipadPro129 = 12.9" 3rd gen APP_IPAD_PRO_3GEN_129, ipadPro13 = 13" M4).
+# deliver detects the device slot from image resolution. Do NOT add an
+# ipadPro13 (2064x2752) set: deliver maps it to the SAME slot as 2048x2732
+# (APP_IPAD_PRO_3GEN_129, 10-image max), so a second set only duplicates or
+# overflows — same class of collision as the removed iphone67 set (8c08d9d).
 IOS_TARGETS = [
     ('iphone69',   1320, 2868),
     ('ipadPro129', 2048, 2732),
-    ('ipadPro13',  2064, 2752),
 ]
 
 

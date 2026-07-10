@@ -432,12 +432,11 @@ if __name__ == '__main__':
     # make_lineup_screen(1290, 2796, 'iphone67_02_lineup.png', out_dir=IOS_DIR)
 
     # iPad screenshots are REAL captures too now — process_screenshots.py fans
-    # the raw emulator captures out to ipadPro129_ (2048×2732) and ipadPro13_
-    # (2064×2752). Uncomment only to fall back to synthetic placeholders.
+    # the raw emulator captures out to ipadPro129_ (2048×2732). No ipadPro13
+    # set: deliver maps 2064×2752 to the same App Store slot (see
+    # process_screenshots.py). Uncomment only for synthetic placeholders.
     #
     # make_teams_screen(2048, 2732, 'ipadPro129_01_teams.png', out_dir=IOS_DIR)
     # make_lineup_screen(2048, 2732, 'ipadPro129_02_lineup.png', out_dir=IOS_DIR)
-    # make_teams_screen(2064, 2752, 'ipadPro13_01_teams.png', out_dir=IOS_DIR)
-    # make_lineup_screen(2064, 2752, 'ipadPro13_02_lineup.png', out_dir=IOS_DIR)
 
     print(f"\nAll iOS screenshots saved to:\n{IOS_DIR}")
