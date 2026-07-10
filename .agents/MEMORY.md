@@ -28,6 +28,17 @@ an entry stops being "recent", distill it into a topic file under `.agents/memor
 
 ---
 
+## Session: 2026-07-10 — Released v1.1.0+21 (Sideline design); Apple agreement gotcha
+
+- Cut v1.1.0 (build 21) via `create_release`: Sideline design system, Live Game screen, Sideline
+  team screens, game-first landing, formations field preview. Android → Play beta OK.
+- **New failure mode**: TestFlight upload rejected with "A required agreement is missing or has
+  expired" — a pending Apple agreement only the Account Holder can accept in App Store Connect
+  (Business section) / developer.apple.com. No API/CLI fix. After accepting, recover with
+  `gh run rerun <run-id> --failed` — only the upload job reruns, build artifacts are reused.
+- WSL fastlane push failed loudly this time (auth error, not silent); the PowerShell
+  `git push origin main` + `git push origin vX.Y.Z` recovery in RELEASING.md works as documented.
+
 ## Session: 2026-07-09 — Patrol-gate hang on /team/:id = per-frame layout assertion (issue #39, PR #40)
 
 The deterministic gate hang after PR #38 was **not** an animation: `_gameCard`'s
