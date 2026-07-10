@@ -28,6 +28,22 @@ an entry stops being "recent", distill it into a topic file under `.agents/memor
 
 ---
 
+## Session: 2026-07-10 — App Store screenshots refreshed (reject + resubmit v1.1.0)
+
+- iPad App Store screenshots are now real captures: `process_screenshots.py` fans raw captures to
+  `ipadPro129_` (2048×2732) alongside `iphone69_`. **Do not add an ipadPro13 (2064×2752) set** —
+  deliver maps it to the same `APP_IPAD_PRO_3GEN_129` slot (10-image max), so it only
+  duplicates/overflows (same collision class as the removed iphone67 set, 8c08d9d).
+- **Screenshots are locked while a version is Waiting for Review** — ASC rejects every change with
+  "Can't Create Screenshot while Waiting For Review" and deliver retry-loops for up to an hour
+  (kill it; it won't recover). Fix: `ios submit` lane (`reject_if_possible: true`) cancels the
+  pending submission, uploads, resubmits. Used it to resubmit v1.1.0 with the new set.
+- All `upload_to_app_store` call sites now set `overwrite_screenshots: true` — deliver counts
+  screenshots already on the remote version toward the 10-per-slot cap and otherwise skips new
+  uploads ("Too many screenshots found") once old ones accumulate.
+- Transient "X.png is missing on App Store Connect" right after upload is ASC propagation lag —
+  deliver retries and verifies; only a failure after all 4 retries is real.
+
 ## Session: 2026-07-10 — Play listing images now repo-driven (supply layout)
 
 - Root cause of "old screenshots on Play": listing images were only ever uploaded by hand in Play
