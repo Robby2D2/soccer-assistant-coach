@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/game_result_card.dart';
 import '../../widgets/team_accent_widgets.dart';
 import '../../core/team_theme_manager.dart';
 import '../../widgets/sideline_header.dart';
@@ -19,77 +20,6 @@ class GamesScreen extends ConsumerStatefulWidget {
 
 class _GamesScreenState extends ConsumerState<GamesScreen> {
   bool _showArchived = false;
-
-  String _formatDate(DateTime? value) {
-    if (value == null) return '-';
-    final year = value.year.toString().padLeft(4, '0');
-    final month = value.month.toString().padLeft(2, '0');
-    final day = value.day.toString().padLeft(2, '0');
-    final hour = value.hour.toString().padLeft(2, '0');
-    final minute = value.minute.toString().padLeft(2, '0');
-    return '$year-$month-$day • $hour:$minute';
-  }
-
-  Color _getResultColor(
-    BuildContext context,
-    int teamScore,
-    int opponentScore,
-  ) {
-    if (teamScore > opponentScore) {
-      return Colors.green; // Win
-    } else if (teamScore < opponentScore) {
-      return Colors.red; // Loss
-    } else {
-      return Colors.orange; // Draw
-    }
-  }
-
-  String _getResultText(
-    BuildContext context,
-    int teamScore,
-    int opponentScore,
-  ) {
-    final loc = AppLocalizations.of(context);
-    if (teamScore > opponentScore) {
-      return loc.win;
-    } else if (teamScore < opponentScore) {
-      return loc.loss;
-    } else {
-      return loc.draw;
-    }
-  }
-
-  Widget _pill(
-    BuildContext context,
-    String label,
-    Color background,
-    Color foreground, {
-    IconData? icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 12, color: foreground),
-            const SizedBox(width: 4),
-          ],
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: foreground,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildEmptyState(BuildContext context) {
     final loc = AppLocalizations.of(context);
@@ -229,195 +159,46 @@ class _GamesScreenState extends ConsumerState<GamesScreen> {
                   itemBuilder: (_, i) {
                     final game = visible[i];
                     final archived = game.isArchived;
-                    return Card(
-                      elevation: archived ? 0 : 2,
-                      color: archived
-                          ? Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest
-                          : null,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: () => context.push('/game/${game.id}'),
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  color: archived
-                                      ? Theme.of(context).colorScheme.outline
-                                            .withValues(alpha: 0.12)
-                                      : Theme.of(
-                                          context,
-                                        ).colorScheme.tertiaryContainer,
-                                ),
-                                child: Icon(
-                                  Icons.sports_soccer,
-                                  color: archived
-                                      ? Theme.of(context).colorScheme.outline
-                                      : Theme.of(context).colorScheme.tertiary,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            game.opponent?.isNotEmpty == true
-                                                ? 'vs ${game.opponent!}'
-                                                : 'vs Opponent',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleMedium
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                  color: archived
-                                                      ? Theme.of(context)
-                                                            .colorScheme
-                                                            .onSurfaceVariant
-                                                      : null,
-                                                ),
-                                          ),
-                                        ),
-                                        if (game.gameStatus == 'completed')
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                              color: _getResultColor(
-                                                context,
-                                                game.teamScore,
-                                                game.opponentScore,
-                                              ),
-                                            ),
-                                            child: Text(
-                                              '${game.teamScore}-${game.opponentScore}',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .labelMedium
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.white,
-                                                  ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 4,
-                                      children: [
-                                        if (game.startTime != null)
-                                          _pill(
-                                            context,
-                                            _formatDate(game.startTime),
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.primaryContainer,
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.onPrimaryContainer,
-                                          ),
-                                        if (game.gameStatus == 'completed')
-                                          _pill(
-                                            context,
-                                            _getResultText(
-                                              context,
-                                              game.teamScore,
-                                              game.opponentScore,
-                                            ),
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.primaryContainer,
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.onPrimaryContainer,
-                                            icon: Icons.check_circle_outline,
-                                          )
-                                        else if (game.isGameActive)
-                                          _pill(
-                                            context,
-                                            'LIVE',
-                                            Theme.of(context)
-                                                .colorScheme
-                                                .errorContainer
-                                                .withValues(alpha: 0.6),
-                                            Theme.of(context).colorScheme.error,
-                                            icon: Icons.circle,
-                                          ),
-                                        if (archived)
-                                          _pill(
-                                            context,
-                                            'Archived',
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.errorContainer,
-                                            Theme.of(
-                                              context,
-                                            ).colorScheme.onErrorContainer,
-                                          ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              PopupMenuButton<String>(
-                                icon: const Icon(Icons.more_vert),
-                                onSelected: (value) async {
-                                  switch (value) {
-                                    case 'edit':
-                                      context.push('/game/${game.id}/edit');
-                                      break;
-                                    case 'archive':
-                                      await db.setGameArchived(
-                                        game.id,
-                                        archived: !archived,
-                                      );
-                                      break;
-                                  }
-                                },
-                                itemBuilder: (context) => [
-                                  const PopupMenuItem(
-                                    value: 'edit',
-                                    child: ListTile(
-                                      leading: Icon(Icons.edit_outlined),
-                                      title: Text('Edit'),
-                                      contentPadding: EdgeInsets.zero,
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'archive',
-                                    child: ListTile(
-                                      leading: Icon(
-                                        archived
-                                            ? Icons.unarchive
-                                            : Icons.archive_outlined,
-                                      ),
-                                      title: Text(
-                                        archived ? 'Restore' : 'Archive',
-                                      ),
-                                      contentPadding: EdgeInsets.zero,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                    return GameResultCard(
+                      game: game,
+                      onTap: () => context.push('/game/${game.id}'),
+                      trailing: PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert),
+                        onSelected: (value) async {
+                          switch (value) {
+                            case 'edit':
+                              context.push('/game/${game.id}/edit');
+                              break;
+                            case 'archive':
+                              await db.setGameArchived(
+                                game.id,
+                                archived: !archived,
+                              );
+                              break;
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: ListTile(
+                              leading: Icon(Icons.edit_outlined),
+                              title: Text('Edit'),
+                              contentPadding: EdgeInsets.zero,
+                            ),
                           ),
-                        ),
+                          PopupMenuItem(
+                            value: 'archive',
+                            child: ListTile(
+                              leading: Icon(
+                                archived
+                                    ? Icons.unarchive
+                                    : Icons.archive_outlined,
+                              ),
+                              title: Text(archived ? 'Restore' : 'Archive'),
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },
