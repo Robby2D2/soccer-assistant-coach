@@ -1417,15 +1417,22 @@ extension GameQueries on AppDb {
     );
   }
 
-  /// Watch active games across all teams (games that have started but not yet completed)
+  /// Watch active games across all teams. A game counts as active when it is
+  /// still in progress AND either its timer is actually running or it is
+  /// scheduled for today — a game scheduled next week is upcoming, not active.
   Stream<List<GameWithTeam>> watchActiveGames() {
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final startOfTomorrow = startOfToday.add(const Duration(days: 1));
     return (select(
             games,
           ).join([leftOuterJoin(teams, teams.id.equalsExp(games.teamId))])
           ..where(
-            games.startTime.isNotNull() &
-                games.gameStatus.equals('in-progress') &
-                games.isArchived.equals(false),
+            games.gameStatus.equals('in-progress') &
+                games.isArchived.equals(false) &
+                (games.isGameActive.equals(true) |
+                    (games.startTime.isBiggerOrEqualValue(startOfToday) &
+                        games.startTime.isSmallerThanValue(startOfTomorrow))),
           )
           ..orderBy([OrderingTerm.desc(games.startTime)]))
         .watch()
