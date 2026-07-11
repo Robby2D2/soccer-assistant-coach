@@ -187,8 +187,10 @@ class MetricsOverviewScreen extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 16),
 
-                                    // Playing Time Chart
-                                    if (playedSeconds.isNotEmpty) ...[
+                                    // Per-player playing time bars with
+                                    // goals/assists/saves alongside each bar.
+                                    if (playedSeconds.isNotEmpty ||
+                                        agg.isNotEmpty) ...[
                                       Card(
                                         child: Padding(
                                           padding: const EdgeInsets.all(16),
@@ -200,60 +202,23 @@ class MetricsOverviewScreen extends ConsumerWidget {
                                                 contentPadding: EdgeInsets.zero,
                                                 leading: Icon(Icons.bar_chart),
                                                 title: Text(
-                                                  'Playing Time Analysis',
+                                                  'Player Performance',
                                                 ),
                                                 subtitle: Text(
-                                                  'Total time per player in this game',
+                                                  'Play time, goals, assists and saves per player',
                                                 ),
                                               ),
                                               const SizedBox(height: 8),
                                               _PlaytimeBarChart(
-                                                entries:
-                                                    playedSeconds.entries
-                                                        .toList()
-                                                      ..sort(
-                                                        (a, b) => b.value
-                                                            .compareTo(a.value),
-                                                      ),
+                                                playedSeconds: playedSeconds,
+                                                metricsAgg: agg,
                                                 playersById: playersById,
                                               ),
                                             ],
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(height: 16),
                                     ],
-
-                                    // Player Metrics Table
-                                    Card(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(16),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                const Icon(Icons.table_chart),
-                                                const SizedBox(width: 8),
-                                                Text(
-                                                  'Player Statistics',
-                                                  style: Theme.of(
-                                                    context,
-                                                  ).textTheme.titleLarge,
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 16),
-                                            _PlayerMetricsTable(
-                                              players: players,
-                                              metricsAgg: agg,
-                                              playedSeconds: playedSeconds,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
                                   ],
                                 );
                               },
@@ -303,22 +268,30 @@ class _SummaryItem extends StatelessWidget {
 }
 
 class _PlaytimeBarChart extends StatelessWidget {
-  const _PlaytimeBarChart({required this.entries, required this.playersById});
+  const _PlaytimeBarChart({
+    required this.playedSeconds,
+    required this.metricsAgg,
+    required this.playersById,
+  });
 
-  final List<MapEntry<int, int>> entries; // playerId -> seconds
+  final Map<int, int> playedSeconds; // playerId -> seconds
+  final Map<int, Map<String, int>> metricsAgg; // playerId -> metric -> count
   final Map<int, Player> playersById;
 
   @override
   Widget build(BuildContext context) {
-    if (entries.isEmpty) {
-      return const Text('No play time recorded yet.');
+    // Include every player with recorded play time OR recorded metrics, so a
+    // goal scorer without tracked minutes still shows up.
+    final playerIds = <int>{...playedSeconds.keys, ...metricsAgg.keys};
+    if (playerIds.isEmpty) {
+      return const Text('No play time or stats recorded yet.');
     }
-    final maxSeconds = entries
-        .map((e) => e.value)
-        .fold<int>(0, (p, c) => c > p ? c : p);
-    if (maxSeconds <= 0) {
-      return const SizedBox.shrink();
-    }
+    final entries =
+        playerIds
+            .map((id) => MapEntry(id, playedSeconds[id] ?? 0))
+            .toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+    final maxSeconds = entries.first.value;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -329,8 +302,9 @@ class _PlaytimeBarChart extends StatelessWidget {
               _PlaytimeBarRow(
                 player: playersById[entry.key],
                 seconds: entry.value,
-                fraction: entry.value / maxSeconds,
+                fraction: maxSeconds > 0 ? entry.value / maxSeconds : 0,
                 barMaxWidth: barMaxWidth,
+                metrics: metricsAgg[entry.key] ?? const <String, int>{},
               ),
           ],
         );
@@ -345,12 +319,14 @@ class _PlaytimeBarRow extends StatelessWidget {
     required this.seconds,
     required this.fraction,
     required this.barMaxWidth,
+    required this.metrics,
   });
 
   final Player? player;
   final int seconds;
   final double fraction; // 0..1
   final double barMaxWidth;
+  final Map<String, int> metrics; // metric -> count
 
   @override
   Widget build(BuildContext context) {
@@ -377,6 +353,12 @@ class _PlaytimeBarRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
+              _StatCount(icon: Icons.sports_soccer, count: metrics['GOAL'] ?? 0),
+              _StatCount(icon: Icons.sports, count: metrics['ASSIST'] ?? 0),
+              _StatCount(
+                icon: Icons.sports_handball,
+                count: metrics['SAVE'] ?? 0,
+              ),
               Text(
                 _hhmmss(seconds),
                 style: sidelineMono(
@@ -417,82 +399,33 @@ class _PlaytimeBarRow extends StatelessWidget {
   }
 }
 
-class _PlayerMetricsTable extends StatelessWidget {
-  const _PlayerMetricsTable({
-    required this.players,
-    required this.metricsAgg,
-    required this.playedSeconds,
-  });
+/// A compact icon + count pair shown beside a player's playtime bar. Hidden
+/// when the count is zero so rows stay uncluttered. The icons match the Team
+/// Summary card (goal / assist / save).
+class _StatCount extends StatelessWidget {
+  const _StatCount({required this.icon, required this.count});
 
-  final List<Player> players;
-  final Map<int, Map<String, int>> metricsAgg;
-  final Map<int, int> playedSeconds;
+  final IconData icon;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
-    // Sort players by total contribution (goals + assists + saves)
-    final sortedPlayers = [...players]
-      ..sort((a, b) {
-        final aMetrics = metricsAgg[a.id] ?? <String, int>{};
-        final bMetrics = metricsAgg[b.id] ?? <String, int>{};
-        final aTotal =
-            (aMetrics['GOAL'] ?? 0) +
-            (aMetrics['ASSIST'] ?? 0) +
-            (aMetrics['SAVE'] ?? 0);
-        final bTotal =
-            (bMetrics['GOAL'] ?? 0) +
-            (bMetrics['ASSIST'] ?? 0) +
-            (bMetrics['SAVE'] ?? 0);
-        return bTotal.compareTo(aTotal);
-      });
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columns: const [
-          DataColumn(label: Text('Player')),
-          DataColumn(label: Text('Play Time')),
-          DataColumn(label: Text('Goals')),
-          DataColumn(label: Text('Assists')),
-          DataColumn(label: Text('Saves')),
-          DataColumn(label: Text('Total')),
+    if (count == 0) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 2),
+          Text(
+            count.toString(),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
         ],
-        rows: sortedPlayers.map((player) {
-          final metrics = metricsAgg[player.id] ?? <String, int>{};
-          final goals = metrics['GOAL'] ?? 0;
-          final assists = metrics['ASSIST'] ?? 0;
-          final saves = metrics['SAVE'] ?? 0;
-          final total = goals + assists + saves;
-          final seconds = playedSeconds[player.id] ?? 0;
-          final minutesText = _formatMinutes(seconds / 60.0);
-
-          return DataRow(
-            cells: [
-              DataCell(
-                Text(
-                  '${player.firstName} ${player.lastName}',
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-              ),
-              DataCell(Text(minutesText)),
-              DataCell(Text(goals.toString())),
-              DataCell(Text(assists.toString())),
-              DataCell(Text(saves.toString())),
-              DataCell(
-                Text(
-                  total.toString(),
-                  style: total > 0
-                      ? TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        )
-                      : null,
-                ),
-              ),
-            ],
-          );
-        }).toList(),
       ),
     );
   }
