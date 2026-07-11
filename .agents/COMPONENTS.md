@@ -30,8 +30,8 @@ When you add a shared widget or consolidate duplicates, add/update the row here 
 
 | Component | File | Use for |
 |---|---|---|
-| `TeamHeader` / `CompactTeamHeader` / `TeamHeaderCard` / `TeamBrandedHeader` | `lib/widgets/team_header.dart` | Team headers at various densities — pick one, don't add a fifth. |
-| `TeamPanel` / `TeamListPanel` / `TeamBrandedPanel` / `TeamCompactHeader` | `lib/widgets/team_panels.dart` | Team-scoped content panels. |
+| `TeamBrandedHeader` | `lib/widgets/team_header.dart` | **Legacy, pre-Sideline** — gradient header on assign-players + end-game screens only. Don't adopt in new screens; replace with Sideline headers during the Teams/Roster restyle. |
+| `TeamListPanel` | `lib/widgets/team_panels.dart` | **Legacy, pre-Sideline** — gradient team tile on the teams list only. Same restyle plan as above. (Six sibling variants were dead code, deleted 2026-07.) |
 | `TeamFloatingActionButton`, `TeamFilledButton`, `TeamCard`, `TeamDivider`, `TeamGradientContainer`, `TeamBadge` | `lib/widgets/team_accent_widgets.dart` | Team-color-accented controls — use instead of manually theming Material ones. |
 | `TeamLogoWidget` / `EditableTeamLogoWidget` | `lib/widgets/team_logo_widget.dart` | Team crests everywhere. |
 | `TeamColorPicker` | `lib/widgets/team_color_picker.dart` | Team color selection. |
