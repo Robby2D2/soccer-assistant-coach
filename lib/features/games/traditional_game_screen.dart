@@ -7,7 +7,8 @@ import '../../core/providers.dart';
 import '../../widgets/player_avatar.dart';
 import '../../widgets/player_panel.dart';
 import '../../core/game_scaffold.dart';
-import '../../core/team_theme_manager.dart';
+import '../../widgets/game_header.dart';
+import '../../widgets/game_result_card.dart';
 import '../../widgets/standardized_app_bar_actions.dart';
 
 class TraditionalGameScreen extends ConsumerStatefulWidget {
@@ -530,26 +531,36 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
 
     return GameScaffold(
       gameId: widget.gameId,
-      appBar: TeamAppBar(
-        title: GameCompactTitle(gameId: widget.gameId),
-        actions: StandardizedAppBarActions.createActionsWidgets(
-          [
-            CommonNavigationActions.home(context),
-            CommonNavigationActions.edit(
-              context,
-              '/game/${widget.gameId}/edit',
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SidelineGameHeader(
+            gameId: widget.gameId,
+            actions: StandardizedAppBarActions.createActionsWidgets(
+              [
+                CommonNavigationActions.home(context),
+                CommonNavigationActions.edit(
+                  context,
+                  '/game/${widget.gameId}/edit',
+                ),
+              ],
+              additionalMenuItems: [
+                CommonNavigationActions.viewMetrics(context, widget.gameId),
+                CommonNavigationActions.inputMetrics(context, widget.gameId),
+                CommonNavigationActions.attendance(context, widget.gameId),
+                CommonNavigationActions.reset(context, _resetTimer),
+                CommonNavigationActions.endGame(context, widget.gameId),
+              ],
             ),
-          ],
-          additionalMenuItems: [
-            CommonNavigationActions.viewMetrics(context, widget.gameId),
-            CommonNavigationActions.inputMetrics(context, widget.gameId),
-            CommonNavigationActions.attendance(context, widget.gameId),
-            CommonNavigationActions.reset(context, _resetTimer),
-            CommonNavigationActions.endGame(context, widget.gameId),
-          ],
-        ),
+          ),
+          Expanded(child: _buildGameBody(db)),
+        ],
       ),
-      body: FutureBuilder<Game?>(
+    );
+  }
+
+  Widget _buildGameBody(AppDb db) {
+    return FutureBuilder<Game?>(
         future: db.getGame(widget.gameId),
         builder: (context, snap) {
           if (!snap.hasData) {
@@ -648,54 +659,11 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
                                 ),
                               )
                             else
-                              // Show game completion status
+                              // Same game summary tile as the games list /
+                              // team landing: date played + W/L/D score badge.
                               Padding(
                                 padding: const EdgeInsets.all(12),
-                                child: Card(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Center(
-                                      child: Column(
-                                        children: [
-                                          Icon(
-                                            Icons.flag,
-                                            size: 32,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            game.gameStatus == 'completed'
-                                                ? 'Game Completed'
-                                                : 'Game ${game.gameStatus.toUpperCase()}',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .titleMedium
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).colorScheme.primary,
-                                                ),
-                                          ),
-                                          if (game.endTime != null)
-                                            Text(
-                                              'Ended: ${game.endTime!.toLocal().toString().split('.')[0]}',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodySmall
-                                                  ?.copyWith(
-                                                    color: Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurfaceVariant,
-                                                  ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                                child: GameResultCard(game: game),
                               ),
 
                             const Divider(height: 1),
@@ -750,7 +718,6 @@ class _TraditionalGameScreenState extends ConsumerState<TraditionalGameScreen>
             ],
           );
         },
-      ),
     );
   }
 }
