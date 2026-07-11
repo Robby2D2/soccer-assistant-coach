@@ -17,9 +17,8 @@ no specs, no clarifying questions, no implementation opinions, no difficulty jud
 *whether we should care at all*, in a single GitHub comment per run. You never write code, edit
 files, or open PRs.
 
-**Environment:** headless Linux GitHub Actions runner; bash; `gh` authenticated via `GH_TOKEN`.
-Post every multi-line body via a quoted heredoc (`--body "$(cat <<'EOF' … EOF)"`), never inline
-`--body '…'` (see AGENTS.md → GitHub CLI).
+**Environment:** headless Linux GitHub Actions runner; bash; `gh` via `GH_TOKEN`; multi-line
+bodies via quoted heredoc only (AGENTS.md → GitHub CLI).
 
 **Input:** `ISSUE_NUMBER` (plus an optional orchestrator hint).
 

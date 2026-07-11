@@ -12,7 +12,7 @@ an entry stops being "recent", distill it into a topic file under `.agents/memor
 
 - **App**: Flutter, local-first (Drift/SQLite), Riverpod v3, go_router. Live on Play Store +
   App Store (`com.useunix.soccerassistantcoach`).
-- **Agent pipeline**: `/fix-issue` (CPO → PM → dev → QA → release) runs headless in GitHub Actions
+- **Agent pipeline**: `/fix-issue` (CPO → PM → dev → PR review → QA → release) runs headless in GitHub Actions
   on Linux (`fix-issue.yml`, cron). Patrol journeys run on a cloud emulator via the sharded
   `patrol-gate.yml` (dispatched by QA on PRs and by release-manager on `main`). Pushes/tags use
   `secrets.BOT_TOKEN` so downstream workflows fire. Details: [`memory/agent_pipeline.md`](memory/agent_pipeline.md).
@@ -27,6 +27,18 @@ an entry stops being "recent", distill it into a topic file under `.agents/memor
   [`memory/testing.md`](memory/testing.md).
 
 ---
+
+## Session: 2026-07-11 — Consistency guardrails + pr-reviewer agent
+
+- New `.agents/COMPONENTS.md`: canonical shared-UI inventory ("one canonical widget per concept").
+  CODING.md now requires checking it before building UI; developer agent loads it; keep it updated
+  when adding/consolidating shared widgets (same PR).
+- New `pr-reviewer` agent (`.claude/agents/pr-reviewer.md`): fast **static** review gate between
+  developer and qa-reviewer — headline check is shared-component reuse (would have caught the
+  duplicated game tiles). Markers: `pr-reviewer-agent:approved|review|bounce|error`. qa-reviewer
+  slimmed to patrol gate + screenshots + final approve, and now requires a `pr-reviewer-agent:approved`
+  newer than the latest commit before running (saves 20–40 min gate runs on PRs that would bounce).
+  Orchestrator PR buckets updated in `fix-issue.md` (REVIEW → pr-reviewer, then QA).
 
 ## Session: 2026-07-11 — Game summary consistency + active-game definition
 
@@ -143,34 +155,7 @@ AGENTS.md) while keeping all HTML markers and commands. Fixed stale claims: fix-
 cpo_decisions/pm_conventions had Windows-path `gh` commands (agents run on Linux). TESTING.md's
 test-file inventory tables (already drifted) became a "browse the directories" pointer.
 
-## Session: 2026-06-28 — Sideline foundation + Live Game hero card
-
-Implemented the Sideline design system foundation (`lib/core/sideline.dart` tokens,
-`google_fonts` Hanken Grotesk / Spline Sans Mono, `TeamColors` ThemeExtension in `team_theme.dart`,
-components in `lib/widgets/sideline_widgets.dart`) and rebuilt the Live Game screen around it
-(hero shift card, alert banner, branded `SidelineGameHeader`, context-aware `_ShiftActionBar`).
-`flutter analyze` clean; 81 tests green.
-
-Key learnings (full detail in [`memory/sideline_design.md`](memory/sideline_design.md)):
-- `applyTo` must set `extensions: [TeamColors…]` outright — spreading `base.extensions.values`
-  fails the test front-end's stricter inference.
-- All numerics use `sidelineMono()` (tabular figures) so clocks don't jitter.
-- Team-color staleness fixed via `invalidateTeamTheme(ref, teamId)` on team-editor Save
-  (a `watchTeam` StreamProvider leaks a pending timer in widget tests — don't).
-- Decisions: keep the horizontal shift-planning `PageView`; no "Next on · least time" section.
-
-## Session: 2026-06-07 — Roster count summary (issue #28) + QA screenshot pipeline
-
-- Players screen got a reactive "N players · M active" bar (`_RosterCountSummary`), computed inline
-  from the existing stream (no extra query); hidden on empty roster. New l10n strings ×3 locales;
-  patrol journey test with screenshot.
-- Journey tests can now capture the fixed UI mid-test (`captureScreenshot($, 'name')`), the gate
-  uploads artifacts, and the QA agent embeds them in the issue via the public `ci-screenshots`
-  branch. Design + rationale: [`memory/agent_pipeline.md`](memory/agent_pipeline.md); usage:
-  [`TESTING.md`](TESTING.md).
-- **Flutter is not pre-installed on the `fix-issue.yml` runner** — the developer agent must clone
-  the SDK before running `flutter` commands.
-
 ---
 
-<!-- Older sessions distilled into .agents/memory/ topic files — see LONGTERM_MEMORY.md -->
+<!-- Older sessions (incl. 2026-06-28 Sideline foundation, 2026-06-07 QA screenshot pipeline)
+     distilled into .agents/memory/ topic files — see LONGTERM_MEMORY.md -->

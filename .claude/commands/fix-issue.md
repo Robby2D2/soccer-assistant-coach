@@ -1,8 +1,8 @@
 # Fix GitHub Issue (Orchestrator)
 
 Triage open GitHub issues + PRs and dispatch the right specialist subagent for each: **cpo**,
-**product-manager**, **developer**, **qa-reviewer**, or **release-manager** (defined in
-[.claude/agents/](../agents/)).
+**product-manager**, **developer**, **pr-reviewer**, **qa-reviewer**, or **release-manager**
+(defined in [.claude/agents/](../agents/)).
 
 Usage:
 - `/fix-issue` — sweep all open issues + PRs, dispatch, loop until idle, then cut a release if `main` has unreleased commits.
@@ -18,8 +18,9 @@ one-time label creation). Subagents talk to humans via issue/PR comments; you re
 summary to the user.
 
 Pipeline: **cpo** (OKR/mission gate — greenlights to PM or declines `wont-fix` + closes) →
-**product-manager** (spec, `dev_ready`) → **developer** (implements, opens PR) → **qa-reviewer**
-(code review + dispatches the cloud patrol gate on the PR branch) → **release-manager** (patrol
+**product-manager** (spec, `dev_ready`) → **developer** (implements, opens PR) → **pr-reviewer**
+(static code review: spec, conventions, shared-component consistency) → **qa-reviewer**
+(dispatches the cloud patrol gate on the PR branch, final approval) → **release-manager** (patrol
 gate on `main`, version bump, `vX.Y.Z` tag → Play beta + TestFlight).
 
 ## Step 1 — Parse `$ARGUMENTS`
@@ -63,14 +64,15 @@ makes an issue eligible for PM (new). Legacy issues that predate the CPO (alread
 `pm-agent:closed` marker is non-blocking — a reopened issue carrying only it routes back to the
 CPO gate (and the CPO never re-declines a human-reopened issue).
 
-Classify each **open PR**:
+Classify each **open PR** — first match wins:
 
 | Bucket | Trigger | Dispatch |
 |---|---|---|
-| **BLOCKED** | Latest QA activity is `<!-- qa-agent:error -->` with no newer human activity | skip — **needs a human** |
-| **QA** | No `qa-agent:approved` review AND no `qa-agent:review` newer than the latest commit, OR new commits since last QA review | → qa-reviewer |
-| **APPROVED** | Has `qa-agent:approved` and no new commits | skip (awaiting human merge) |
-| **DEV-FIXING** | Has `qa-agent:review` and no new commits | skip (waiting on dev) |
+| **BLOCKED** | Latest reviewer activity is `<!-- pr-reviewer-agent:error -->` / `<!-- qa-agent:error -->` with no newer human activity | skip — **needs a human** |
+| **DEV-FIXING** | Latest reviewer activity is `pr-reviewer-agent:review` or `qa-agent:review` and no new commits since | skip (waiting on dev) |
+| **APPROVED** | Has `qa-agent:approved` and no new commits (covers legacy PRs approved before the pr-reviewer existed) | skip (awaiting human merge) |
+| **REVIEW** | No `pr-reviewer-agent:approved` newer than the latest commit | → pr-reviewer |
+| **QA** | Has `pr-reviewer-agent:approved` newer than the latest commit, no `qa-agent:approved` since | → qa-reviewer |
 
 Bot vs human: agents post as the gh CLI user — treat any comment **without** a
 `<!-- *-agent:* -->` marker as human.
@@ -97,8 +99,8 @@ Return a single line summarizing what you did.
 If a custom subagent type isn't available, fall back to `subagent_type: general-purpose` and
 prepend the contents of `.claude/agents/<role>.md` (after the frontmatter) to the prompt.
 
-**Parallelism:** CPO/PM/QA dispatches may run in parallel (they only read context and write to
-GitHub). **Only one developer at a time** — devs create branches and run tests; keep them
+**Parallelism:** CPO/PM/pr-reviewer/QA dispatches may run in parallel (they only read context and
+write to GitHub). **Only one developer at a time** — devs create branches and run tests; keep them
 sequential.
 
 ## Step 7 — Report this pass, then loop
@@ -133,8 +135,9 @@ in parallel with a developer (both mutate the tree / push). Include its result l
 
 - **The marker comments are the state machine** — keep them stable across edits to this skill:
   `cpo-agent:greenlit|declined`, `pm-agent:spec|question` (+ retired `pm-agent:closed`),
-  `dev-agent:plan|question|done`, `qa-agent:approved|review|bounce|screenshots`,
-  `release-agent:shipped|partial`, and `<role>-agent:error` for every role.
+  `dev-agent:plan|question|done`, `pr-reviewer-agent:approved|review|bounce`,
+  `qa-agent:approved|review|bounce|screenshots`, `release-agent:shipped|partial`, and
+  `<role>-agent:error` for every role.
 - **BLOCKED handling:** a subagent returning `BLOCKED: …` (per AGENTS.md → Agent Error Handling)
   is not re-dispatched this invocation — record it under a prominent "⚠️ Needs a human" section.
   On later passes the error marker keeps it in the BLOCKED bucket until a human comment clears it.

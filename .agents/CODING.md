@@ -4,6 +4,9 @@
 
 - **KISS** — Keep solutions simple. Prefer the straightforward path; avoid clever code that requires explanation.
 - **DRY** — Do not duplicate logic, UI patterns, or data access. Extract shared behavior into utilities or providers only when used in more than one place.
+- **Consistency first** — one canonical widget per concept. Before building any UI, check
+  [COMPONENTS.md](COMPONENTS.md) and `lib/widgets/` for an existing component; extend it rather
+  than inlining a variant. New shared widgets get a row in COMPONENTS.md in the same PR.
 - No speculative features, no future-proofing abstractions, no extra configurability beyond what is asked.
 - Match the existing code style. Read surrounding code before writing new code.
 

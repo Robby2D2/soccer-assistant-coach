@@ -8,6 +8,7 @@ substitutions on the sideline (teams, seasons, players, live games).
 | Topic | Doc |
 |---|---|
 | Coding standards | [.agents/CODING.md](.agents/CODING.md) |
+| Shared UI components (check before building any UI) | [.agents/COMPONENTS.md](.agents/COMPONENTS.md) |
 | Testing patterns (widget + patrol) | [.agents/TESTING.md](.agents/TESTING.md) |
 | Project structure & decisions | [.agents/ARCHITECTURE.md](.agents/ARCHITECTURE.md) |
 | Product OKRs (CPO/PM rubric) | [.agents/OKRS.md](.agents/OKRS.md) |
@@ -17,7 +18,7 @@ substitutions on the sideline (teams, seasons, players, live games).
 ## GitHub CLI (`gh`)
 
 **In CI (how the `/fix-issue` pipeline agents run):** the agents (cpo, product-manager, developer,
-qa-reviewer, release-manager) run headless in GitHub Actions on Linux
+pr-reviewer, qa-reviewer, release-manager) run headless in GitHub Actions on Linux
 (`.github/workflows/fix-issue.yml`), where `gh` is on the PATH and authenticated via `GH_TOKEN`.
 Use **bash** syntax, and always post multi-line comment/PR bodies with a quoted heredoc so
 apostrophes, `$`, and backticks pass through literally — never inline `--body '…'`:

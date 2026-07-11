@@ -3,11 +3,14 @@
 Current behavior is defined by `.claude/commands/fix-issue.md` + `.claude/agents/*.md`. This file
 records the *why* behind decisions that aren't obvious from those files.
 
-## Pipeline shape (since 2026-06-05)
+## Pipeline shape (since 2026-06-05; pr-reviewer added 2026-07-11)
 
-CPO → PM → developer → QA → release-manager, orchestrated by `/fix-issue`, running **headless in
-GitHub Actions on Linux runners** (`.github/workflows/fix-issue.yml`, cron + manual dispatch).
-The old Windows Task Scheduler job (`SoccerAssistantCoach-FixIssueDaily`) is deprecated.
+CPO → PM → developer → pr-reviewer → QA → release-manager, orchestrated by `/fix-issue`, running
+**headless in GitHub Actions on Linux runners** (`.github/workflows/fix-issue.yml`, cron + manual
+dispatch). The old Windows Task Scheduler job (`SoccerAssistantCoach-FixIssueDaily`) is deprecated.
+The pr-reviewer split (static review before the emulator gate) exists so consistency/reuse
+violations bounce in minutes instead of after a 20–40 min patrol run — qa-reviewer refuses to run
+without a `pr-reviewer-agent:approved` newer than the latest commit.
 
 - **CPO owns "should we care?"** (mission fit + OKR worth, rubric in `.agents/OKRS.md`) and is the
   only agent that closes issues (`wont-fix` + not planned). Moving mission-fit out of the PM

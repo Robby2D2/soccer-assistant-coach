@@ -1,7 +1,7 @@
 name: Fix issues (agent sweep)
 
-# Runs the /fix-issue orchestrator (cpo → product-manager → developer → qa-reviewer →
-# release-manager) headless on a GitHub-hosted Linux runner. This replaces the old Windows
+# Runs the /fix-issue orchestrator (cpo → product-manager → developer → pr-reviewer →
+# qa-reviewer → release-manager) headless on a GitHub-hosted Linux runner. This replaces the old Windows
 # Task Scheduler job (SoccerAssistantCoach-FixIssueDaily) that ran the same command on the
 # developer's PC — nothing here touches a local machine.
 #
