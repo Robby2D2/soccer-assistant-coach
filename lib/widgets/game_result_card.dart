@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/providers.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/team_theme.dart';
 
 /// The shared game summary tile: soccer icon, "vs Opponent", a date pill and —
 /// for completed games — a win/loss/draw colored score badge plus result pill.
@@ -31,13 +32,14 @@ class GameResultCard extends StatelessWidget {
     return '$year-$month-$day • $hour:$minute';
   }
 
-  Color _resultColor() {
+  Color _resultColor(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     if (game.teamScore > game.opponentScore) {
-      return Colors.green; // Win
+      return scheme.primary; // Win
     } else if (game.teamScore < game.opponentScore) {
-      return Colors.red; // Loss
+      return scheme.error; // Loss
     } else {
-      return Colors.orange; // Draw
+      return scheme.tertiary; // Draw
     }
   }
 
@@ -151,14 +153,16 @@ class GameResultCard extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(8),
-                              color: _resultColor(),
+                              color: _resultColor(context),
                             ),
                             child: Text(
                               '${game.teamScore}–${game.opponentScore}',
                               style: Theme.of(context).textTheme.labelMedium
                                   ?.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    color: TeamColorContrast.onColorFor(
+                                      _resultColor(context),
+                                    ),
                                   ),
                             ),
                           ),
