@@ -28,6 +28,24 @@ an entry stops being "recent", distill it into a topic file under `.agents/memor
 
 ---
 
+## Session: 2026-07-11 — Game summary consistency + active-game definition
+
+- New shared `lib/widgets/game_result_card.dart` (`GameResultCard`): the single game summary tile
+  (soccer icon, "vs Opponent", date pill, W/L/D-colored score badge, LIVE/Archived pills). Used by
+  the games list, the team landing "Most Recent Game" card, and the traditional game screen's
+  completed panel — extend it there rather than re-inlining game tiles. Score uses an en-dash
+  (`3–2`), which the team-landing patrol test asserts on.
+- Traditional game screen now uses the branded `SidelineGameHeader` band (body-top, no AppBar),
+  matching the shift-mode game screen; the old `TeamAppBar` + `GameCompactTitle` header is gone
+  from live-game screens (still used on edit/attendance/metrics sub-screens).
+- Game metrics screen: removed the "Player Statistics" DataTable (duplicated play time); the
+  playing-time bar chart now carries per-player goal/assist/save icon counts (zero counts hidden)
+  and includes players with metrics but no recorded minutes.
+- **`watchActiveGames` semantics changed**: a game is "active" (home-screen card) only if
+  `in-progress` AND (timer running via `isGameActive` OR `startTime` is today). Previously any
+  future-scheduled game showed as active because new games default to `gameStatus: 'in-progress'`.
+  Patrol tests seeding `startTime: DateTime.now()` still satisfy the filter.
+
 ## Session: 2026-07-10 — Multi-season demo fixture (Real Madrid / Barcelona)
 
 - New fixture `test/fixtures/five_seasons_real_madrid_barcelona.json` (~2 MB): 5 COMPLETE La Liga

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../core/sideline.dart';
 import '../../l10n/app_localizations.dart';
+import '../../widgets/game_result_card.dart';
 import '../../widgets/sideline_header.dart';
 import '../../widgets/sideline_widgets.dart';
 import '../../core/team_theme_manager.dart';
@@ -147,49 +148,11 @@ class TeamDetailScreen extends ConsumerWidget {
     if (game == null) {
       return _emptyGameCard(context, Icons.history, loc.noRecentGamesYet);
     }
-    final team = teamColorsOf(context);
-    final opponent = game.opponent?.isNotEmpty == true
-        ? game.opponent!
-        : 'Opponent';
-    return _gameCard(
-      context,
-      accent: team.team,
+    // Same game summary tile as the games list and the game screen's
+    // completed panel: date played + W/L/D score badge.
+    return GameResultCard(
+      game: game,
       onTap: () => context.push('/game/${game.id}'),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'vs $opponent',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                if (game.startTime != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    loc.playedOn(_formatDate(game.startTime!)),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            '${game.teamScore}–${game.opponentScore}',
-            style: sidelineMono(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: team.strong,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
