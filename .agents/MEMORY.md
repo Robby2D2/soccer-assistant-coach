@@ -28,6 +28,21 @@ an entry stops being "recent", distill it into a topic file under `.agents/memor
 
 ---
 
+## Session: 2026-07-12 — Concurrency-safe pipeline (multiple simultaneous /fix-issue runs)
+
+- New **AGENTS.md → Concurrency** section (shared rules): re-check state immediately before any
+  write; lost races are benign skips, never errors; writers claim, readers re-check; never touch
+  a dirty working tree (local runs share a human's checkout).
+- Developer now **claims** an issue via `<!-- dev-agent:claim <id> -->` (oldest active claim
+  < 60 min wins), checks origin for an existing branch/PR before and after working, and treats a
+  rejected feature-branch push as "lost the race". Orchestrator got a DEV-CLAIMED skip bucket.
+- qa-reviewer + release-manager **reuse** an in-flight/green patrol-gate run for the same head SHA
+  instead of dispatching a duplicate 20–40 min emulator run; never reuse across SHAs.
+- release-manager: rejected bump/tag push = concurrent release won → benign abort (reset only its
+  own bump commit); last-moment tag re-check before tagging; dirty-tree guard before checkout.
+- qa screenshot push to `ci-screenshots`: non-FF rejection → `pull --rebase` + retry once
+  (per-PR/per-SHA paths never conflict).
+
 ## Session: 2026-07-11 — Consistency guardrails + pr-reviewer agent
 
 - New `.agents/COMPONENTS.md`: canonical shared-UI inventory ("one canonical widget per concept").

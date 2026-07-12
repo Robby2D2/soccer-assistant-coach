@@ -38,6 +38,24 @@ without a `pr-reviewer-agent:approved` newer than the latest commit.
 - Release path: release-manager bumps `pubspec.yaml` and pushes a `vX.Y.Z` tag itself — no WSL, no
   local fastlane, so the WSL silent-push credential-manager bug can't occur in the automated path.
 
+## Concurrency design (2026-07-12)
+
+Multiple humans + CI can sweep at once; the CI `concurrency` group only serializes
+Actions-triggered runs. Coordination is optimistic, built on the marker state machine
+(GitHub comment IDs give a total order — they act as the lock service):
+
+- **Cheap writes** (CPO/PM/reviewer comments): no lock, just re-fetch immediately before posting;
+  a rare duplicate comment is accepted as harmless.
+- **Expensive/exclusive work**: developer posts a `dev-agent:claim` comment first (oldest active
+  claim < 60 min wins; stale claims are ignored, so a crashed run can't wedge an issue); gate
+  dispatchers reuse queued/running/green runs for the same head SHA; release-manager relies on
+  git's own atomicity — a rejected push to main or an existing tag means the race was lost,
+  handled as a benign abort.
+- Deliberately **no external lock** (no lock branch/file): GitHub state is self-truing and a
+  crashed holder never blocks the pipeline — worst case is a duplicate comment or a wasted local
+  build, never a duplicate release (git atomicity) and, absent a 60-min-straddling claim expiry,
+  no duplicate PR.
+
 ## Error-handling protocol (origin)
 
 The first live run (issue #18 → PR #19) surfaced shell-quoting failures and motivated the canonical

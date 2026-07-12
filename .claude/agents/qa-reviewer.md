@@ -47,19 +47,29 @@ Findings here go to Step 5B like a gate failure.
 
 ## Step 4.5 — Patrol journey gate (cloud emulator)
 
-Dispatch the gate against the PR branch and gate on its conclusion:
+The gate is expensive (20–40 min) — **reuse before dispatching** (AGENTS.md → Concurrency): a
+concurrent run may already have a gate going for this exact code.
 
 ```bash
 HEAD_REF=$(gh pr view "$PR_NUMBER" --json headRefName --jq .headRefName)
-gh workflow run patrol-gate.yml --ref "$HEAD_REF" -f ref="$HEAD_REF"
+HEAD_SHA=$(gh pr view "$PR_NUMBER" --json headRefOid --jq .headRefOid)
 
-# gh workflow run doesn't return the run id — find it and watch (matrix can take 20–40 min).
-sleep 10
-RUN_ID=$(gh run list --workflow=patrol-gate.yml --branch "$HEAD_REF" \
-  --limit 1 --json databaseId --jq '.[0].databaseId')
+# Reuse a gate run for the same head SHA: completed-successful or still running.
+RUN_ID=$(gh run list --workflow=patrol-gate.yml --branch "$HEAD_REF" --limit 10 \
+  --json databaseId,status,conclusion,headSha \
+  --jq "[.[] | select(.headSha==\"$HEAD_SHA\") | select(.status==\"queued\" or .status==\"in_progress\" or .conclusion==\"success\")][0].databaseId")
+
+if [ -z "$RUN_ID" ]; then
+  gh workflow run patrol-gate.yml --ref "$HEAD_REF" -f ref="$HEAD_REF"
+  sleep 10   # gh workflow run doesn't return the run id — find it after dispatch
+  RUN_ID=$(gh run list --workflow=patrol-gate.yml --branch "$HEAD_REF" \
+    --limit 1 --json databaseId --jq '.[0].databaseId')
+fi
 gh run watch "$RUN_ID" --exit-status; PATROL_EXIT=$?
 CONCLUSION=$(gh run view "$RUN_ID" --json conclusion --jq .conclusion)
 ```
+
+Never reuse a run for a different SHA — a green gate on stale code proves nothing.
 
 - **success** → include `Patrol journey gate: ✓ (run <RUN_ID>)` in your review body.
 - **failure** → pull failing shard names
@@ -120,7 +130,10 @@ git -C "$WORK" -c user.email=actions@github.com -c user.name="qa-reviewer agent"
 git -C "$WORK" push origin ci-screenshots
 ```
 
-A failed push (auth/network) is an infrastructure failure → "On unexpected failure".
+A rejected (non-fast-forward) push means a concurrent run pushed screenshots first:
+`git -C "$WORK" pull --rebase origin ci-screenshots` and retry once — paths are per-PR/per-SHA so
+rebases never conflict. A failed push for any other reason (auth/network) is an infrastructure
+failure → "On unexpected failure".
 
 **D. Post the visuals to the issue** — note this heredoc is **unquoted** (`<<EOF`) so the
 variables expand; keep literal `$`/backticks out or escape them:
@@ -141,6 +154,11 @@ EOF
 ```
 
 ## Step 5 — Decide: approve or request changes
+
+**Concurrency:** re-fetch the PR's reviews/comments immediately before posting (AGENTS.md →
+Concurrency); if a `qa-agent:approved|review` for the current head SHA appeared since Step 2,
+exit: `PR #N already reviewed by a concurrent run — skipping.` Also skip the screenshots comment
+(4.6D) if a `qa-agent:screenshots` comment for this PR + SHA already exists.
 
 ### A. Approve
 
