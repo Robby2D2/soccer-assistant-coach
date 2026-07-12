@@ -39,6 +39,10 @@ an entry stops being "recent", distill it into a topic file under `.agents/memor
   slimmed to patrol gate + screenshots + final approve, and now requires a `pr-reviewer-agent:approved`
   newer than the latest commit before running (saves 20–40 min gate runs on PRs that would bounce).
   Orchestrator PR buckets updated in `fix-issue.md` (REVIEW → pr-reviewer, then QA).
+- Follow-up: usage audit found 6 of the 8 classes in `team_header.dart`/`team_panels.dart` were
+  **dead code** (~600 lines) — deleted. Survivors `TeamBrandedHeader` (assign-players, end-game)
+  and `TeamListPanel` (teams list) are marked legacy in COMPONENTS.md: pre-Sideline, hand-rolled
+  gradients/contrast — replace during the pending Teams/Roster Sideline restyle, don't adopt.
 
 ## Session: 2026-07-11 — Game summary consistency + active-game definition
 
