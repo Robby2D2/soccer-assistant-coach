@@ -51,6 +51,7 @@ Classify each **open issue** into exactly one bucket — first match wins:
 |---|---|---|
 | **DONE** | Closed (incl. `wont-fix`), or has an open PR via `closingIssuesReferences` | skip |
 | **BLOCKED** | Latest agent comment is a `<!-- *-agent:error -->` marker with no newer human comment | skip — **needs a human** (surface prominently) |
+| **DEV-CLAIMED** | A `<!-- dev-agent:claim -->` comment < 60 min old with no `dev-agent:done` or PR after it | skip — another run is implementing |
 | **DEV** | Has `dev_ready` label | → developer |
 | **CPO (new)** | No `<!-- cpo-agent:* -->` marker AND no `<!-- pm-agent:spec -->`/`<!-- pm-agent:question -->` marker | → cpo |
 | **PM (new)** | Has `<!-- cpo-agent:greenlit -->` but no `pm-agent:spec`/`pm-agent:question` marker | → product-manager |
@@ -135,9 +136,15 @@ in parallel with a developer (both mutate the tree / push). Include its result l
 
 - **The marker comments are the state machine** — keep them stable across edits to this skill:
   `cpo-agent:greenlit|declined`, `pm-agent:spec|question` (+ retired `pm-agent:closed`),
-  `dev-agent:plan|question|done`, `pr-reviewer-agent:approved|review|bounce`,
+  `dev-agent:claim|plan|question|done`, `pr-reviewer-agent:approved|review|bounce`,
   `qa-agent:approved|review|bounce|screenshots`, `release-agent:shipped|partial`, and
   `<role>-agent:error` for every role.
+- **Concurrent sweeps are expected** (several humans + CI may run `/fix-issue` at once — AGENTS.md
+  → Concurrency). Your triage is a snapshot: agents re-verify state themselves and return benign
+  skip lines when another run beat them ("claimed by another run", "already reviewed", "release
+  race lost"). Report those as skips, never as failures, and never re-dispatch to "fix" them.
+  The sequential-developer and one-release rules apply within your own invocation; cross-invocation
+  safety comes from the agents' claim/re-check protocol, not from you.
 - **BLOCKED handling:** a subagent returning `BLOCKED: …` (per AGENTS.md → Agent Error Handling)
   is not re-dispatched this invocation — record it under a prominent "⚠️ Needs a human" section.
   On later passes the error marker keeps it in the BLOCKED bucket until a human comment clears it.

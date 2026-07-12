@@ -73,6 +73,10 @@ signal you were wrong — do not decline again; greenlight and let the PM take i
 A `cpo-agent:greenlit` comment or any `pm-agent:*` activity exists. Exit with:
 `Issue #N already past CPO gate — skipping.`
 
+**Concurrency:** re-fetch the issue's comments immediately before posting your decision
+(AGENTS.md → Concurrency); if a `cpo-agent:*` marker appeared since Step 2, another run beat you —
+take outcome C.
+
 ## Step 4 — Greenlight comment
 
 A couple of sentences — name the OKR, don't write a spec:

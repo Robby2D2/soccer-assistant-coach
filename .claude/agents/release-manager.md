@@ -28,6 +28,7 @@ Read in parallel: `AGENTS.md` (release section), `.agents/MEMORY.md`, `pubspec.y
 ## Step 2 — Sync main, detect unreleased work
 
 ```bash
+[ -z "$(git status --porcelain)" ] || { echo "Working tree dirty — refusing to touch human work"; exit 1; }   # halt + flag (AGENTS.md → Concurrency #4)
 git fetch --quiet origin
 git fetch --quiet --tags origin
 git checkout main
@@ -68,14 +69,25 @@ Never force-overwrite tags.
 Confirms what we're about to ship still passes the journey suite — this is the only check on
 direct-to-main commits that bypassed the PR/QA gate.
 
+Reuse before dispatching (AGENTS.md → Concurrency) — a concurrent run may already have a gate
+going for this exact commit:
+
 ```bash
-gh workflow run patrol-gate.yml --ref main -f ref=main
-sleep 10
-RUN_ID=$(gh run list --workflow=patrol-gate.yml --branch main --limit 1 --json databaseId --jq '.[0].databaseId')
+HEAD_SHA=$(git rev-parse HEAD)
+RUN_ID=$(gh run list --workflow=patrol-gate.yml --branch main --limit 10 \
+  --json databaseId,status,conclusion,headSha \
+  --jq "[.[] | select(.headSha==\"$HEAD_SHA\") | select(.status==\"queued\" or .status==\"in_progress\" or .conclusion==\"success\")][0].databaseId")
+if [ -z "$RUN_ID" ]; then
+  gh workflow run patrol-gate.yml --ref main -f ref=main
+  sleep 10
+  RUN_ID=$(gh run list --workflow=patrol-gate.yml --branch main --limit 1 --json databaseId --jq '.[0].databaseId')
+fi
 gh run watch "$RUN_ID" --exit-status; PATROL_EXIT=$?
 CONCLUSION=$(gh run view "$RUN_ID" --json conclusion --jq .conclusion)
 echo "Patrol gate run $RUN_ID concluded: $CONCLUSION"
 ```
+
+Never reuse a run for a different SHA.
 
 - **success** → proceed (record the run id for Step 9's comments).
 - **failure** → **abort the release** — no tag, no push, no Release. Pull failing shard names and
@@ -96,10 +108,19 @@ grep -E '^version:' pubspec.yaml   # sanity check
 
 git add pubspec.yaml
 git commit -m "chore: bump version to $next_version+$next_build"
-git push origin main
+git push origin main || {
+  # Rejected push = a concurrent run released (or new commits landed) while we gated. Benign:
+  git fetch origin && git fetch --tags origin
+  echo "Push of bump commit rejected — origin/main moved. Another release run likely won the race; aborting v$next_version. The next sweep re-evaluates."
+  git reset --hard origin/main   # discard only our own bump commit
+  exit 0
+}
 
+# Last-moment idempotency re-check — a concurrent run may have tagged since Step 4.
+git ls-remote --tags origin "v$next_version" | grep -q . && { echo "Tag v$next_version appeared concurrently — aborting (bump commit already pushed is harmless)."; exit 0; }
 git tag "v$next_version"
-git push origin "v$next_version"   # THIS push triggers release.yml + release-ios.yml
+git push origin "v$next_version" || { echo "Tag push rejected — concurrent release won; aborting."; git tag -d "v$next_version"; exit 0; }
+# THIS push triggers release.yml + release-ios.yml
 ```
 
 ## Step 6 — Verify the tag reached origin
@@ -180,6 +201,7 @@ EOF
 |---|---|
 | Latest tag ≠ `^v\d+\.\d+\.\d+$`, or pubspec version ≠ `X.Y.Z+N` | Abort with a clear error — convention changed; human intervenes. |
 | Tag `v$next_version` already on origin | Abort (idempotency). |
+| Bump-commit or tag push rejected (origin moved / tag appeared) | Concurrent release run won the race — **benign** abort per Step 5, no error comment; next sweep re-evaluates. |
 | Patrol gate failed on `main` | Abort (Step 4.5) — no tag. Surface failing shards + run id. |
 | Gate couldn't be dispatched / never started | Infrastructure — `release-agent:error`, stop. |
 | Tag didn't reach origin | Abort before creating a Release (Step 6); flag for a human. |

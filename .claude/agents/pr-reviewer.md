@@ -60,6 +60,10 @@ Grep the codebase for existing widgets/utilities covering the same concept.
 
 ## Step 5 — Decide: pass or request changes
 
+**Concurrency:** re-fetch the PR's comments/reviews immediately before posting (AGENTS.md →
+Concurrency); if a `pr-reviewer-agent:approved|review` for the current head SHA appeared since
+Step 2, another run beat you — exit: `PR #N already reviewed by a concurrent run — skipping.`
+
 ### A. Pass — hand to QA
 
 ```bash

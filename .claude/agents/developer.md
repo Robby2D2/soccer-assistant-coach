@@ -59,6 +59,24 @@ gh issue edit "$ISSUE_NUMBER" --remove-label "dev_ready" --add-label "awaiting-a
 **C. PR already exists** (`gh pr list --search "closes #N"`) **→** return:
 `PR already open for issue #N — skipping.`
 
+## Step 3.5 — Claim the issue (concurrency guard)
+
+Another `/fix-issue` run may be working this issue right now (AGENTS.md → Concurrency). Claim it
+before doing any work:
+
+```bash
+CLAIM_ID="dev-$(date +%s)-$RANDOM"
+gh issue comment "$ISSUE_NUMBER" --body "<!-- dev-agent:claim $CLAIM_ID -->"
+sleep 5
+gh issue view "$ISSUE_NUMBER" --json comments
+```
+
+**Active claims** = `dev-agent:claim` comments newer than the event that made the issue dev-ready
+(latest `pm-agent:spec` or reviewer bounce), less than **60 minutes** old, with no `dev-agent:done`
+after them. If the **oldest** active claim is not yours, exit:
+`Issue #N claimed by another developer run — skipping.` Older abandoned claims (>60 min, no PR)
+are stale — ignore them. Re-verify no PR appeared while you were claiming (Step 3C).
+
 ## Step 4 — Post your development plan
 
 Before touching code, post one comment (use Glob/Grep first so the file list is real; if the plan
@@ -87,8 +105,12 @@ diverging):
 ## Step 5 — Branch
 
 ```bash
+[ -z "$(git status --porcelain)" ] || { echo "Working tree dirty — refusing to touch human work"; exit 1; }   # halt + flag (AGENTS.md → Concurrency #4)
+git fetch origin
+BRANCH="fix/<slug>-$ISSUE_NUMBER"   # slug: lowercase issue title, hyphens, ≤40 chars
+git ls-remote --heads origin "$BRANCH" | grep -q . && exit 0   # branch already on origin → another run is ahead; exit: `Branch for issue #N already exists on origin — skipping.`
 git checkout main && git pull --ff-only
-git checkout -b "fix/<slug>-$ISSUE_NUMBER"   # slug: lowercase issue title, hyphens, ≤40 chars
+git checkout -b "$BRANCH"
 ```
 
 Use `feat/` instead of `fix/` when the issue has the `enhancement` label.
@@ -135,6 +157,10 @@ Closes #<issue-number>
 (`feat:` for enhancement-labeled issues.)
 
 ## Step 9 — Push and open the PR
+
+Re-check first: `gh pr list --search "closes #N"` — if a PR appeared while you worked, exit:
+`PR already open for issue #N — discarding local branch.` A rejected push of your feature branch
+means the same thing (someone pushed it first) — re-check and exit benignly, don't force-push.
 
 ```bash
 git push -u origin HEAD

@@ -58,10 +58,33 @@ unexpected failure.**
 
 **Not failures (normal control flow — do not halt):** `label create` on an existing label
 (`2>/dev/null || true`), empty `gh` list results, "no PR found" / "already past gate" / "no new
-human input", and `flutter analyze`/`flutter test` failing because of **your own in-progress
-change** — that's iteration; fix it and continue. Halt only when the failure is
-environmental/infra. When genuinely unsure, halt and flag — a human glance is cheap; a silently
-broken pipeline is not.
+human input", any lost concurrency race (see below), and `flutter analyze`/`flutter test` failing
+because of **your own in-progress change** — that's iteration; fix it and continue. Halt only when
+the failure is environmental/infra. When genuinely unsure, halt and flag — a human glance is
+cheap; a silently broken pipeline is not.
+
+## Concurrency (multiple simultaneous `/fix-issue` runs)
+
+Several people (and CI) may run `/fix-issue` at the same time, each from their own clone. GitHub
+(issues, PRs, labels, marker comments, tags, workflow runs) is the shared state; the CI
+`concurrency` group only serializes Actions-triggered sweeps, not local ones. Every pipeline agent
+follows these rules:
+
+1. **Re-check before you write.** Immediately before posting a decision comment, pushing, tagging,
+   or dispatching a workflow, re-fetch the relevant state. If another run already produced your
+   outcome (marker present, PR open, tag exists, gate already running for the same SHA), return a
+   one-line skip instead of duplicating it.
+2. **Losing a race is benign, not an error.** "Already claimed / already reviewed / branch or PR
+   already exists / tag appeared / push rejected because another run completed the same work" is
+   normal control flow: skip line, no error comment. Follow Agent Error Handling only when a
+   re-fetch shows the work is still yours and the failure remains unexplained.
+3. **Writers claim; readers just re-check.** The developer agent claims an issue with a
+   `dev-agent:claim` comment before doing any work (its instructions define the protocol). CPO,
+   PM, and reviewers only re-check before posting — a rare duplicate comment is harmless; a
+   duplicate PR or release is not.
+4. **Never touch uncommitted human work.** Local runs share a human's working tree: if
+   `git status --porcelain` is non-empty before you switch branches or pull, halt and flag —
+   never stash, reset, or discard.
 
 ## Publishing a Release
 

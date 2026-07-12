@@ -57,6 +57,10 @@ all, spec the greenlit intent as best you can anyway.
 Your `pm-agent:question` is the latest PM activity and no human answered. Exit with:
 `No new human input since last PM question on issue #N — skipping.`
 
+**Concurrency:** re-fetch the issue's comments immediately before posting (AGENTS.md →
+Concurrency); if a new `pm-agent:*` marker appeared since Step 2, another run beat you — exit
+with a skip line instead of double-posting.
+
 ## Step 4 — The spec comment
 
 Post one comment in exactly this shape (tight bullets, not prose):
